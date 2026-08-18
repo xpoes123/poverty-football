@@ -51,23 +51,8 @@
       </section>
     </div>
 
-    {% if recent_games %}
-    <div class="section-head"><h2>Recent Games</h2><p>{{ season_stat }} · fantasy points</p></div>
-    <div class="gamelog">
-      {% for gm in recent_games %}
-      <a class="glrow" href="/game/{{ gm.eid }}?week={{ gm.week }}">
-        <span class="gl-wk">Wk {{ gm.week }}</span>
-        <span class="gl-opp">{{ gm.atvs }} {{ gm.opp }}</span>
-        <span class="gl-res">{{ gm.result }}</span>
-        <span class="gl-stats">{% for c in gm.chips %}<span class="bstat"><b>{{ c.value }}</b> {{ c.label }}</span>{% endfor %}</span>
-        <span class="gl-pts">{{ gm.pts }}</span>
-      </a>
-      {% endfor %}
-    </div>
-    {% endif %}
-
     {% if game_table and game_table.rows and game_table.columns %}
-    <div class="section-head"><h2>Game History</h2><p>{{ season_stat }} · tap a header to sort</p></div>
+    <div class="section-head"><h2>Recent Games</h2><p>{{ season_stat }} · tap a header to sort</p></div>
     <div class="table-wrap">
     <table class="ledger sortable">
       <thead>

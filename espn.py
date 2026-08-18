@@ -116,7 +116,7 @@ def game_table(gl: dict, scoring: dict, position: str) -> dict:
         rows.append({"week": meta.get("week"), "opp": (meta.get("opponent") or {}).get("abbreviation"),
                      "atvs": meta.get("atVs"), "eid": eid, "cells": cells, "pts": pts,
                      "result": gr if any(ch.isdigit() for ch in gr) else f"{gr} {sc}".strip()})
-    rows.sort(key=lambda r: r["week"] or 0)
+    rows.sort(key=lambda r: r["week"] or 0, reverse=True)  # most recent first
     return {"columns": [label for label, _ in cols], "rows": rows}
 
 
