@@ -12,7 +12,7 @@ def test_draft_board_orders_by_search_rank_and_filters():
     stats = {"b": {"pts_ppr": 403.0}}
     board = draft_board(players, stats)
     assert [r["name"] for r in board] == ["Top WR", "Star RB"]  # rank 1 before rank 2, others filtered
-    assert board[0]["rank"] == 1 and board[0]["pts"] == "403" and board[0]["exp"] == "R"
+    assert board[0]["rank"] == 1 and board[0]["pts"] == "403"
     assert board[1]["pts"] == "—"  # no stats for Star RB
     assert [r["name"] for r in draft_board(players, stats, pos="WR")] == ["Top WR"]
 

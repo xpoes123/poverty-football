@@ -358,7 +358,7 @@ def player_image(pid: str, position: str, team: str | None) -> str | None:
 def draft_board(players: dict, stats: dict, pos: str | None = None,
                 limit: int | None = None, exclude: set | None = None) -> list[dict]:
     """Every fantasy-relevant player ordered by Sleeper's search_rank (1 = most valued),
-    with headshot, age, experience and last-season PPR. Each row carries both a display
+    with headshot, age, games, and last-season PPR. Each row carries both a display
     string and an `*_n` numeric key so the table can be sorted client-side. `exclude` drops
     already-rostered player ids (used for the free-agent pool)."""
     rows = []
@@ -372,7 +372,6 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
             continue
         if exclude and pid in exclude:
             continue
-        exp = p.get("years_exp")
         age = p.get("age")
         st = stats.get(pid) or {}
         pts = st.get("pts_ppr")
@@ -388,8 +387,6 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
             "pid": pid, "sr": sr, "name": name, "pos": position, "team": p.get("team") or "FA",
             "img": player_image(pid, position, p.get("team") or pid),
             "age": str(age) if age is not None else "—", "age_n": age if age is not None else -1,
-            "exp": "R" if exp == 0 else (str(exp) if exp is not None else "—"),
-            "exp_n": exp if exp is not None else -1,
             "gp": str(int(gp)) if gp else "—", "gp_n": int(gp) if gp else -1,
             "pts": str(round(pts)) if pts else "—", "pts_n": round(pts) if pts else -1,
             "ppg": str(ppg) if ppg else "—", "ppg_n": ppg if ppg else -1,

@@ -27,10 +27,9 @@
           <option value="0:1">Rank</option>
           <option value="1:1">Player A–Z</option>
           <option value="2:-1">Age (high)</option>
-          <option value="3:-1">Experience (high)</option>
-          <option value="4:-1">Games (high)</option>
-          <option value="5:-1">{{ season_stat }} PPR (high)</option>
-          <option value="6:-1">PPR / game (high)</option>
+          <option value="3:-1">Games (high)</option>
+          <option value="4:-1">{{ season_stat }} PPR (high)</option>
+          <option value="5:-1">PPR / game (high)</option>
         </select>
       </label>
     </div>
@@ -43,7 +42,6 @@
           <th scope="col" data-type="num">Rk</th>
           <th scope="col">Player</th>
           <th scope="col" data-type="num">Age</th>
-          <th scope="col" data-type="num">Exp</th>
           <th scope="col" data-type="num">GP</th>
           <th scope="col" data-type="num">{{ season_stat }} PPR</th>
           <th scope="col" data-type="num">PPR/G</th>
@@ -55,7 +53,6 @@
             <td class="cell-rank" data-sort="{{ pl.rank }}">{{ pl.rank }}</td>
             <td class="cell-team" data-sort="{{ pl.name }}"><a class="team-link" href="/player/{{ pl.pid }}">{% if pl.img %}<img class="player-face" src="{{ pl.img }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/default-team.svg'">{% endif %}<span class="entity__text"><span class="team-name">{{ pl.name }}</span><span class="team-owner">{{ pl.pos }} · {{ pl.team }}</span></span></a></td>
             <td data-label="Age" data-sort="{{ pl.age_n }}">{{ pl.age }}</td>
-            <td data-label="Exp" data-sort="{{ pl.exp_n }}">{{ pl.exp }}</td>
             <td data-label="GP" data-sort="{{ pl.gp_n }}">{{ pl.gp }}</td>
             <td data-label="{{ season_stat }} PPR" data-sort="{{ pl.pts_n }}">{{ pl.pts }}</td>
             <td data-label="PPR/G" data-sort="{{ pl.ppg_n }}">{{ pl.ppg }}</td>
