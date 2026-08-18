@@ -459,20 +459,26 @@ async def schedule(request: Request, week: int | None = None):
     week = week or current
     users, rosters = await get_users(LID), await get_rosters(LID)
     games = views.scoreboard(await get_matchups(LID, week), rosters, users)
+    upcoming = not ctx["is_pre"] and week > current  # fixtures exist but no results yet
 
     matchups = []
     for i, g in enumerate(games):
         sides = g["sides"]
         a = sides[0]
         b = sides[1] if len(sides) > 1 else None
-        entry_a = {"win": "true" if g["winner"] == 0 else "false", "avatar": a["avatar"],
-                   "initials": views.initials(a["team"]), "name": a["team"], "score": _fmt(a["points"])}
-        entry_b = ({"win": "true" if g["winner"] == 1 else "false", "avatar": b["avatar"],
-                    "initials": views.initials(b["team"]), "name": b["team"], "score": _fmt(b["points"])}
-                   if b else {"win": "false", "avatar": None, "initials": "—", "name": "Bye", "score": "—"})
-        matchups.append({"slot": f"Match {i + 1}", "status": "" if ctx["is_pre"] else "Final",
+
+        def entry(s, is_winner):
+            return {"win": "true" if (is_winner and not upcoming) else "false", "avatar": s["avatar"],
+                    "initials": views.initials(s["team"]), "name": s["team"],
+                    "score": "—" if upcoming else _fmt(s["points"])}
+
+        entry_a = entry(a, g["winner"] == 0)
+        entry_b = (entry(b, g["winner"] == 1) if b else
+                   {"win": "false", "avatar": None, "initials": "—", "name": "Bye", "score": "—"})
+        status = "Upcoming" if upcoming else ("" if ctx["is_pre"] else "Final")
+        matchups.append({"slot": f"Match {i + 1}", "status": status,
                          "a": entry_a, "b": entry_b,
-                         "href": f"/matchup/{week}/{g['mid']}" if g.get("mid") is not None else None})
+                         "href": None if upcoming else (f"/matchup/{week}/{g['mid']}" if g.get("mid") is not None else None)})
 
     ctx["matchups"] = matchups
     ctx["week_has_games"] = bool(matchups)
@@ -480,8 +486,8 @@ async def schedule(request: Request, week: int | None = None):
     ctx["week_heading"] = f"Week {week}"
     ctx["weeks"] = [{"href": f"/schedule?week={w}", "label": str(w), "current": w == week} for w in range(1, 19)]
     ctx["empty_week_title"] = f"No matchups for Week {week}"
-    ctx["empty_week_body"] = ("Scores appear here once the season starts."
-                              + (f" Draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
+    ctx["empty_week_body"] = (f"Scores appear here once the season starts. Draft is {ctx['draft_date_label']}."
+                              if ctx["is_pre"] else "Matchups for this week aren't set yet.")
     return templates.TemplateResponse(request, "schedule.html", ctx)
 
 
