@@ -20,7 +20,7 @@
   <div class="wrap">
     <div class="phead-row">
       <nav class="crumbs" aria-label="Breadcrumb"><a href="/player/{{ a.pid }}">{{ a.name }}</a><span class="sep">/</span><span class="here">Compare</span></nav>
-      <button class="btn" id="cmpOpen" type="button" aria-expanded="{{ 'false' if b else 'true' }}">＋ {{ 'Change' if b else 'Add' }} player</button>
+      <button class="btn" id="cmpOpen" type="button" aria-expanded="{{ 'false' if b else 'true' }}">+ {{ 'Change' if b else 'Add' }} player</button>
     </div>
 
     <div class="search-panel" id="searchPanel" data-a="{{ a.pid }}" {% if b %}hidden{% endif %}>
@@ -34,8 +34,6 @@
       {{ col(a) }}
       {% if b %}
         {{ col(b) }}
-      {% else %}
-        <div class="cmp-col cmp-empty"><p class="muted-note">Search a player above to compare with {{ a.name }}.</p></div>
       {% endif %}
     </div>
   </div>
