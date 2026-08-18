@@ -1,0 +1,14 @@
+# The roster of the invited. Copy to expected.toml (gitignored) and fill in all 12.
+# name       = whatever you call them
+# sleeper    = their Sleeper USERNAME (login handle, used to resolve their user_id)
+# discord_id = their Discord user ID (right-click → Copy User ID, needs dev mode on)
+
+[[member]]
+name = "xpoes"
+sleeper = "xpoes"
+discord_id = 000000000000000000
+
+[[member]]
+name = "Rik"
+sleeper = "RikShah"
+discord_id = 000000000000000000

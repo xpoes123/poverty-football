@@ -1,0 +1,13 @@
+[project]
+name = "nfl-bot"
+version = "0.1.0"
+description = "Poverty Franchises league bot — nags people who haven't joined Sleeper yet"
+requires-python = ">=3.11"
+dependencies = [
+    "discord.py>=2.4",
+    "httpx>=0.27",
+    "pydantic-settings>=2.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]

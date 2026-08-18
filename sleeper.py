@@ -1,0 +1,22 @@
+"""Sleeper read layer. Read-only, no auth. Grows into the shared client later."""
+
+import httpx
+
+BASE = "https://api.sleeper.app/v1"
+
+
+async def get_joined_user_ids(league_id: str) -> set[str]:
+    """user_ids of everyone who has actually joined the league."""
+    async with httpx.AsyncClient(timeout=10) as c:
+        r = await c.get(f"{BASE}/league/{league_id}/users")
+        r.raise_for_status()
+        return {u["user_id"] for u in r.json()}
+
+
+async def resolve_user_id(username: str) -> str | None:
+    """Sleeper username -> user_id, or None if no such user (typo / not signed up)."""
+    async with httpx.AsyncClient(timeout=10) as c:
+        r = await c.get(f"{BASE}/user/{username}")
+        r.raise_for_status()
+        data = r.json()  # Sleeper returns literal null for unknown users
+        return data["user_id"] if data else None
