@@ -30,7 +30,7 @@
             <td data-label="Actual">{{ row.wins }}–{{ row.losses }}{% if row.ties %}–{{ row.ties }}{% endif %}</td>
             <td data-label="All-Play">{{ row.all_play }}</td>
             <td data-label="Exp. Wins">{{ '%.1f'|format(row.expected_wins) }}</td>
-            <td data-label="Luck">{{ '+%.1f'|format(row.luck) if row.luck > 0 else '%.1f'|format(row.luck) }}</td>
+            <td data-label="Luck" class="{{ 'pos' if row.luck > 0 else 'neg' if row.luck < 0 else '' }}">{{ '+%.1f'|format(row.luck) if row.luck > 0 else '%.1f'|format(row.luck) }}</td>
             <td data-label="Avg PF">{{ '%.1f'|format(row.avg_pts) }}</td>
           </tr>
         {% endfor %}

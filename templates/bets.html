@@ -96,8 +96,8 @@
             <td class="cell-rank">{{ b.week }}</td>
             <td class="cell-team"><span class="team-name">{{ b.team }}</span></td>
             <td data-label="Stake">{{ b.stake }}</td>
-            <td data-label="Result">{{ b.status|capitalize }}</td>
-            <td data-label="Chips">{{ '+%d'|format(b.payout) if b.payout > 0 else b.payout }}</td>
+            <td data-label="Result" class="{{ 'pos' if b.status == 'won' else 'neg' if b.status == 'lost' else '' }}">{{ b.status|capitalize }}</td>
+            <td data-label="Chips" class="{{ 'pos' if b.payout > 0 else 'neg' if b.payout < 0 else '' }}">{{ '+%d'|format(b.payout) if b.payout > 0 else b.payout }}</td>
           </tr>
         {% endfor %}
       </tbody>
