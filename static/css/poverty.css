@@ -230,7 +230,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 /* team-head text block */
 .team-head__text{min-width:0;display:flex;flex-direction:column;gap:6px}
-.team-head__owner{margin-top:0}
+.team-head__text .team-head__owner{margin-top:0}
 
 /* profile headline strip */
 .pstat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin:20px 0}
