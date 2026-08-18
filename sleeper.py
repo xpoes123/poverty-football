@@ -5,6 +5,7 @@ site snappy. No lock — a rare double-fetch on expiry is fine (ponytail: add a 
 only if request volume ever makes the race matter, which for a 12-person league it won't).
 """
 
+import contextvars
 import json
 import pathlib
 import time
@@ -15,6 +16,10 @@ from config import cfg
 
 BASE = "https://api.sleeper.app/v1"
 SEED_DIR = pathlib.Path(__file__).parent / "seed"
+
+# Per-request override so a visitor can preview seeded season data via a cookie,
+# independent of the global cfg.dev_seed env flag. Set by web.py middleware.
+seed_preview: contextvars.ContextVar[bool] = contextvars.ContextVar("seed_preview", default=False)
 
 _cache: dict[str, tuple[float, object]] = {}
 
@@ -53,7 +58,7 @@ def _seed(url: str):
 
 
 async def _get(url: str, ttl: float):
-    if cfg.dev_seed:
+    if cfg.dev_seed or seed_preview.get():
         return _seed(url)
     now = time.monotonic()
     hit = _cache.get(url)

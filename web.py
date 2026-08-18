@@ -32,9 +32,30 @@ from sleeper import (
     get_transactions,
     get_users,
     resolve_user_id,
+    seed_preview,
 )
 
 app = FastAPI(title="Poverty Franchises")
+
+
+class SeedPreviewMiddleware:
+    """Lets a visitor preview seeded season data via a `seed_preview` cookie — per-session,
+    no restart, independent of the global cfg.dev_seed flag. Sets the request-scoped contextvar."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or cfg.dev_seed:
+            return await self.app(scope, receive, send)
+        token = seed_preview.set(Request(scope).cookies.get("seed_preview") == "1")
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            seed_preview.reset(token)
+
+
+app.add_middleware(SeedPreviewMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=cfg.session_secret, https_only=True, same_site="lax")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -103,6 +124,7 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
                      "analysis": cfg.enable_analysis},
         "oauth_enabled": cfg.oauth_enabled,
+        "seed_on": cfg.dev_seed or request.cookies.get("seed_preview") == "1",
         "logged_in": bool(request.session.get("discord_id")),
         "me_roster_id": me,
         "my_team_href": f"/team/{me}" if me else None,
@@ -149,6 +171,17 @@ async def _tx_feed(users, rosters):
 @app.get("/health")
 async def health():
     return {"ok": True}
+
+
+@app.get("/toggle-seed")
+async def toggle_seed(request: Request):
+    on = request.cookies.get("seed_preview") == "1"
+    resp = RedirectResponse(request.headers.get("referer") or "/", status_code=303)
+    if on:
+        resp.delete_cookie("seed_preview")
+    else:
+        resp.set_cookie("seed_preview", "1", max_age=86400, samesite="lax")
+    return resp
 
 
 @app.get("/login")
