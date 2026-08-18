@@ -18,6 +18,8 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 import betting
+import h2h
+import odds
 import views
 from config import cfg
 from sleeper import (
@@ -94,6 +96,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
         nav_items.append({"href": "/bets", "label": "Bets", "current": active == "bets"})
     if cfg.enable_analysis:  # Insights tab only exists when the analysis flag is on
         nav_items.append({"href": "/insights", "label": "Insights", "current": active == "insights"})
+    if cfg.enable_h2h_betting:  # NFL Bets tab only exists when the h2h flag is on
+        nav_items.append({"href": "/h2h", "label": "NFL Bets", "current": active == "h2h"})
     return {
         "request": request,
         "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
@@ -480,3 +484,82 @@ async def place_bet(request: Request):
     except ValueError:
         pass  # duplicate / invalid — fall through to a clean redirect
     return RedirectResponse("/bets", 303)
+
+
+@app.get("/h2h", response_class=HTMLResponse)
+async def h2h_page(request: Request):
+    if not cfg.enable_h2h_betting:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "h2h")
+    users, rosters = await get_users(LID), await get_rosters(LID)
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
+
+    board = h2h.games(await odds.get_nfl_odds())
+    ctx["games"] = board
+    game_teams = {g["game_id"]: (g["home"], g["away"]) for g in board}
+
+    def team_name(rid):
+        return views.team_name(owner_of.get(rid)) if rid is not None else None
+
+    all_wagers = h2h.all_wagers()
+    for w in all_wagers:
+        w["proposer_team"] = team_name(w["proposer"])
+        w["acceptor_team"] = team_name(w["acceptor"])
+    ctx["open_wagers"] = [w for w in all_wagers if w["acceptor"] is None]
+    ctx["matched_wagers"] = [w for w in all_wagers if w["acceptor"] is not None]
+
+    # Settlement of live NFL results is out of scope this round → wagers stay open/matched.
+    settled = h2h.settle(all_wagers, {})
+    net = h2h.net_ledger(settled)
+    ledger = [{"roster_id": rid, "team": views.team_name(u), "avatar": views.avatar_url(u),
+               "net": net.get(rid, 0)} for rid, u in owner_of.items()]
+    ledger.sort(key=lambda x: x["net"], reverse=True)
+    for i, row in enumerate(ledger, 1):
+        row["rank"] = i
+    ctx["ledger"] = ledger
+    ctx["can_bet"] = bool(ctx["me_roster_id"])
+    return templates.TemplateResponse(request, "h2h.html", ctx)
+
+
+@app.post("/h2h/propose")
+async def h2h_propose(request: Request):
+    if not cfg.enable_h2h_betting:
+        return RedirectResponse("/")
+    me = await _me_roster_id(request)
+    if me is None:
+        return RedirectResponse("/login" if cfg.oauth_enabled else "/")
+    form = parse_qs((await request.body()).decode())  # urlencoded; avoids python-multipart dep
+    try:
+        game_id, side = form["game_id"][0], form["side"][0]
+        price, stake = int(form["price"][0]), int(form["stake"][0])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return RedirectResponse("/h2h", 303)
+    board = h2h.games(await odds.get_nfl_odds())
+    game = next((g for g in board if g["game_id"] == game_id), None)
+    if game is None or side not in (game["home"], game["away"]):
+        return RedirectResponse("/h2h", 303)  # unknown game / side — reject cleanly
+    try:
+        h2h.propose(me, game_id, side, price, stake)
+    except ValueError:
+        pass  # invalid stake — fall through to a clean redirect
+    return RedirectResponse("/h2h", 303)
+
+
+@app.post("/h2h/accept")
+async def h2h_accept(request: Request):
+    if not cfg.enable_h2h_betting:
+        return RedirectResponse("/")
+    me = await _me_roster_id(request)
+    if me is None:
+        return RedirectResponse("/login" if cfg.oauth_enabled else "/")
+    form = parse_qs((await request.body()).decode())
+    try:
+        wager_id = int(form["wager_id"][0])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return RedirectResponse("/h2h", 303)
+    try:
+        h2h.accept(wager_id, me)
+    except ValueError:
+        pass  # already taken / self-accept / missing — reject cleanly
+    return RedirectResponse("/h2h", 303)

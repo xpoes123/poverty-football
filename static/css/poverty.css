@@ -288,3 +288,17 @@ button{font:inherit;color:inherit;background:none;border:0}
 .bet-standby{background:var(--surface);border:1px solid var(--rule);padding:14px 16px;color:var(--bone-dim);font-size:13.5px;line-height:1.6}
 .bet-link{color:var(--gold-bright);border-bottom:1px solid var(--gold-dim)}
 .bet-link:hover{border-color:var(--gold)}
+.game-cards{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.game-card{background:var(--surface);padding:14px 16px 16px}
+.game-card__head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.game-card__match{font-family:var(--serif);font-size:16px;color:var(--bone)}
+.game-card__at{color:var(--muted);font-style:italic;padding:0 2px}
+.game-card__sides{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:12px;grid-template-columns:1fr}
+@media (min-width:560px){.game-card__sides{grid-template-columns:1fr 1fr}}
+.game-card__side{background:var(--surface-2);padding:11px 13px 13px}
+.game-card__team{display:block;font-size:13.5px;color:var(--bone-dim)}
+.game-card__fav{font-size:9px;letter-spacing:.16em;color:var(--gold);border:1px solid var(--gold-dim);padding:1px 4px;vertical-align:middle}
+.game-card__price{font-variant-numeric:tabular-nums;color:var(--gold-bright);font-size:15px}
+.game-card__side .game-card__price{display:block;margin-top:3px}
+.game-card__bet{border:0;padding:9px 0 0;margin:0;background:none}
+.game-card--open .game-card__bet{padding-top:11px}

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}NFL Bets{% endblock %}
+{% macro odds(p) %}{{ '+%d'|format(p) if p > 0 else p }}{% endmacro %}
+{% block main %}
+<main class="page" data-page="h2h" id="ledger" data-screen-label="NFL Bets">
+  <div class="wrap">
+
+    <div class="section-head">
+      <h2>This Week's NFL Games</h2>
+      <p>Moneyline · handshake bets</p>
+    </div>
+
+    {% if not logged_in %}
+      {% if oauth_enabled %}
+        <p class="bet-standby">Members bet against each other on this week's real NFL games.
+          <a class="bet-link" href="/login">Log in</a> to propose a side or shake on one.</p>
+      {% else %}
+        <p class="bet-standby">NFL betting sign-in isn't enabled for this league.</p>
+      {% endif %}
+    {% endif %}
+
+    {% if games %}
+      <div class="game-cards">
+        {% for g in games %}
+          <div class="game-card">
+            <div class="game-card__head">
+              <span class="game-card__match">{{ g.away }} <span class="game-card__at">@</span> {{ g.home }}</span>
+            </div>
+            <div class="game-card__sides">
+              <div class="game-card__side">
+                <span class="game-card__team">{{ g.away }}{% if g.favorite == g.away %} <span class="game-card__fav">FAV</span>{% endif %}</span>
+                <span class="game-card__price">{{ odds(g.away_price) }}</span>
+                {% if can_bet %}
+                  <form class="bet-form game-card__bet" method="post" action="/h2h/propose">
+                    <input type="hidden" name="game_id" value="{{ g.game_id }}">
+                    <input type="hidden" name="side" value="{{ g.away }}">
+                    <input type="hidden" name="price" value="{{ g.away_price }}">
+                    <div class="bet-form__row">
+                      <input class="bet-form__input" name="stake" type="number" min="1" step="1"
+                             inputmode="numeric" placeholder="Chips" aria-label="Chips on {{ g.away }}" required>
+                      <button class="linkbtn" type="submit">Propose</button>
+                    </div>
+                  </form>
+                {% endif %}
+              </div>
+              <div class="game-card__side">
+                <span class="game-card__team">{{ g.home }}{% if g.favorite == g.home %} <span class="game-card__fav">FAV</span>{% endif %}</span>
+                <span class="game-card__price">{{ odds(g.home_price) }}</span>
+                {% if can_bet %}
+                  <form class="bet-form game-card__bet" method="post" action="/h2h/propose">
+                    <input type="hidden" name="game_id" value="{{ g.game_id }}">
+                    <input type="hidden" name="side" value="{{ g.home }}">
+                    <input type="hidden" name="price" value="{{ g.home_price }}">
+                    <div class="bet-form__row">
+                      <input class="bet-form__input" name="stake" type="number" min="1" step="1"
+                             inputmode="numeric" placeholder="Chips" aria-label="Chips on {{ g.home }}" required>
+                      <button class="linkbtn" type="submit">Propose</button>
+                    </div>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">
+        <h3>No NFL games on the board this week.</h3>
+        <p>Games and moneylines appear here during the NFL season.</p>
+      </div>
+    {% endif %}
+
+    <div class="section-head">
+      <h2>Open Handshakes</h2>
+      <p>{{ open_wagers|length }} waiting</p>
+    </div>
+    {% if open_wagers %}
+      <div class="game-cards">
+        {% for w in open_wagers %}
+          <div class="game-card game-card--open">
+            <div class="game-card__head">
+              <span class="game-card__match">{{ w.proposer_team }} backs {{ w.side }}</span>
+              <span class="game-card__price">{{ odds(w.price) }} · {{ w.stake }} chips</span>
+            </div>
+            {% if logged_in and w.proposer != me_roster_id %}
+              <form class="bet-form game-card__bet" method="post" action="/h2h/accept">
+                <input type="hidden" name="wager_id" value="{{ w.id }}">
+                <button class="linkbtn" type="submit">Accept the other side</button>
+              </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="bet-standby">No open handshakes yet. Propose a side above to start one.</p>
+    {% endif %}
+
+    <div class="section-head">
+      <h2>Who Owes Whom</h2>
+      <p>Net chips</p>
+    </div>
+    {% if ledger %}
+    <div class="table-wrap">
+      <table class="ledger">
+        <caption>Net play-money position from settled handshake bets</caption>
+        <thead>
+          <tr>
+            <th scope="col">Rk</th>
+            <th scope="col">Franchise</th>
+            <th scope="col">Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in ledger %}
+            <tr{% if row.roster_id == me_roster_id %} class="me"{% endif %}>
+              <td class="cell-rank">{{ row.rank }}</td>
+              <td class="cell-team"><a class="team-link" href="/team/{{ row.roster_id }}"><img class="team-logo" src="{{ row.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ row.team }}</span></a></td>
+              <td data-label="Net">{{ '+%d'|format(row.net) if row.net > 0 else row.net }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <h3>No franchises yet</h3>
+      <p>The ledger fills in once teams have claimed their rosters and settled bets.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+{% endblock %}
