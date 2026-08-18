@@ -256,6 +256,7 @@ def game_players(away: str, home: str, week_stats: dict, players: dict,
         groups["away" if team == away else "home"].append({
             "pid": pid, "name": pl["name"], "pos": pl["pos"], "pts": fpts(st),
             "franchise": owner.get(pid), "img": player_image(pid, pl["pos"], team),
+            "stats": player_stat_lines(pl["pos"], st),
         })
     for k in groups:
         groups[k].sort(key=lambda r: r["pts"], reverse=True)

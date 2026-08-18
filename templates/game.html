@@ -3,12 +3,17 @@
 {% macro fplist(rows) %}
 <div class="fplist">
   {% for pl in rows %}
-  <a class="fprow" href="/player/{{ pl.pid }}">
-    <img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
-    <span class="fp-name">{{ pl.name }}<span class="fp-pos">{{ pl.pos }}</span></span>
-    <span class="fp-fr{{ ' fp-fr--fa' if not pl.franchise }}">{{ pl.franchise or 'Free agent' }}</span>
-    <span class="fp-pts">{{ pl.pts }}</span>
-  </a>
+  <div class="fprow-wrap">
+    <div class="fprow" role="button" tabindex="0" aria-expanded="false">
+      <img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
+      <a class="fp-name" href="/player/{{ pl.pid }}">{{ pl.name }}<span class="fp-pos">{{ pl.pos }}</span></a>
+      <span class="fp-fr{{ ' fp-fr--fa' if not pl.franchise }}">{{ pl.franchise or 'Free agent' }}</span>
+      <span class="fp-pts">{{ pl.pts }}</span>
+    </div>
+    <div class="fp-box bstats" hidden>
+      {% for s in pl.stats %}<span class="bstat"><b>{{ s.value }}</b> {{ s.label }}</span>{% else %}<span class="bstat bstat--muted">No box score</span>{% endfor %}
+    </div>
+  </div>
   {% else %}
   <p class="muted-note">No fantasy production recorded.</p>
   {% endfor %}
@@ -40,4 +45,26 @@
     {{ fplist(groups.home) }}
   </div>
 </main>
+<script>
+(() => {
+  document.querySelectorAll('.fplist').forEach((list) => {
+    const toggle = (row) => {
+      const box = row.parentElement.querySelector('.fp-box');
+      if (!box) return;
+      const open = box.hidden; box.hidden = !open;
+      row.setAttribute('aria-expanded', String(open));
+    };
+    list.addEventListener('click', (e) => {
+      if (e.target.closest('.fp-name')) return;  // let the profile link work
+      const row = e.target.closest('.fprow');
+      if (row) toggle(row);
+    });
+    list.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('fprow')) {
+        e.preventDefault(); toggle(e.target);
+      }
+    });
+  });
+})();
+</script>
 {% endblock %}

@@ -316,13 +316,15 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 /* game: fantasy player production */
 .fplist{border:1px solid var(--rule)}
-.fprow{display:grid;grid-template-columns:30px 1fr auto auto;align-items:center;gap:11px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--rule);color:inherit}
-.fprow:last-child{border-bottom:0}
-.fprow:nth-child(even){background:rgba(243,238,227,.02)}
+.fprow-wrap{border-bottom:1px solid var(--rule)}
+.fprow-wrap:last-child{border-bottom:0}
+.fplist>.fprow-wrap:nth-child(even) .fprow{background:rgba(243,238,227,.02)}
+.fprow{display:grid;grid-template-columns:30px 1fr auto auto;align-items:center;gap:11px;padding:8px 12px;background:var(--surface);color:inherit;cursor:pointer}
 .fprow:hover{background:var(--surface-2)}
 .fprow .slot-face{margin:0}
-.fprow:hover .fp-name{color:var(--gold-bright)}
-.fp-name{font-family:var(--serif);font-size:14px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-name{font-family:var(--serif);font-size:14px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit}
+.fp-name:hover{color:var(--gold-bright)}
+.fp-box{padding:8px 12px 12px 53px}
 .fp-pos{font-family:var(--grot);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:6px}
 .fp-fr{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);white-space:nowrap;max-width:13ch;overflow:hidden;text-overflow:ellipsis}
 .fp-fr--fa{color:var(--muted)}
