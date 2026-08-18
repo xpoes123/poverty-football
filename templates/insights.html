@@ -9,6 +9,7 @@
     </div>
 
     {% if has_games %}
+    <div class="table-wrap">
     <table class="ledger">
       <caption>All-play record: a win vs every team you outscored each week, a loss vs every team that outscored you</caption>
       <thead>
@@ -36,6 +37,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% else %}
     <div class="empty">
       <h3>No games yet</h3>
