@@ -65,7 +65,8 @@ def detail(s: dict) -> dict | None:
     def header_side(which):
         x = next((c for c in comps if c.get("homeAway") == which), {})
         t = x.get("team", {})
-        return {"name": t.get("displayName"), "logo": t.get("logo"),
+        logo = t.get("logo") or ((t.get("logos") or [{}])[0]).get("href")
+        return {"name": t.get("displayName"), "logo": logo,
                 "score": x.get("score"), "winner": x.get("winner")}
 
     # team stats comparison, aligned away | label | home
