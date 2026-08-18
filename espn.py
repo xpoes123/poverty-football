@@ -169,6 +169,17 @@ def games(sb: dict) -> dict:
     return {"games": out, "week": wk}
 
 
+def week_schedule(sb: dict) -> dict:
+    """ESPN team abbr -> {opp, at ('@'|'vs'), kick (iso)} for each NFL game that week."""
+    out = {}
+    for g in games(sb)["games"]:
+        h, a, kick = g["home"]["abbr"], g["away"]["abbr"], g["date"]
+        if h and a:
+            out[h] = {"opp": a, "at": "vs", "kick": kick}
+            out[a] = {"opp": h, "at": "@", "kick": kick}
+    return out
+
+
 def detail(s: dict) -> dict | None:
     comp = ((s.get("header") or {}).get("competitions") or [{}])[0]
     comps = comp.get("competitors") or []

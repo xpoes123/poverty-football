@@ -31,6 +31,7 @@ from sleeper import (
     get_nfl_state,
     get_player_stats,
     get_players,
+    get_projections,
     get_week_stats,
     get_rosters,
     get_transactions,
@@ -476,9 +477,10 @@ async def schedule(request: Request, week: int | None = None):
         entry_b = (entry(b, g["winner"] == 1) if b else
                    {"win": "false", "avatar": None, "initials": "—", "name": "Bye", "score": "—"})
         status = "Upcoming" if upcoming else ("" if ctx["is_pre"] else "Final")
+        href = f"/matchup/{week}/{g['mid']}" if g.get("mid") is not None else None
         matchups.append({"slot": f"Match {i + 1}", "status": status,
-                         "a": entry_a, "b": entry_b,
-                         "href": None if upcoming else (f"/matchup/{week}/{g['mid']}" if g.get("mid") is not None else None)})
+                         "cta": "Preview" if upcoming else "Breakdown",
+                         "a": entry_a, "b": entry_b, "href": href})
 
     ctx["matchups"] = matchups
     ctx["week_has_games"] = bool(matchups)
@@ -551,13 +553,33 @@ async def game_page(request: Request, eid: str, week: int | None = None, pos: st
 async def matchup(request: Request, week: int, mid: int):
     users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
     players = await get_players()
-    slots = [p for p in league.get("roster_positions", []) if p != "BN"]
-    week_stats = await get_week_stats(league.get("season", "2025"), week)
-    detail = views.matchup_detail(await get_matchups(LID, week), mid, rosters, users, players, slots, week_stats)
+    positions = league.get("roster_positions", [])
+    season = league.get("season", "2025")
+    matchups = await get_matchups(LID, week)
+    current = (await get_nfl_state()).get("week") or 1
+    ctx = await _base_ctx(request, "schedule")
+    ctx.update(week=week, back=f"/schedule?week={week}")
+
+    if not ctx["is_pre"] and week > current:  # upcoming game -> projected preview
+        projections = await get_projections(season, week)
+        try:
+            sched_espn = espn.week_schedule(await espn.scoreboard(year=int(season), week=week))
+        except Exception:
+            sched_espn = {}
+        sched = {views.ESPN_TO_SLEEPER_TEAM.get(k, k): v for k, v in sched_espn.items()}
+        preview = views.matchup_preview(matchups, mid, rosters, users, players, positions,
+                                        projections, sched, league.get("scoring_settings") or {})
+        if preview is None:
+            return RedirectResponse(f"/schedule?week={week}")
+        ctx["p"] = preview
+        return templates.TemplateResponse(request, "matchup_preview.html", ctx)
+
+    slots = [p for p in positions if p != "BN"]
+    week_stats = await get_week_stats(season, week)
+    detail = views.matchup_detail(matchups, mid, rosters, users, players, slots, week_stats)
     if detail is None:
         return RedirectResponse(f"/schedule?week={week}")
-    ctx = await _base_ctx(request, "schedule")
-    ctx.update(detail=detail, week=week, back=f"/schedule?week={week}")
+    ctx["detail"] = detail
     return templates.TemplateResponse(request, "matchup.html", ctx)
 
 

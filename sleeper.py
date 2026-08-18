@@ -128,6 +128,30 @@ async def get_nfl_state() -> dict:
     return await _get(f"{BASE}/state/nfl", ttl=300)
 
 
+_PROJ = "https://api.sleeper.app/projections/nfl"
+_POS_Q = "".join(f"&position[]={p}" for p in ("QB", "RB", "WR", "TE", "K", "DEF"))
+
+
+async def get_projections(season: str, week: int) -> dict:
+    """Projected stats per player for a week -> {player_id: stats}. Always real NFL data
+    (not seed-gated) — keyed by real player_id, which the seed rosters use too."""
+    url = f"{_PROJ}/{season}/{week}?season_type=regular{_POS_Q}"
+    now = time.monotonic()
+    hit = _cache.get(url)
+    if hit and hit[0] > now:
+        return hit[1]
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.get(url)
+            r.raise_for_status()
+            rows = r.json()
+    except Exception:
+        rows = []
+    out = {str(x["player_id"]): (x.get("stats") or {}) for x in rows if x.get("player_id")}
+    _cache[url] = (now + 1800, out)
+    return out
+
+
 async def get_players() -> dict:
     """id -> player metadata. ~5MB, so cache hard (24h) and only fetch when a page needs names."""
     return await _get(f"{BASE}/players/nfl", ttl=86400)

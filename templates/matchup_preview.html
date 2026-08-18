@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ p.a.team }} vs {{ p.b.team }} · Week {{ week }}{% endblock %}
+{% block main %}
+<main class="page" data-page="matchup" id="main" data-screen-label="Matchup preview">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ back }}">Schedule</a><span class="sep">/</span><span class="here">Week {{ week }} · {{ p.a.team }} vs {{ p.b.team }}</span></nav>
+
+    <div class="mvs">
+      <div class="mvs__team">
+        <img class="mvs__crest" src="{{ p.a.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">
+        <span class="mvs__name">{{ p.a.team }}</span>
+        <span class="mvs__score">{{ p.a.proj_total }}</span>
+      </div>
+      <span class="mvs__vs">vs</span>
+      <div class="mvs__team">
+        <img class="mvs__crest" src="{{ p.b.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">
+        <span class="mvs__name">{{ p.b.team }}</span>
+        <span class="mvs__score">{{ p.b.proj_total }}</span>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>Projected Starters</h2><p>Projected points · Week {{ week }} NFL game</p></div>
+    <div class="breakdown">
+      {% for i in range(p.a.starters | length) %}
+        {% set pa = p.a.starters[i] %}{% set pb = p.b.starters[i] if i < (p.b.starters | length) else None %}
+        <div class="brow">
+          <a class="bside bside--a" href="/player/{{ pa.pid }}">
+            {% if pa.img %}<img class="slot-face" src="{{ pa.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}
+            <span class="bcol"><span class="bname">{{ pa.name }}</span><span class="bgame">{{ pa.game }}</span></span>
+          </a>
+          <div class="bmid">
+            <span class="bslot">{{ pa.slot }}</span>
+            <span class="bscores"><span class="bpts">{{ pa.proj }}</span><span class="bpts">{{ pb.proj if pb else '—' }}</span></span>
+          </div>
+          {% if pb %}
+          <a class="bside bside--b" href="/player/{{ pb.pid }}">
+            <span class="bcol bcol--r"><span class="bname">{{ pb.name }}</span><span class="bgame">{{ pb.game }}</span></span>
+            {% if pb.img %}<img class="slot-face" src="{{ pb.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}
+          </a>
+          {% else %}<div class="bside bside--b"></div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    <p class="empty" style="border:0;padding:14px 0 0"><span class="bstat bstat--muted">Projections from Sleeper, scored by this league's settings.</span></p>
+  </div>
+</main>
+{% endblock %}

@@ -1,6 +1,21 @@
 """Pure shaping of raw Sleeper payloads into view models. No network — unit-testable."""
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 CDN = "https://sleepercdn.com/avatars/thumbs"
+_ET = ZoneInfo("America/New_York")
+
+
+def kick_label(iso: str | None) -> str:
+    """ESPN UTC kickoff -> 'Sun 1:00 PM' in Eastern."""
+    if not iso:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(_ET)
+        return dt.strftime("%a %-I:%M %p")
+    except ValueError:
+        return ""
 
 
 def initials(name: str) -> str:
@@ -112,6 +127,44 @@ def scoreboard(matchups: list[dict], rosters: list[dict], users: list[dict]) -> 
             winner = 0 if sides[0]["points"] > sides[1]["points"] else 1
         games.append({"sides": sides, "winner": winner, "mid": mid})
     return games
+
+
+def matchup_preview(week_matchups: list[dict], mid: int, rosters: list[dict], users: list[dict],
+                    players: dict, roster_positions: list[str], projections: dict,
+                    sched: dict, scoring: dict) -> dict | None:
+    """Pre-game preview: each starter's NFL game (opponent + kickoff) and projected points.
+    `sched` is keyed by Sleeper team abbr. Projected points apply the league's own scoring."""
+    entries = [m for m in week_matchups if m.get("matchup_id") == mid]
+    if not entries:
+        return None
+    by_uid = {u["user_id"]: u for u in users}
+    roster_of = {r["roster_id"]: r for r in rosters}
+    slots = [p for p in roster_positions if p != "BN"]
+
+    def team_block(entry: dict) -> dict:
+        r = roster_of.get(entry["roster_id"], {})
+        owner = by_uid.get(r.get("owner_id"))
+        starter_ids = [pid for pid in (r.get("starters") or []) if pid and pid != "0"]
+        out, total = [], 0.0
+        for i, pid in enumerate(starter_ids):
+            pl = player_line(pid, players)
+            proj = projections.get(pid)
+            has_proj = bool(proj) and any(k in scoring for k in proj)  # empty = player out that week
+            pts = round(fantasy_points(proj, scoring), 1) if has_proj else None
+            if pts:
+                total += pts
+            g = sched.get(pl["team"]) if pl["team"] else None
+            out.append({"pid": pid, "name": pl["name"], "pos": pl["pos"], "team": pl["team"] or "FA",
+                        "img": player_image(pid, pl["pos"], pl["team"]),
+                        "slot": slots[i] if i < len(slots) else "FLEX",
+                        "proj": pts if pts is not None else "—",
+                        "game": (f'{g["at"]} {g["opp"]} · {kick_label(g["kick"])}' if g else "Bye")})
+        return {"team": team_name(owner), "avatar": avatar_url(owner),
+                "proj_total": round(total, 1), "starters": out}
+
+    a = team_block(entries[0])
+    b = team_block(entries[1]) if len(entries) > 1 else None
+    return {"a": a, "b": b}
 
 
 def matchup_detail(week_matchups: list[dict], mid: int, rosters: list[dict], users: list[dict],

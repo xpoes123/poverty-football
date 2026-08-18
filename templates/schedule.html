@@ -18,7 +18,7 @@
       <div class="matchups">
         {% for m in matchups %}
           {% if m.href %}<a class="matchup matchup--link" href="{{ m.href }}">{% else %}<article class="matchup">{% endif %}
-            <p class="matchup__meta"><span>{{ m.slot }}</span><span>{% if m.href %}Breakdown{% else %}{{ m.status }}{% endif %}</span></p>
+            <p class="matchup__meta"><span>{{ m.slot }}</span><span>{% if m.href %}{{ m.cta }}{% else %}{{ m.status }}{% endif %}</span></p>
             <div class="side" data-winner="{{ m.a.win }}">
               <p class="mark" aria-hidden="true">{% if m.a.avatar %}<img src="{{ m.a.avatar }}" alt="" loading="lazy">{% else %}{{ m.a.initials }}{% endif %}</p>
               <h3 class="side__name">{{ m.a.name }}</h3>

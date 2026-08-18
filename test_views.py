@@ -181,6 +181,30 @@ def test_team_schedule():
     assert sched[0]["result"] == "L"
 
 
+def test_kick_label():
+    from views import kick_label
+    assert kick_label("2025-10-17T00:15Z") == "Thu 8:15 PM"  # UTC -> Eastern
+    assert kick_label(None) == "" and kick_label("garbage") == ""
+
+
+def test_matchup_preview():
+    from views import matchup_preview
+    players = {"p1": {"position": "RB", "full_name": "Runner", "team": "ATL"},
+               "p2": {"position": "WR", "full_name": "Catcher", "team": "DET"},  # out: no projection
+               "p3": {"position": "QB", "full_name": "Thrower", "team": "KC"}}
+    rosters = [{"roster_id": 1, "owner_id": "uA", "starters": ["p3", "p1"]},
+               {"roster_id": 2, "owner_id": "uB", "starters": ["p2"]}]
+    users = [{"user_id": "uA", "display_name": "A"}, {"user_id": "uB", "display_name": "B"}]
+    week = [{"roster_id": 1, "matchup_id": 1}, {"roster_id": 2, "matchup_id": 1}]
+    scoring = {"rush_yd": 0.1, "pass_yd": 0.04}
+    projections = {"p1": {"rush_yd": 80}, "p3": {"pass_yd": 250}, "p2": {}}  # p2 empty -> out
+    sched = {"ATL": {"opp": "NO", "at": "@", "kick": "2025-10-19T17:00Z"}}
+    pv = matchup_preview(week, 1, rosters, users, players, ["QB", "RB", "BN"], projections, sched, scoring)
+    assert pv["a"]["proj_total"] == 18.0  # 10 (pass) + 8 (rush)
+    assert pv["a"]["starters"][1]["proj"] == 8.0 and pv["a"]["starters"][1]["game"].startswith("@ NO")
+    assert pv["b"]["starters"][0]["proj"] == "—"  # empty projection -> out
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
