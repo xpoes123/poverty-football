@@ -53,6 +53,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 @media (max-width:430px){.nav__link{padding:8px 7px 10px;letter-spacing:.10em;font-size:11px}}
 
 /* highlight the logged-in user's franchise */
+.ledger tbody tr.in-cut td{background:rgba(201,160,94,.055)}
 .ledger tbody tr.me{border-color:var(--gold-dim)}
 .ledger tbody tr.me td{background:rgba(201,160,94,.10)}
 .ledger tbody tr.me td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
