@@ -1,98 +1,106 @@
 [
- {
-  "user_id": "u01",
-  "display_name": "retraso",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Espresso Enforcers"
+  {
+    "user_id": "u01",
+    "display_name": "retraso",
+    "avatar": "d55d1f7075eda01948318de4af616075",
+    "metadata": {
+      "team_name": "Espresso Enforcers"
+    }
+  },
+  {
+    "user_id": "u02",
+    "display_name": "xpoes",
+    "avatar": "429721922104289cd08cb2c4a395dab7",
+    "metadata": {
+      "team_name": "Antique Gold Rush"
+    }
+  },
+  {
+    "user_id": "u03",
+    "display_name": "boomstick",
+    "avatar": "8692be486f79704120c2346ffd9bc5c3",
+    "metadata": {
+      "team_name": "Ledger Legends"
+    }
+  },
+  {
+    "user_id": "u04",
+    "display_name": "coldbrew",
+    "avatar": "e7af4deab0289b4f5505646424895246",
+    "metadata": {
+      "team_name": "Almanac All-Stars"
+    }
+  },
+  {
+    "user_id": "u05",
+    "display_name": "third_down",
+    "avatar": null,
+    "metadata": {
+      "team_name": "Fraunces Faithful",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/phi.png"
+    }
+  },
+  {
+    "user_id": "u06",
+    "display_name": "punter",
+    "avatar": null,
+    "metadata": {
+      "team_name": "Narrow Margins",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/kc.png"
+    }
+  },
+  {
+    "user_id": "u07",
+    "display_name": "gridlock",
+    "avatar": null,
+    "metadata": {
+      "team_name": "Bench Warmers Local 12",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/dal.png"
+    }
+  },
+  {
+    "user_id": "u08",
+    "display_name": "hail_mary",
+    "avatar": null,
+    "metadata": {
+      "team_name": "The Coffee Grinders",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/sf.png"
+    }
+  },
+  {
+    "user_id": "u09",
+    "display_name": "audible",
+    "avatar": null,
+    "metadata": {
+      "team_name": "Pigskin Paupers",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/buf.png"
+    }
+  },
+  {
+    "user_id": "u10",
+    "display_name": "red_zone",
+    "avatar": null,
+    "metadata": {
+      "team_name": "Sunday Scaries FC",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/det.png"
+    }
+  },
+  {
+    "user_id": "u11",
+    "display_name": "two_minute",
+    "avatar": null,
+    "metadata": {
+      "team_name": "The Bye Weekenders",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/gb.png"
+    }
+  },
+  {
+    "user_id": "u12",
+    "display_name": "onside",
+    "avatar": null,
+    "metadata": {
+      "team_name": "Fourth & Broke",
+      "avatar": "https://sleepercdn.com/images/team_logos/nfl/min.png"
+    }
   }
- },
- {
-  "user_id": "u02",
-  "display_name": "xpoes",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Antique Gold Rush"
-  }
- },
- {
-  "user_id": "u03",
-  "display_name": "boomstick",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Ledger Legends"
-  }
- },
- {
-  "user_id": "u04",
-  "display_name": "coldbrew",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Almanac All-Stars"
-  }
- },
- {
-  "user_id": "u05",
-  "display_name": "third_down",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Fraunces Faithful"
-  }
- },
- {
-  "user_id": "u06",
-  "display_name": "punter",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Narrow Margins"
-  }
- },
- {
-  "user_id": "u07",
-  "display_name": "gridlock",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Bench Warmers Local 12"
-  }
- },
- {
-  "user_id": "u08",
-  "display_name": "hail_mary",
-  "avatar": null,
-  "metadata": {
-   "team_name": "The Coffee Grinders"
-  }
- },
- {
-  "user_id": "u09",
-  "display_name": "audible",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Pigskin Paupers"
-  }
- },
- {
-  "user_id": "u10",
-  "display_name": "red_zone",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Sunday Scaries FC"
-  }
- },
- {
-  "user_id": "u11",
-  "display_name": "two_minute",
-  "avatar": null,
-  "metadata": {
-   "team_name": "The Bye Weekenders"
-  }
- },
- {
-  "user_id": "u12",
-  "display_name": "onside",
-  "avatar": null,
-  "metadata": {
-   "team_name": "Fourth & Broke"
-  }
- }
 ]
