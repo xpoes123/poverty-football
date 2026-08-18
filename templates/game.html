@@ -24,7 +24,10 @@
 {% block main %}
 <main class="page" data-page="game" id="main" data-screen-label="Game">
   <div class="wrap">
-    <p class="backlink"><a href="/games?week={{ week }}">← NFL Games</a></p>
+    <div class="phead-row">
+      <p class="backlink"><a href="/games?week={{ week }}">← NFL Games</a></p>
+      {% if espn_url %}<a class="cmp-btn" href="{{ espn_url }}" target="_blank" rel="noopener">View on ESPN →</a>{% endif %}
+    </div>
 
     <div class="mvs">
       <div class="mvs__team{{ ' win' if g.away.winner }}">

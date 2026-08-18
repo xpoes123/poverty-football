@@ -5,7 +5,10 @@
   <div class="wrap">
     <div class="phead-row">
       <p class="backlink"><a href="/draftboard">← Draft Board</a></p>
-      <button class="cmp-btn" id="cmpOpen" type="button" aria-expanded="false">＋ Compare</button>
+      <div class="phead-actions">
+        {% if player.espn_url %}<a class="cmp-btn" href="{{ player.espn_url }}" target="_blank" rel="noopener">ESPN →</a>{% endif %}
+        <button class="cmp-btn" id="cmpOpen" type="button" aria-expanded="false">＋ Compare</button>
+      </div>
     </div>
 
     <div class="search-panel" id="searchPanel" data-a="{{ pid }}" hidden>
@@ -75,9 +78,6 @@
     </div>
     {% endif %}
 
-    {% if player.espn_url %}
-    <p class="ext-link"><a href="{{ player.espn_url }}" target="_blank" rel="noopener">View on ESPN →</a></p>
-    {% endif %}
   </div>
 </main>
 

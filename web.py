@@ -511,6 +511,7 @@ async def game_page(request: Request, eid: str, week: int | None = None, pos: st
                                 real_players, rosters, users, league.get("scoring_settings") or {})
     ctx["g"] = detail
     ctx["week"] = wk
+    ctx["espn_url"] = f"https://www.espn.com/nfl/game/_/gameId/{eid}"
     pos = pos if pos in views.FANTASY_POS else None
     ctx["table_pos"] = pos
     if pos:

@@ -374,7 +374,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 /* player / compare header row + compare button */
 .phead-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .phead-row .backlink{margin-bottom:0}
-.cmp-btn{border:1px solid var(--gold-dim);color:var(--gold-bright);padding:7px 13px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.phead-actions{display:flex;align-items:center;gap:8px}
+.cmp-btn{display:inline-block;border:1px solid var(--gold-dim);color:var(--gold-bright);padding:7px 13px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
 .cmp-btn:hover{background:var(--surface-2)}
 
 /* player search panel */
