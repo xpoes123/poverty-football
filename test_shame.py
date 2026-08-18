@@ -35,6 +35,12 @@ def test_shame_message_pings_everyone():
     assert "<@111>" in msg and "<@222>" in msg
 
 
+def test_shame_message_name_fallback_without_discord_id():
+    ms = [Member("Harsha", "harsha", user_id=None)]  # no discord_id
+    msg = shame_message(ms, days=5)
+    assert "**Harsha**" in msg and "<@" not in msg
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

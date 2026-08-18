@@ -9,7 +9,7 @@ import random
 class Member:
     name: str
     sleeper: str
-    discord_id: int
+    discord_id: int | None = None  # None → shamed by name instead of a real @ping
     user_id: str | None = None  # filled by resolving `sleeper`; None = unresolved
 
 
@@ -59,7 +59,11 @@ def bucket(days: int | None) -> str:
     return "chill"
 
 
+def _mention(m: Member) -> str:
+    return f"<@{m.discord_id}>" if m.discord_id else f"**{m.name}**"
+
+
 def shame_message(missing: list[Member], days: int | None) -> str:
-    who = " ".join(f"<@{m.discord_id}>" for m in missing)
+    who = " ".join(_mention(m) for m in missing)
     template = random.choice(TIERS[bucket(days)])
     return template.format(who=who)
