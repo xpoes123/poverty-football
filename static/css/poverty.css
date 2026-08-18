@@ -105,7 +105,8 @@ button{font:inherit;color:inherit;background:none;border:0}
   .ledger tbody tr:nth-child(even){background:rgba(243,238,227,.022)}
   .ledger td{padding:11px 14px;border-bottom:1px solid var(--rule)}
   .ledger .cell-rank{font-size:17px;width:56px;text-align:left;padding-top:11px}
-  .ledger td:not(.cell-rank):not(.cell-team){display:table-cell;text-align:right;font-size:14px;color:var(--bone-dim)}
+  .ledger td:not(.cell-rank):not(.cell-team){display:table-cell;text-align:right;font-size:14px;color:var(--bone-dim);white-space:nowrap;padding-left:20px}
+  .ledger th:not(:nth-child(1)):not(:nth-child(2)){padding-left:20px}
   .ledger td:not(.cell-rank):not(.cell-team)::before{content:none}
   .ledger .team-owner{display:inline;margin-left:9px}
 }
