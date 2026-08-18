@@ -42,7 +42,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 /* highlight the logged-in user's franchise */
 .ledger tbody tr.me{border-color:var(--gold-dim)}
-.ledger tbody tr.me td{background:rgba(201,160,94,.07)}
+.ledger tbody tr.me td{background:rgba(201,160,94,.10)}
+.ledger tbody tr.me td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .ledger tbody tr.me .cell-rank{color:var(--gold-bright)}
 
 .page{padding:24px 0 60px;animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
