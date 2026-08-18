@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Standings · {{ league_name }}{% endblock %}
+{% block content %}
+<h2 class="section-head">Standings</h2>
+{% if pre_draft %}
+<p class="empty">Standings open once the season starts. Draft is {{ draft_date.strftime('%b %-d') if draft_date }}.</p>
+{% else %}
+<table class="ledger">
+  <thead>
+    <tr><th>#</th><th>Team</th><th>Owner</th><th>W–L</th><th class="num">PF</th><th class="num">PA</th></tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="rank">{{ r.rank }}</td>
+      <td class="team-cell">
+        {% if r.avatar %}<img class="av-sm" src="{{ r.avatar }}" alt="" loading="lazy">{% endif %}{{ r.team }}
+      </td>
+      <td class="muted">@{{ r.owner }}</td>
+      <td>{{ r.wins }}–{{ r.losses }}{% if r.ties %}–{{ r.ties }}{% endif %}</td>
+      <td class="num">{{ r.pf }}</td>
+      <td class="num">{{ r.pa }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Transactions · {{ league_name }}{% endblock %}
+{% block content %}
+<h2 class="section-head">Transactions</h2>
+{% if not feed %}
+<p class="empty">No transactions yet.{% if pre_draft %} Waivers and trades start once the season's underway.{% endif %}</p>
+{% else %}
+<ul class="feed">
+  {% for t in feed %}
+  <li class="txn">
+    <span class="txn-type txn-{{ t.type }}">{{ t.type|replace('_',' ') }}</span>
+    <div class="txn-body">
+      {% if t.teams %}<span class="txn-teams">{{ t.teams|join(' ↔ ') }}</span>{% endif %}
+      {% for name, team in t.adds %}<div class="add">+ {{ name }} <span class="muted">→ {{ team }}</span></div>{% endfor %}
+      {% for name, team in t.drops %}<div class="drop">− {{ name }} <span class="muted">← {{ team }}</span></div>{% endfor %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

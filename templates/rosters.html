@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Rosters · {{ league_name }}{% endblock %}
+{% block content %}
+<h2 class="section-head">Rosters</h2>
+{% if pre_draft %}
+<p class="empty">Rosters fill in at the draft{% if draft_date %} on {{ draft_date.strftime('%b %-d') }}{% endif %}.</p>
+{% else %}
+<div class="roster-grid">
+  {% for t in teams %}
+  <article class="roster">
+    <h3 class="roster-team">
+      {% if t.avatar %}<img class="av-sm" src="{{ t.avatar }}" alt="" loading="lazy">{% endif %}{{ t.team }}
+    </h3>
+    <ul class="lineup">
+      {% for p in t.starters %}
+      <li><span class="pos">{{ p.pos }}</span> {{ p.name }} <span class="muted">{{ p.team }}</span></li>
+      {% endfor %}
+    </ul>
+    {% if t.bench %}
+    <div class="bench-label">Bench</div>
+    <ul class="lineup bench">
+      {% for p in t.bench %}
+      <li><span class="pos">{{ p.pos }}</span> {{ p.name }} <span class="muted">{{ p.team }}</span></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

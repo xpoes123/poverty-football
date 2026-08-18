@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ league_name }}</h1>
+  <p class="sub">
+    {{ teams_in }} of {{ total_teams }} teams in
+    {% if pre_draft %}· pre-draft{% endif %}
+  </p>
+</section>
+
+<section>
+  <h2 class="section-head">Managers</h2>
+  <div class="grid">
+    {% for m in managers %}
+    <article class="card">
+      <div class="card-top">
+        {% if m.avatar %}<img class="av" src="{{ m.avatar }}" alt="" loading="lazy">{% else %}<div class="av av-blank"></div>{% endif %}
+        <div>
+          <div class="team">{{ m.team }}</div>
+          <div class="owner">@{{ m.owner }}{% if m.co_owners %} + {{ m.co_owners|join(', ') }}{% endif %}</div>
+        </div>
+      </div>
+      <div class="card-stats">
+        <span>{{ m.wins }}–{{ m.losses }}{% if m.ties %}–{{ m.ties }}{% endif %}</span>
+        <span class="num">{{ m.pf }} PF</span>
+      </div>
+    </article>
+    {% else %}
+    <p class="empty">No teams have joined yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Poverty Franchises league portal (nfl.djiang.xyz)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/nfl-bot
+ExecStart=/opt/nfl-bot/venv/bin/uvicorn web:app --host 127.0.0.1 --port 7791
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

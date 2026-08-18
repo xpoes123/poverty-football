@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Scoreboard · {{ league_name }}{% endblock %}
+{% block content %}
+<div class="section-head-row">
+  <h2 class="section-head">Scoreboard</h2>
+  <form method="get" class="week-select">
+    <label>Week
+      <select name="week" onchange="this.form.submit()">
+        {% for w in weeks %}<option value="{{ w }}" {{ 'selected' if w == week }}>{{ w }}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+</div>
+
+{% if not games %}
+<p class="empty">No matchups for week {{ week }} yet.{% if pre_draft %} Season starts after the draft.{% endif %}</p>
+{% else %}
+<div class="games">
+  {% for g in games %}
+  <article class="game">
+    {% for s in g.sides %}
+    <div class="side {{ 'win' if g.winner == loop.index0 }}">
+      {% if s.avatar %}<img class="av-sm" src="{{ s.avatar }}" alt="" loading="lazy">{% endif %}
+      <span class="side-team">{{ s.team }}</span>
+      <span class="num side-pts">{{ s.points }}</span>
+    </div>
+    {% endfor %}
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
