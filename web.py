@@ -477,7 +477,7 @@ async def _real(fn, *args):
 
 
 @app.get("/game/{eid}", response_class=HTMLResponse)
-async def game_page(request: Request, eid: str, week: int | None = None):
+async def game_page(request: Request, eid: str, week: int | None = None, pos: str | None = None):
     ctx = await _base_ctx(request, "games")
     try:
         detail = espn.detail(await espn.summary(eid))
@@ -490,11 +490,21 @@ async def game_page(request: Request, eid: str, week: int | None = None):
     real_players = await _real(get_players)
     real_wk = await _real(get_week_stats, "2025", wk)
     users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
+    groups = views.game_players(detail["away"]["abbr"], detail["home"]["abbr"], real_wk,
+                                real_players, rosters, users, league.get("scoring_settings") or {})
     ctx["g"] = detail
     ctx["week"] = wk
-    ctx["groups"] = views.game_players(detail["away"]["abbr"], detail["home"]["abbr"],
-                                       real_wk, real_players, rosters, users,
-                                       league.get("scoring_settings") or {})
+    pos = pos if pos in views.FANTASY_POS else None
+    ctx["table_pos"] = pos
+    if pos:
+        flat = sorted((r for r in groups["away"] + groups["home"] if r["pos"] == pos),
+                      key=lambda r: r["pts"], reverse=True)
+        ctx["table"] = views.pos_table(flat, pos)
+    else:
+        ctx["groups"] = groups
+    base = f"/game/{eid}?week={wk}"
+    ctx["pos_chips"] = [{"label": "All", "href": base, "current": pos is None}] + [
+        {"label": p, "href": f"{base}&pos={p}", "current": pos == p} for p in ("QB", "RB", "WR", "TE", "K", "DEF")]
     return templates.TemplateResponse(request, "game.html", ctx)
 
 

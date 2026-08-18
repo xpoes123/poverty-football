@@ -254,13 +254,41 @@ def game_players(away: str, home: str, week_stats: dict, players: dict,
             continue
         pl = player_line(pid, players)
         groups["away" if team == away else "home"].append({
-            "pid": pid, "name": pl["name"], "pos": pl["pos"], "pts": fpts(st),
+            "pid": pid, "name": pl["name"], "pos": pl["pos"], "team": team, "pts": fpts(st),
             "franchise": owner.get(pid), "img": player_image(pid, pl["pos"], team),
-            "stats": player_stat_lines(pl["pos"], st),
+            "stats": player_stat_lines(pl["pos"], st), "raw": st,
         })
     for k in groups:
         groups[k].sort(key=lambda r: r["pts"], reverse=True)
     return groups
+
+
+POSCOLS = {
+    "QB": [("Pass Yd", "pass_yd"), ("Pass TD", "pass_td"), ("INT", "pass_int"),
+           ("Rush Yd", "rush_yd"), ("Rush TD", "rush_td")],
+    "RB": [("Car", "rush_att"), ("Rush Yd", "rush_yd"), ("Rush TD", "rush_td"),
+           ("Tgt", "rec_tgt"), ("Rec", "rec"), ("Rec Yd", "rec_yd"), ("Rec TD", "rec_td")],
+    "WR": [("Tgt", "rec_tgt"), ("Rec", "rec"), ("Rec Yd", "rec_yd"), ("Rec TD", "rec_td"), ("Rush Yd", "rush_yd")],
+    "TE": [("Tgt", "rec_tgt"), ("Rec", "rec"), ("Rec Yd", "rec_yd"), ("Rec TD", "rec_td")],
+    "K": [("FGM", "fgm"), ("FGA", "fga"), ("XP", "xpm")],
+    "DEF": [("Sack", "sack"), ("INT", "int"), ("Fum", "fum_rec"), ("TD", "def_td")],
+}
+
+
+def pos_table(rows: list[dict], pos: str) -> dict:
+    """Turn same-position player rows into a stat table: headers + per-player cells (display + numeric)."""
+    cols = POSCOLS.get(pos, [])
+    out = []
+    for r in rows:
+        cells = []
+        for _, key in cols:
+            v = (r.get("raw") or {}).get(key)
+            num = v if isinstance(v, (int, float)) else 0
+            disp = _num(v) if isinstance(v, (int, float)) else "—"
+            cells.append({"v": disp, "n": num})
+        out.append({"name": r["name"], "pid": r["pid"], "img": r["img"], "pos": pos,
+                    "team": r["team"], "franchise": r["franchise"], "pts": r["pts"], "cells": cells})
+    return {"columns": [label for label, _ in cols], "rows": out}
 
 
 def player_line(pid: str, players: dict) -> dict:

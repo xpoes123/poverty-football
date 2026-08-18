@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ g.away.name }} @ {{ g.home.name }}{% endblock %}
+
 {% macro fplist(rows) %}
 <div class="fplist">
   {% for pl in rows %}
@@ -19,6 +20,7 @@
   {% endfor %}
 </div>
 {% endmacro %}
+
 {% block main %}
 <main class="page" data-page="game" id="main" data-screen-label="Game">
   <div class="wrap">
@@ -40,30 +42,45 @@
 
     <nav class="pos-filter" aria-label="Filter by position">
       <ul class="chips chips--wrap">
-        {% for p in ['ALL','QB','RB','WR','TE','K','DEF'] %}
-          <li><button type="button" class="chip{{ ' on' if p == 'ALL' }}" data-pos="{{ p }}">{{ 'All' if p == 'ALL' else p }}</button></li>
+        {% for c in pos_chips %}
+          <li><a class="chip" href="{{ c.href }}"{% if c.current %} aria-current="true"{% endif %}>{{ c.label }}</a></li>
         {% endfor %}
       </ul>
     </nav>
 
-    <div class="section-head"><h2>{{ g.away.name }}</h2><p>Fantasy points · our scoring</p></div>
-    {{ fplist(groups.away) }}
-
-    <div class="section-head"><h2>{{ g.home.name }}</h2><p>Fantasy points · our scoring</p></div>
-    {{ fplist(groups.home) }}
+    {% if table_pos %}
+      <div class="section-head"><h2>{{ table_pos }}s</h2><p>Fantasy points · our scoring · tap a header to sort</p></div>
+      <div class="table-wrap">
+      <table class="ledger sortable">
+        <thead>
+          <tr>
+            <th scope="col">Player</th>
+            {% for col in table.columns %}<th scope="col" data-type="num">{{ col }}</th>{% endfor %}
+            <th scope="col" data-type="num">PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in table.rows %}
+          <tr>
+            <td class="cell-team" data-sort="{{ r.name }}"><a class="team-link" href="/player/{{ r.pid }}"><img class="player-face" src="{{ r.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy"><span class="team-name">{{ r.name }}</span></a><span class="team-owner">{{ r.team }} · {{ r.franchise or 'FA' }}</span></td>
+            {% for cell in r.cells %}<td data-label="{{ table.columns[loop.index0] }}" data-sort="{{ cell.n }}">{{ cell.v }}</td>{% endfor %}
+            <td data-label="PTS" data-sort="{{ r.pts }}">{{ r.pts }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="section-head"><h2>{{ g.away.name }}</h2><p>Fantasy points · our scoring</p></div>
+      {{ fplist(groups.away) }}
+      <div class="section-head"><h2>{{ g.home.name }}</h2><p>Fantasy points · our scoring</p></div>
+      {{ fplist(groups.home) }}
+    {% endif %}
   </div>
 </main>
 <script>
 (() => {
-  // position filter
-  const chips = document.querySelectorAll('.pos-filter .chip');
-  const wraps = document.querySelectorAll('.fprow-wrap');
-  chips.forEach((ch) => ch.addEventListener('click', () => {
-    chips.forEach((c) => c.classList.toggle('on', c === ch));
-    const pos = ch.dataset.pos;
-    wraps.forEach((w) => { w.hidden = !(pos === 'ALL' || w.dataset.pos === pos); });
-  }));
-
+  // expandable box score (All view)
   document.querySelectorAll('.fplist').forEach((list) => {
     const toggle = (row) => {
       const box = row.parentElement.querySelector('.fp-box');
@@ -72,16 +89,26 @@
       row.setAttribute('aria-expanded', String(open));
     };
     list.addEventListener('click', (e) => {
-      if (e.target.closest('.fp-name')) return;  // let the profile link work
+      if (e.target.closest('.fp-name')) return;
       const row = e.target.closest('.fprow');
       if (row) toggle(row);
     });
-    list.addEventListener('keydown', (e) => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('fprow')) {
-        e.preventDefault(); toggle(e.target);
-      }
-    });
   });
+  // sortable stat table (position view)
+  const table = document.querySelector('.ledger.sortable');
+  if (table) {
+    const tbody = table.tBodies[0], ths = table.querySelectorAll('th');
+    ths.forEach((th, idx) => th.addEventListener('click', () => {
+      const num = th.dataset.type === 'num';
+      const dir = th.getAttribute('data-asc') === 'asc' ? -1 : 1;
+      ths.forEach((o) => o.removeAttribute('data-asc'));
+      th.setAttribute('data-asc', dir === 1 ? 'asc' : 'desc');
+      [...tbody.rows].sort((a, b) => {
+        const av = a.cells[idx].dataset.sort, bv = b.cells[idx].dataset.sort;
+        return (num ? parseFloat(av) - parseFloat(bv) : String(av).localeCompare(String(bv))) * dir;
+      }).forEach((r) => tbody.appendChild(r));
+    }));
+  }
 })();
 </script>
 {% endblock %}
