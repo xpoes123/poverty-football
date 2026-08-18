@@ -8,11 +8,11 @@
       <p class="crest"><span>Est. 2026 · Twelve Franchises</span></p>
     </div>
 
-    {% if draft_target %}
-    <section class="countdown" data-target="{{ draft_target }}">
-      <p class="countdown__label">Draft begins in</p>
+    {% if countdown %}
+    <section class="countdown" data-target="{{ countdown.target }}" data-done="{{ countdown.done }}">
+      <p class="countdown__label">{{ countdown.label }}</p>
       <p class="countdown__clock tnum" id="cd">—</p>
-      <p class="countdown__when">{{ draft_when }}</p>
+      <p class="countdown__when">{{ countdown.when }}</p>
     </section>
     {% endif %}
 
@@ -21,6 +21,28 @@
         <a class="btn" href="{{ l.href }}"{% if l.external %} target="_blank" rel="noopener"{% endif %}>{{ l.label }}</a>
       {% endfor %}
     </nav>
+
+    {% if week_scores %}
+    <div class="section-head"><h2>This Week</h2><p>Week {{ scores_week }} · live scoring</p></div>
+    <div class="nflgrid">
+      {% for m in week_scores %}
+      {% if m.href %}<a class="nflcard" href="{{ m.href }}">{% else %}<div class="nflcard">{% endif %}
+        <div class="nflside{{ ' win' if m.winner == 0 }}">
+          <img class="nfl-logo" src="{{ m.a.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">
+          <span class="nfl-team">{{ m.a.team }}</span>
+          <span class="nfl-score">{{ '%.1f'|format(m.a.points) }}</span>
+        </div>
+        {% if m.b %}
+        <div class="nflside{{ ' win' if m.winner == 1 }}">
+          <img class="nfl-logo" src="{{ m.b.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">
+          <span class="nfl-team">{{ m.b.team }}</span>
+          <span class="nfl-score">{{ '%.1f'|format(m.b.points) }}</span>
+        </div>
+        {% endif %}
+      {% if m.href %}</a>{% else %}</div>{% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="section-head">
       <h2>{{ table_title }}</h2>
@@ -68,15 +90,16 @@
   </div>
 </main>
 
-{% if draft_target %}
+{% if countdown %}
 <script>
 (() => {
   const el = document.getElementById('cd');
   if (!el) return;
-  const target = new Date(el.closest('.countdown').dataset.target).getTime();
+  const box = el.closest('.countdown');
+  const target = new Date(box.dataset.target).getTime();
   const tick = () => {
     let s = Math.floor((target - Date.now()) / 1000);
-    if (s <= 0) { el.textContent = "It's draft day"; clearInterval(t); return; }
+    if (s <= 0) { el.textContent = box.dataset.done; clearInterval(t); return; }
     const d = Math.floor(s / 86400); s -= d * 86400;
     const h = Math.floor(s / 3600); s -= h * 3600;
     const m = Math.floor(s / 60); const sec = s - m * 60;

@@ -245,6 +245,43 @@ async def logout(request: Request):
     return RedirectResponse("/")
 
 
+def _parse_iso(s: str | None) -> dt.datetime | None:
+    try:
+        return dt.datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(TZ)
+    except (ValueError, AttributeError):
+        return None
+
+
+async def _next_kickoff(current: int) -> str | None:
+    """Next NFL kickoff (ISO, ET). Returns the soonest future game; in preview every game is
+    historical, so the earliest upcoming-week game is rolled forward to its next occurrence."""
+    now = dt.datetime.now(TZ)
+
+    async def week_dates(wk: int) -> list[dt.datetime]:
+        if not (1 <= wk <= 18):
+            return []
+        try:
+            data = espn.games(await espn.scoreboard(year=2025, week=wk))
+        except Exception:
+            return []
+        return sorted(d for g in data["games"] if (d := _parse_iso(g.get("date"))))
+
+    cur = await week_dates(current)
+    future = [d for d in cur if d > now]
+    if future:
+        return future[0].isoformat()          # real: kickoff still to come this week
+    pool = await week_dates(current + 1) or cur
+    if not pool:
+        return None
+    future = [d for d in pool if d > now]
+    if future:
+        return future[0].isoformat()          # real: first kickoff of next week
+    d = pool[0]                               # preview: roll a historical kickoff forward
+    while d <= now:
+        d += dt.timedelta(days=7)
+    return d.isoformat()
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     ctx = await _base_ctx(request, "home")
@@ -258,14 +295,29 @@ async def home(request: Request):
     ]
     ctx["rows"] = _standings_rows(users, rosters)
     ctx["tx_feed"] = await _tx_feed(users, rosters) if ctx["has_season"] else []
+    countdown = None
     if ctx["is_pre"]:
         ctx["table_title"] = "Franchises"
         ctx["through_label"] = f"{ctx['seated_line']} seated"
+        if ctx["draft_target"]:  # real pre-draft: count down to the draft
+            countdown = {"target": ctx["draft_target"], "label": "Draft begins in",
+                         "when": ctx["draft_when"], "done": "It's draft day"}
     else:
-        state = await get_nfl_state()
-        wk = state.get("week") or 1
+        current = (await get_nfl_state()).get("week") or 1
         ctx["table_title"] = "Standings"
-        ctx["through_label"] = f"Through Week {wk}"
+        ctx["through_label"] = f"Through Week {current}"
+        # live scores of this week's matchups
+        scores = views.scoreboard(await get_matchups(LID, current), rosters, users)
+        ctx["week_scores"] = [{"a": g["sides"][0], "b": g["sides"][1] if len(g["sides"]) > 1 else None,
+                               "winner": g["winner"],
+                               "href": f"/matchup/{current}/{g['mid']}" if g.get("mid") is not None else None}
+                              for g in scores]
+        ctx["scores_week"] = current
+        kick = await _next_kickoff(current)  # count down to the next kickoff
+        if kick:
+            countdown = {"target": kick, "label": "Next kickoff", "when": views.kick_label(kick, full=True),
+                         "done": "Kicking off"}
+    ctx["countdown"] = countdown
     return templates.TemplateResponse(request, "home.html", ctx)
 
 
