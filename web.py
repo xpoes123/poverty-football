@@ -182,6 +182,8 @@ async def logout(request: Request):
 async def home(request: Request):
     ctx = await _base_ctx(request, "home")
     users, rosters = await get_users(LID), await get_rosters(LID)
+    league = await get_league(LID)
+    ctx["playoff_teams"] = (league.get("settings") or {}).get("playoff_teams", 6)
 
     ctx["links"] = [
         {"label": "Join the League", "href": cfg.join_url, "external": True},
