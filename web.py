@@ -364,9 +364,10 @@ async def player_profile(request: Request, pid: str):
         season = "2024"
         st = (await fetch_stats(season)).get(pid, {})
     position = p.get("position") or ""
-    espn_id = p.get("espn_id")
+    name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
+    espn_id = p.get("espn_id") or await espn.resolve_athlete(name, p.get("team"))
     ctx["player"] = {
-        "name": p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid,
+        "name": name,
         "pos": position, "team": p.get("team") or "FA",
         "img": views.player_image(pid, position, p.get("team") or pid),
         "number": p.get("number"), "age": p.get("age"),

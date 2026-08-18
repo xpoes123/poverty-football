@@ -31,6 +31,33 @@ async def summary(event_id: str) -> dict:
     return await _get(f"{BASE}/summary?event={event_id}", ttl=1800)  # historical games are final
 
 
+SLEEPER_TO_ESPN_TEAM = {"WAS": "WSH"}
+
+
+async def team_roster(team_abbr: str) -> dict:
+    return await _get(f"{BASE}/teams/{team_abbr}/roster", ttl=86400)
+
+
+def _norm_name(s: str) -> str:
+    return "".join(c for c in (s or "").lower() if c.isalnum())
+
+
+async def resolve_athlete(name: str, team_abbr: str) -> str | None:
+    """Find a player's ESPN athlete id via their team roster (for players Sleeper has no espn_id for)."""
+    if not team_abbr:
+        return None
+    try:
+        r = await team_roster(SLEEPER_TO_ESPN_TEAM.get(team_abbr, team_abbr))
+    except Exception:
+        return None
+    target = _norm_name(name)
+    for group in r.get("athletes", []):
+        for a in group.get("items", []):
+            if _norm_name(a.get("fullName")) == target:
+                return a.get("id")
+    return None
+
+
 async def gamelog(espn_id: str, season: int = 2025) -> dict:
     url = f"https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/{espn_id}/gamelog?season={season}"
     return await _get(url, ttl=3600)
