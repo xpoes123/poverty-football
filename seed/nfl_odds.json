@@ -1,0 +1,128 @@
+[
+  {
+    "id": "a1f3c9d2e4b5a6c7d8e9f0a1b2c3d4e5",
+    "commence_time": "2025-10-12T17:00:00Z",
+    "home_team": "Kansas City Chiefs",
+    "away_team": "Buffalo Bills",
+    "bookmakers": [
+      {
+        "key": "draftkings",
+        "title": "DraftKings",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {"name": "Kansas City Chiefs", "price": -150},
+              {"name": "Buffalo Bills", "price": 130}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "b2e4d0c3f5a6b7c8d9e0f1a2b3c4d5e6",
+    "commence_time": "2025-10-12T17:00:00Z",
+    "home_team": "Philadelphia Eagles",
+    "away_team": "Dallas Cowboys",
+    "bookmakers": [
+      {
+        "key": "draftkings",
+        "title": "DraftKings",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {"name": "Philadelphia Eagles", "price": -175},
+              {"name": "Dallas Cowboys", "price": 148}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "c3f5e1d4a6b7c8d9e0f1a2b3c4d5e6f7",
+    "commence_time": "2025-10-12T20:25:00Z",
+    "home_team": "San Francisco 49ers",
+    "away_team": "Seattle Seahawks",
+    "bookmakers": [
+      {
+        "key": "fanduel",
+        "title": "FanDuel",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {"name": "San Francisco 49ers", "price": -220},
+              {"name": "Seattle Seahawks", "price": 184}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "d4a6f2e5b7c8d9e0f1a2b3c4d5e6f7a8",
+    "commence_time": "2025-10-13T00:20:00Z",
+    "home_team": "Baltimore Ravens",
+    "away_team": "Detroit Lions",
+    "bookmakers": [
+      {
+        "key": "draftkings",
+        "title": "DraftKings",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {"name": "Baltimore Ravens", "price": -118},
+              {"name": "Detroit Lions", "price": -102}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "e5b7a3f6c8d9e0f1a2b3c4d5e6f7a8b9",
+    "commence_time": "2025-10-13T17:00:00Z",
+    "home_team": "Miami Dolphins",
+    "away_team": "Green Bay Packers",
+    "bookmakers": [
+      {
+        "key": "fanduel",
+        "title": "FanDuel",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {"name": "Miami Dolphins", "price": 112},
+              {"name": "Green Bay Packers", "price": -132}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "f6c8b4a7d9e0f1a2b3c4d5e6f7a8b9c0",
+    "commence_time": "2025-10-14T00:15:00Z",
+    "home_team": "Cincinnati Bengals",
+    "away_team": "Cleveland Browns",
+    "bookmakers": [
+      {
+        "key": "draftkings",
+        "title": "DraftKings",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {"name": "Cincinnati Bengals", "price": -240},
+              {"name": "Cleveland Browns", "price": 198}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
