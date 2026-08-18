@@ -431,7 +431,8 @@ async def schedule(request: Request, week: int | None = None):
                     "initials": views.initials(b["team"]), "name": b["team"], "score": _fmt(b["points"])}
                    if b else {"win": "false", "avatar": None, "initials": "—", "name": "Bye", "score": "—"})
         matchups.append({"slot": f"Match {i + 1}", "status": "" if ctx["is_pre"] else "Final",
-                         "a": entry_a, "b": entry_b})
+                         "a": entry_a, "b": entry_b,
+                         "href": f"/matchup/{week}/{g['mid']}" if g.get("mid") is not None else None})
 
     ctx["matchups"] = matchups
     ctx["week_has_games"] = bool(matchups)
@@ -442,6 +443,19 @@ async def schedule(request: Request, week: int | None = None):
     ctx["empty_week_body"] = ("Scores appear here once the season starts."
                               + (f" Draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
     return templates.TemplateResponse(request, "schedule.html", ctx)
+
+
+@app.get("/matchup/{week}/{mid}", response_class=HTMLResponse)
+async def matchup(request: Request, week: int, mid: int):
+    users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
+    players = await get_players()
+    slots = [p for p in league.get("roster_positions", []) if p != "BN"]
+    detail = views.matchup_detail(await get_matchups(LID, week), mid, rosters, users, players, slots)
+    if detail is None:
+        return RedirectResponse(f"/schedule?week={week}")
+    ctx = await _base_ctx(request, "schedule")
+    ctx.update(detail=detail, week=week, back=f"/schedule?week={week}")
+    return templates.TemplateResponse(request, "matchup.html", ctx)
 
 
 @app.get("/insights", response_class=HTMLResponse)

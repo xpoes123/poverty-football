@@ -110,8 +110,40 @@ def scoreboard(matchups: list[dict], rosters: list[dict], users: list[dict]) -> 
         winner = None
         if len(sides) == 2 and sides[0]["points"] != sides[1]["points"]:
             winner = 0 if sides[0]["points"] > sides[1]["points"] else 1
-        games.append({"sides": sides, "winner": winner})
+        games.append({"sides": sides, "winner": winner, "mid": mid})
     return games
+
+
+def matchup_detail(week_matchups: list[dict], mid: int, rosters: list[dict],
+                   users: list[dict], players: dict, slots: list[str]) -> dict | None:
+    """Both sides of one matchup with a per-starter points breakdown (real or seeded)."""
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters}
+    entries = [m for m in week_matchups if m.get("matchup_id") == mid]
+    if len(entries) < 2:
+        return None
+
+    def side(m):
+        starters = m.get("starters") or []
+        sp = m.get("starters_points") or []
+        pp = m.get("players_points") or {}
+        rows = []
+        for i, pid in enumerate(starters):
+            slot = slots[i] if i < len(slots) else "FLEX"
+            if not pid or pid == "0":
+                rows.append({"slot": slot, "name": "—", "pos": "", "img": None, "pts": 0.0})
+                continue
+            pl = player_line(str(pid), players)
+            pts = sp[i] if i < len(sp) else pp.get(str(pid), 0)
+            rows.append({"slot": slot, "name": pl["name"], "pos": pl["pos"],
+                         "img": player_image(str(pid), pl["pos"], pl["team"]), "pts": round(pts or 0, 1)})
+        u = owner_of.get(m["roster_id"])
+        return {"team": team_name(u), "avatar": avatar_url(u),
+                "points": round(m.get("points") or 0, 1), "starters": rows}
+
+    a, b = side(entries[0]), side(entries[1])
+    winner = None if a["points"] == b["points"] else (0 if a["points"] > b["points"] else 1)
+    return {"a": a, "b": b, "winner": winner}
 
 
 def luck_table(weeks: list[list[dict]], users: list[dict], rosters: list[dict]) -> list[dict]:

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ detail.a.team }} vs {{ detail.b.team }}{% endblock %}
+{% block main %}
+<main class="page" data-page="matchup" id="main" data-screen-label="Matchup">
+  <div class="wrap">
+    <p class="backlink"><a href="{{ back }}">← Week {{ week }}</a></p>
+
+    <div class="mvs">
+      <div class="mvs__team{{ ' win' if detail.winner == 0 }}">
+        <img class="mvs__crest" src="{{ detail.a.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">
+        <span class="mvs__name">{{ detail.a.team }}</span>
+        <span class="mvs__score">{{ detail.a.points }}</span>
+      </div>
+      <span class="mvs__vs">vs</span>
+      <div class="mvs__team{{ ' win' if detail.winner == 1 }}">
+        <img class="mvs__crest" src="{{ detail.b.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">
+        <span class="mvs__name">{{ detail.b.team }}</span>
+        <span class="mvs__score">{{ detail.b.points }}</span>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>Starters</h2><p>Points by lineup slot</p></div>
+    <div class="breakdown">
+      {% for i in range(detail.a.starters | length) %}
+        {% set pa = detail.a.starters[i] %}{% set pb = detail.b.starters[i] %}
+        <div class="brow">
+          <div class="bcell bcell--a">
+            <span class="bpts{{ ' hi' if pa.pts >= pb.pts }}">{{ pa.pts }}</span>
+            <span class="bplayer">{% if pa.img %}<img class="slot-face" src="{{ pa.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}{{ pa.name }}</span>
+          </div>
+          <span class="bslot">{{ pa.slot }}</span>
+          <div class="bcell bcell--b">
+            <span class="bplayer">{{ pb.name }}{% if pb.img %}<img class="slot-face" src="{{ pb.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}</span>
+            <span class="bpts{{ ' hi' if pb.pts >= pa.pts }}">{{ pb.pts }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+{% endblock %}

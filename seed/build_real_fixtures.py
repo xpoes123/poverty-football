@@ -105,6 +105,23 @@ picks = [{"round": rnd, "pick_no": i + 1, "draft_slot": t + 1,
          for i, (rnd, t, pid) in enumerate(draft)]
 json.dump(picks, open(SEED / "draft_picks.json", "w"))
 
+# enrich weekly matchups: real starters + a plausible per-starter points split summing to the total
+league = json.load(open(SEED / "league.json"))
+slots = [p for p in league["roster_positions"] if p != "BN"]
+SLOT_W = {"QB": 1.35, "RB": 1.25, "WR": 1.15, "TE": 0.9, "FLEX": 1.1, "K": 0.7, "DEF": 0.85}
+rmap = {r["roster_id"]: r for r in new_rosters}
+for f in SEED.glob("matchups_*.json"):
+    ms = json.load(open(f))
+    for m in ms:
+        r = rmap[m["roster_id"]]
+        m["starters"], m["players"] = r["starters"], r["players"]
+        w = [SLOT_W.get(slots[i] if i < len(slots) else "FLEX", 1.0) for i in range(len(r["starters"]))]
+        tot, sw = m.get("points") or 0, sum(w) or 1
+        sp = [round(tot * wi / sw, 2) for wi in w]
+        sp[-1] = round(tot - sum(sp[:-1]), 2)  # absorb rounding drift
+        m["starters_points"] = sp
+    json.dump(ms, open(f, "w"))
+
 # remap transaction player ids to real ones so the feed shows real names
 realpool = list(keep)
 i = 0
