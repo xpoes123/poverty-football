@@ -167,7 +167,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 .empty__ledger{margin-top:22px;border-top:1px solid var(--rule);padding-top:14px;display:flex;justify-content:center;gap:22px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .empty__ledger b{color:var(--bone-dim);font-weight:600}
 
-.site-footer{border-top:1px solid var(--rule);padding:16px 0 30px;display:flex;justify-content:space-between;gap:10px 20px;flex-wrap:wrap;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.site-footer{border-top:1px solid var(--rule);padding:16px 0 30px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.site-footer .wrap{display:flex;justify-content:space-between;gap:10px 20px;flex-wrap:wrap}
 
 /* home link row */
 .link-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
