@@ -1,13 +1,23 @@
 from datetime import date
 
-from shame import Member, bucket, days_until_draft, find_missing, shame_message
+from shame import (
+    Member,
+    bucket,
+    countdown_line,
+    days_until_draft,
+    find_missing,
+    mention,
+    missing_block,
+    tier,
+    tone_line,
+)
 
 
 def test_find_missing():
     ms = [
-        Member("Al", "al", 1, user_id="100"),
-        Member("Bo", "bo", 2, user_id="200"),
-        Member("Cy", "cy", 3, user_id=None),  # unresolved handle
+        Member("Al", "al", user_id="100"),
+        Member("Bo", "bo", user_id="200"),
+        Member("Cy", "cy", user_id=None),  # unresolved handle
     ]
     missing = find_missing(ms, joined_ids={"100"})
     assert [m.name for m in missing] == ["Bo", "Cy"]  # Bo not joined, Cy unresolved
@@ -29,16 +39,29 @@ def test_bucket_boundaries():
     assert bucket(8) == "chill"
 
 
-def test_shame_message_pings_everyone():
-    ms = [Member("Al", "al", 111, user_id=None), Member("Bo", "bo", 222, user_id=None)]
-    msg = shame_message(ms, days=5)
-    assert "<@111>" in msg and "<@222>" in msg
+def test_mention_ping_vs_name():
+    assert mention(Member("Al", "al", discord_id=111)) == "<@111>"
+    assert mention(Member("Al", "al")) == "**Al**"  # no discord_id → name fallback
 
 
-def test_shame_message_name_fallback_without_discord_id():
-    ms = [Member("Harsha", "harsha", user_id=None)]  # no discord_id
-    msg = shame_message(ms, days=5)
-    assert "**Harsha**" in msg and "<@" not in msg
+def test_missing_block_lists_each_on_its_own_line():
+    ms = [Member("Al", "al", discord_id=111), Member("Bo", "bo")]
+    block = missing_block(ms)
+    assert "<@111>" in block and "**Bo**" in block
+    assert block.count("\n") == 1  # two members → one newline between them
+
+
+def test_tier_has_color_and_lines():
+    t = tier(5)  # nudge
+    assert isinstance(t["color"], int)
+    assert tone_line(5) in t["lines"]
+
+
+def test_countdown_line():
+    assert countdown_line(None) == "📅 Draft not scheduled yet"
+    assert "TODAY" in countdown_line(0)
+    assert "**3** days" in countdown_line(3)
+    assert "1 day ago" in countdown_line(-1)
 
 
 if __name__ == "__main__":

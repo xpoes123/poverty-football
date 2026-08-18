@@ -1,4 +1,4 @@
-"""Pure join-check + shame-message logic. No network, no discord — fully testable."""
+"""Pure join-check + shame-presentation logic. No network, no discord — fully testable."""
 
 from dataclasses import dataclass
 from datetime import date
@@ -23,27 +23,47 @@ def days_until_draft(draft_date: date | None, today: date) -> int | None:
     return None if draft_date is None else (draft_date - today).days
 
 
-# tone tiers keyed by days-until-draft; each is a list of templates using {who}
+# per-tier: flavor line (description), embed color, and a title suffix
 TIERS = {
-    "chill": [
-        "Roster's still got holes. {who} — hop in when you get a sec.",
-        "Poverty Franchises is filling up. {who}, you're not in yet 👀",
-    ],
-    "nudge": [
-        "{who} — draft's coming up and you STILL haven't joined. Let's go.",
-        "Gentle reminder that {who} is single-handedly holding up the league.",
-    ],
-    "harsh": [
-        "Draft is basically here and {who} can't be bothered to click one link. Embarrassing.",
-        "{who}: the league is waiting on YOU. This is your villain origin story.",
-    ],
-    "brutal": [
-        "DRAFT DAY has passed the horizon and {who} is STILL ghosting. Absolute poverty behavior.",
-        "{who} — at this point the shame is the only roster move you've made all season.",
-    ],
-    "mild": [  # used when no draft_date is set
-        "{who} haven't joined Poverty Franchises yet. The seats are waiting.",
-    ],
+    "chill": {
+        "color": 0x2ECC71,
+        "title": "Roster Check",
+        "lines": [
+            "Plenty of time left, but a few seats are still empty. 👀",
+            "The league's filling up — just waiting on a couple stragglers.",
+        ],
+    },
+    "nudge": {
+        "color": 0xF1C40F,
+        "title": "Draft's Coming",
+        "lines": [
+            "Draft's around the corner and some of you still haven't joined. Let's move.",
+            "Friendly reminder that the draft won't wait for procrastinators.",
+        ],
+    },
+    "harsh": {
+        "color": 0xE67E22,
+        "title": "Final Warning",
+        "lines": [
+            "Draft is basically here and these managers still can't click one link. Embarrassing.",
+            "The clock is ticking and the following people are testing everyone's patience.",
+        ],
+    },
+    "brutal": {
+        "color": 0xE74C3C,
+        "title": "Hall of Shame",
+        "lines": [
+            "Draft day has come and gone and these ghosts STILL haven't joined. Absolute poverty behavior.",
+            "At this point the shame is the only roster move these managers have made.",
+        ],
+    },
+    "mild": {
+        "color": 0x3498DB,
+        "title": "Roster Check",
+        "lines": [
+            "A few managers still haven't joined Poverty Franchises. The seats are waiting.",
+        ],
+    },
 }
 
 
@@ -59,11 +79,28 @@ def bucket(days: int | None) -> str:
     return "chill"
 
 
-def _mention(m: Member) -> str:
+def mention(m: Member) -> str:
     return f"<@{m.discord_id}>" if m.discord_id else f"**{m.name}**"
 
 
-def shame_message(missing: list[Member], days: int | None) -> str:
-    who = " ".join(_mention(m) for m in missing)
-    template = random.choice(TIERS[bucket(days)])
-    return template.format(who=who)
+def missing_block(missing: list[Member]) -> str:
+    """One mention per line — reads far cleaner in an embed field than a run-on."""
+    return "\n".join(f"‣ {mention(m)}" for m in missing)
+
+
+def tier(days: int | None) -> dict:
+    return TIERS[bucket(days)]
+
+
+def tone_line(days: int | None) -> str:
+    return random.choice(tier(days)["lines"])
+
+
+def countdown_line(days: int | None) -> str:
+    if days is None:
+        return "📅 Draft not scheduled yet"
+    if days < 0:
+        return f"📅 Draft was {-days} day{'s' if days != -1 else ''} ago"
+    if days == 0:
+        return "📅 **Draft is TODAY**"
+    return f"📅 Draft in **{days}** day{'s' if days != 1 else ''}"

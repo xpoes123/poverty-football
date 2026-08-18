@@ -13,6 +13,15 @@ async def get_joined_user_ids(league_id: str) -> set[str]:
         return {u["user_id"] for u in r.json()}
 
 
+async def get_league_meta(league_id: str) -> tuple[str, int, str]:
+    """(league name, total roster slots, status) — for the embed header."""
+    async with httpx.AsyncClient(timeout=10) as c:
+        r = await c.get(f"{BASE}/league/{league_id}")
+        r.raise_for_status()
+        d = r.json()
+        return d["name"], d["total_rosters"], d["status"]
+
+
 async def resolve_user_id(username: str) -> str | None:
     """Sleeper username -> user_id, or None if no such user (typo / not signed up)."""
     async with httpx.AsyncClient(timeout=10) as c:
