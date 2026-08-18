@@ -1,0 +1,53 @@
+[
+ {
+  "transaction_id": "tx-6-0",
+  "type": "free_agent",
+  "status": "complete",
+  "roster_ids": [
+   2
+  ],
+  "adds": {
+   "4158": 2
+  },
+  "drops": {
+   "4025": 2
+  },
+  "created": 1760187600000,
+  "week": 6
+ },
+ {
+  "transaction_id": "tx-6-1",
+  "type": "trade",
+  "status": "complete",
+  "roster_ids": [
+   3,
+   10
+  ],
+  "adds": {
+   "4037": 10,
+   "4129": 3
+  },
+  "drops": {
+   "4037": 3,
+   "4129": 10
+  },
+  "created": 1760198400000,
+  "week": 6
+ },
+ {
+  "transaction_id": "tx-6-2",
+  "type": "waiver",
+  "status": "complete",
+  "roster_ids": [
+   5
+  ],
+  "adds": {
+   "4164": 5
+  },
+  "drops": {
+   "4064": 5
+  },
+  "created": 1760209200000,
+  "week": 6
+ }
+]

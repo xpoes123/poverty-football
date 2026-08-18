@@ -1,0 +1,37 @@
+[
+ {
+  "transaction_id": "tx-1-0",
+  "type": "trade",
+  "status": "complete",
+  "roster_ids": [
+   5,
+   2
+  ],
+  "adds": {
+   "4064": 2,
+   "4025": 5
+  },
+  "drops": {
+   "4064": 5,
+   "4025": 2
+  },
+  "created": 1757163600000,
+  "week": 1
+ },
+ {
+  "transaction_id": "tx-1-1",
+  "type": "waiver",
+  "status": "complete",
+  "roster_ids": [
+   5
+  ],
+  "adds": {
+   "4179": 5
+  },
+  "drops": {
+   "4064": 5
+  },
+  "created": 1757174400000,
+  "week": 1
+ }
+]

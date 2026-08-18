@@ -1,0 +1,98 @@
+[
+ {
+  "user_id": "u01",
+  "display_name": "retraso",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Espresso Enforcers"
+  }
+ },
+ {
+  "user_id": "u02",
+  "display_name": "xpoes",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Antique Gold Rush"
+  }
+ },
+ {
+  "user_id": "u03",
+  "display_name": "boomstick",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Ledger Legends"
+  }
+ },
+ {
+  "user_id": "u04",
+  "display_name": "coldbrew",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Almanac All-Stars"
+  }
+ },
+ {
+  "user_id": "u05",
+  "display_name": "third_down",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Fraunces Faithful"
+  }
+ },
+ {
+  "user_id": "u06",
+  "display_name": "punter",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Narrow Margins"
+  }
+ },
+ {
+  "user_id": "u07",
+  "display_name": "gridlock",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Bench Warmers Local 12"
+  }
+ },
+ {
+  "user_id": "u08",
+  "display_name": "hail_mary",
+  "avatar": null,
+  "metadata": {
+   "team_name": "The Coffee Grinders"
+  }
+ },
+ {
+  "user_id": "u09",
+  "display_name": "audible",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Pigskin Paupers"
+  }
+ },
+ {
+  "user_id": "u10",
+  "display_name": "red_zone",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Sunday Scaries FC"
+  }
+ },
+ {
+  "user_id": "u11",
+  "display_name": "two_minute",
+  "avatar": null,
+  "metadata": {
+   "team_name": "The Bye Weekenders"
+  }
+ },
+ {
+  "user_id": "u12",
+  "display_name": "onside",
+  "avatar": null,
+  "metadata": {
+   "team_name": "Fourth & Broke"
+  }
+ }
+]

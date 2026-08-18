@@ -5,16 +5,56 @@ site snappy. No lock — a rare double-fetch on expiry is fine (ponytail: add a 
 only if request volume ever makes the race matter, which for a 12-person league it won't).
 """
 
+import json
+import pathlib
 import time
 
 import httpx
 
+from config import cfg
+
 BASE = "https://api.sleeper.app/v1"
+SEED_DIR = pathlib.Path(__file__).parent / "seed"
 
 _cache: dict[str, tuple[float, object]] = {}
 
 
+def _seed(url: str):
+    """Map a Sleeper URL to a local fixture (dev_seed mode). Missing files fall
+    back to a shape-correct empty value so absent weeks/users never crash."""
+    parts = url[len(BASE):].strip("/").split("/")
+
+    def load(fname: str, fallback):
+        p = SEED_DIR / fname
+        return json.loads(p.read_text()) if p.exists() else fallback
+
+    if parts[0] == "league":
+        if len(parts) == 2:
+            return load("league.json", {})
+        sub = parts[2]
+        if sub == "users":
+            return load("users.json", [])
+        if sub == "rosters":
+            return load("rosters.json", [])
+        if sub == "matchups":
+            return load(f"matchups_{parts[3]}.json", [])
+        if sub == "transactions":
+            return load(f"transactions_{parts[3]}.json", [])
+    elif parts[0] == "state":
+        return load("nfl_state.json", {})
+    elif parts[0] == "players":
+        return load("players.json", {})
+    elif parts[0] == "stats":  # stats/nfl/regular/{season}
+        return load(f"stats_{parts[3]}.json", {})
+    elif parts[0] == "user":  # resolve handle -> user dict, or None
+        name = parts[1]
+        return next((u for u in load("users.json", []) if u.get("display_name") == name), None)
+    return None
+
+
 async def _get(url: str, ttl: float):
+    if cfg.dev_seed:
+        return _seed(url)
     now = time.monotonic()
     hit = _cache.get(url)
     if hit and hit[0] > now:
