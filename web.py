@@ -90,6 +90,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
     me = await _me_roster_id(request)
     return {
         "request": request,
+        "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
+                     "analysis": cfg.enable_analysis},
         "oauth_enabled": cfg.oauth_enabled,
         "logged_in": bool(request.session.get("discord_id")),
         "me_roster_id": me,

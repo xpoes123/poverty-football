@@ -22,6 +22,13 @@ class Config(BaseSettings):
     session_secret: str = "dev-insecure-change-me"
     oauth_redirect: str = "https://nfl.djiang.xyz/auth/callback"
 
+    # Feature flags — big features ship OFF; flip per-env to enable/remove cleanly.
+    enable_betting: bool = False      # bet on your own matchups
+    enable_h2h_betting: bool = False  # bet against each other on NFL games (needs odds_api_key)
+    enable_analysis: bool = False     # deeper stats / luck analysis
+    odds_api_key: str = ""            # the-odds-api.com
+    dev_seed: bool = False            # serve seeded fixtures instead of live Sleeper (off-season dev)
+
     @property
     def oauth_enabled(self) -> bool:
         return bool(self.discord_client_id and self.discord_client_secret)
