@@ -1,0 +1,21 @@
+[
+ {
+  "transaction_id": "tx-4-0",
+  "type": "trade",
+  "status": "complete",
+  "roster_ids": [
+   1,
+   4
+  ],
+  "adds": {
+   "4011": 4,
+   "4046": 1
+  },
+  "drops": {
+   "4011": 1,
+   "4046": 4
+  },
+  "created": 1758978000000,
+  "week": 4
+ }
+]

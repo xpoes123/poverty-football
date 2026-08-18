@@ -1,0 +1,36 @@
+{
+ "league_id": "dev000000000000000",
+ "name": "Poverty Franchises",
+ "total_rosters": 12,
+ "status": "in_season",
+ "season": "2025",
+ "season_type": "regular",
+ "sport": "nfl",
+ "roster_positions": [
+  "QB",
+  "RB",
+  "RB",
+  "WR",
+  "WR",
+  "TE",
+  "FLEX",
+  "K",
+  "DEF",
+  "BN",
+  "BN",
+  "BN",
+  "BN",
+  "BN"
+ ],
+ "settings": {
+  "num_teams": 12,
+  "playoff_week_start": 15,
+  "playoff_teams": 6,
+  "leg": 6
+ },
+ "scoring_settings": {
+  "rec": 1.0,
+  "pass_td": 4.0,
+  "rush_td": 6.0
+ }
+}
