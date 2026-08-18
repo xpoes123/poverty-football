@@ -12,7 +12,8 @@ class Config(BaseSettings):
     draft_date: date | None = None  # escalation ramps as this nears; None = mild tone
     draft_time_label: str = "8 PM ET"  # shown next to the draft date
     join_url: str = "https://sleeper.com/i/LVlN2Jaz9Owb3"
-    check_hour: int = 18  # local hour (see timezone) for the daily nag
+    check_hour: int = 20  # local hour (see timezone) for the daily nag → 8 PM ET
+    nag_start_date: date | None = date(2026, 8, 19)  # don't nag before this day
     timezone: str = "America/New_York"
 
 

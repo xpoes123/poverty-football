@@ -75,6 +75,9 @@ class NflBot(discord.Client):
 
     @tasks.loop(time=dt.time(hour=cfg.check_hour, tzinfo=TZ))
     async def daily_nag(self):
+        if cfg.nag_start_date and dt.datetime.now(TZ).date() < cfg.nag_start_date:
+            log.info("before nag_start_date (%s) — skipping", cfg.nag_start_date)
+            return
         missing = await compute_missing(load_members())
         if not missing:
             log.info("everyone's in — staying quiet")
