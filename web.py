@@ -7,7 +7,7 @@ Thin FastAPI layer: each route gathers Sleeper data (cached) → shapes it via v
 import datetime as dt
 import secrets
 import tomllib
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+import betting
 import views
 from config import cfg
 from sleeper import (
@@ -89,6 +90,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
     upcoming = target and target > dt.datetime.now(TZ)
     me = await _me_roster_id(request)
     nav_items = [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV]
+    if cfg.enable_betting:  # Bets tab only exists when the betting flag is on
+        nav_items.append({"href": "/bets", "label": "Bets", "current": active == "bets"})
     if cfg.enable_analysis:  # Insights tab only exists when the analysis flag is on
         nav_items.append({"href": "/insights", "label": "Insights", "current": active == "insights"})
     return {
@@ -391,3 +394,89 @@ async def insights(request: Request):
     ctx["weeks_played"] = len(weeks)
     ctx["through_label"] = (f"{len(weeks)} weeks played" if len(weeks) != 1 else "1 week played")
     return templates.TemplateResponse(request, "insights.html", ctx)
+
+
+@app.get("/bets", response_class=HTMLResponse)
+async def bets(request: Request):
+    if not cfg.enable_betting:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "bets")
+    users, rosters = await get_users(LID), await get_rosters(LID)
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
+    state = await get_nfl_state()
+    current = state.get("week") or 1
+
+    # Settled results across every played week (matchup_result is None until a game is decided).
+    results, cur_week = {}, []
+    for wk in range(1, current + 1):
+        m = await get_matchups(LID, wk)
+        if wk == current:
+            cur_week = m
+        for rid in owner_of:
+            res = betting.matchup_result(m, rid)
+            if res:
+                results[(rid, wk)] = res
+    all_bets = betting.all_bets()
+    settled = betting.settle(all_bets, results)
+    bal = betting.balances(settled)
+
+    standings = [{"roster_id": rid, "team": views.team_name(u), "avatar": views.avatar_url(u),
+                  "balance": bal.get(rid, betting.STARTING_BALANCE)} for rid, u in owner_of.items()]
+    standings.sort(key=lambda x: x["balance"], reverse=True)
+    for i, row in enumerate(standings, 1):
+        row["rank"] = i
+    ctx["standings"] = standings
+    ctx["starting_balance"] = betting.STARTING_BALANCE
+
+    # The logged-in member's current-week matchup + whether a stake can be placed.
+    me = ctx["me_roster_id"]
+    ctx["current_week"] = current
+    ctx["my_matchup"] = None
+    ctx["can_bet"] = False
+    if me:
+        has_open = any(b["roster_id"] == me and b["week"] == current for b in all_bets)
+        groups: dict = {}
+        for m in cur_week:
+            groups.setdefault(m.get("matchup_id"), []).append(m)
+        for entries in groups.values():
+            ids = [e["roster_id"] for e in entries]
+            if me in ids and len(entries) == 2:
+                opp = next(rid for rid in ids if rid != me)
+                ctx["my_matchup"] = {"me_team": views.team_name(owner_of.get(me)),
+                                     "opp_team": views.team_name(owner_of.get(opp))}
+                break
+        played = betting.matchup_result(cur_week, me)
+        ctx["my_bet"] = next((b for b in all_bets if b["roster_id"] == me and b["week"] == current), None)
+        ctx["can_bet"] = played is None and not has_open and bool(ctx["my_matchup"])
+
+    recent = [{"team": views.team_name(owner_of.get(b["roster_id"])), "week": b["week"],
+               "stake": b["stake"], "status": b["status"], "payout": b["payout"]}
+              for b in settled if b["status"] != "open"][:12]
+    ctx["recent"] = recent
+    return templates.TemplateResponse(request, "bets.html", ctx)
+
+
+@app.post("/bets")
+async def place_bet(request: Request):
+    if not cfg.enable_betting:
+        return RedirectResponse("/")
+    me = await _me_roster_id(request)  # a member may only ever bet on their OWN roster
+    if me is None:
+        return RedirectResponse("/login" if cfg.oauth_enabled else "/")
+    form = parse_qs((await request.body()).decode())  # urlencoded; avoids python-multipart dep
+    try:
+        stake, week = int(form["stake"][0]), int(form["week"][0])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return RedirectResponse("/bets", 303)
+    state = await get_nfl_state()
+    current = state.get("week") or 1
+    if stake <= 0 or week != current:
+        return RedirectResponse("/bets", 303)
+    if betting.matchup_result(await get_matchups(LID, current), me) is not None:
+        return RedirectResponse("/bets", 303)  # week already decided — no wagering
+    try:
+        betting.place_bet(me, current, stake)
+    except ValueError:
+        pass  # duplicate / invalid — fall through to a clean redirect
+    return RedirectResponse("/bets", 303)

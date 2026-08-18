@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Bets{% endblock %}
+{% block main %}
+<main class="page" data-page="bets" id="ledger" data-screen-label="Bets">
+  <div class="wrap">
+
+    {% if me_roster_id %}
+      {% if my_matchup %}
+        <div class="section-head">
+          <h2>Your Week {{ current_week }} Wager</h2>
+          <p>{{ my_matchup.me_team }} vs {{ my_matchup.opp_team }}</p>
+        </div>
+        {% if can_bet %}
+          <form class="bet-form" method="post" action="/bets">
+            <input type="hidden" name="week" value="{{ current_week }}">
+            <label class="bet-form__label" for="stake">Chips on {{ my_matchup.me_team }} to win</label>
+            <div class="bet-form__row">
+              <input class="bet-form__input" id="stake" name="stake" type="number" min="1" step="1"
+                     inputmode="numeric" placeholder="100" required>
+              <button class="linkbtn" type="submit">Place Bet</button>
+            </div>
+            <p class="bet-form__note">Even money — win adds your stake, a loss subtracts it, a tie pushes.
+              One bet per week, on your own matchup only.</p>
+          </form>
+        {% elif my_bet %}
+          <p class="bet-standby">Bet placed: {{ my_bet.stake }} chips on {{ my_matchup.me_team }} this week. Settles when the game is final.</p>
+        {% else %}
+          <p class="bet-standby">This week's game is already decided — betting reopens next week.</p>
+        {% endif %}
+      {% else %}
+        <div class="section-head">
+          <h2>Your Wager</h2>
+          <p>Week {{ current_week }}</p>
+        </div>
+        <p class="bet-standby">No matchup to bet on yet. Your weekly game appears here once the season is underway.</p>
+      {% endif %}
+    {% else %}
+      <div class="section-head">
+        <h2>Place a Wager</h2>
+        <p>Week {{ current_week }}</p>
+      </div>
+      <p class="bet-standby">Bet play-money chips that your roster wins its weekly matchup.
+        <a class="bet-link" href="/login">Log in</a> to place a bet on your team.</p>
+    {% endif %}
+
+    <div class="section-head">
+      <h2>Chip Standings</h2>
+      <p>Everyone starts at {{ starting_balance }}</p>
+    </div>
+    {% if standings %}
+    <table class="ledger">
+      <caption>Play-money balance from settled weekly matchup bets</caption>
+      <thead>
+        <tr>
+          <th scope="col">Rk</th>
+          <th scope="col">Franchise</th>
+          <th scope="col">Chips</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in standings %}
+          <tr{% if row.roster_id == me_roster_id %} class="me"{% endif %}>
+            <td class="cell-rank">{{ row.rank }}</td>
+            <td class="cell-team"><a class="team-link" href="/team/{{ row.roster_id }}"><img class="team-logo" src="{{ row.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ row.team }}</span></a></td>
+            <td data-label="Chips">{{ row.balance }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">
+      <h3>No franchises yet</h3>
+      <p>Standings appear once teams have claimed their rosters.</p>
+    </div>
+    {% endif %}
+
+    <div class="section-head">
+      <h2>Settled Bets</h2>
+      <p>{{ recent|length }} recent</p>
+    </div>
+    {% if recent %}
+    <table class="ledger">
+      <caption>Most recent settled weekly wagers</caption>
+      <thead>
+        <tr>
+          <th scope="col">Wk</th>
+          <th scope="col">Franchise</th>
+          <th scope="col">Stake</th>
+          <th scope="col">Result</th>
+          <th scope="col">Chips</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in recent %}
+          <tr>
+            <td class="cell-rank">{{ b.week }}</td>
+            <td class="cell-team"><span class="team-name">{{ b.team }}</span></td>
+            <td data-label="Stake">{{ b.stake }}</td>
+            <td data-label="Result">{{ b.status|capitalize }}</td>
+            <td data-label="Chips">{{ '+%d'|format(b.payout) if b.payout > 0 else b.payout }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">
+      <h3>No settled bets yet</h3>
+      <p>Weekly wagers show up here once their games are final.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+{% endblock %}
