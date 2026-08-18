@@ -89,9 +89,12 @@ def detail(s: dict) -> dict | None:
         for cat in grp.get("leaders", []):
             if cat.get("name") in cats and cat.get("leaders"):
                 ath = cat["leaders"][0]
-                leaders[side].append({"cat": cats[cat["name"]],
-                                      "name": ath.get("athlete", {}).get("displayName"),
-                                      "stat": ath.get("displayValue")})
+                athlete = ath.get("athlete", {})
+                href = next((l.get("href") for l in (athlete.get("links") or [])
+                             if "playercard" in (l.get("rel") or [])), None)
+                leaders[side].append({"cat": cats[cat["name"]], "name": athlete.get("displayName"),
+                                      "stat": ath.get("displayValue"),
+                                      "img": (athlete.get("headshot") or {}).get("href"), "href": href})
 
     return {
         "away": header_side("away"), "home": header_side("home"),

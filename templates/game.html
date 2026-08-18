@@ -23,10 +23,20 @@
     <div class="section-head"><h2>Leaders</h2></div>
     <div class="lead-cols">
       <div class="lead-col">
-        {% for l in g.leaders.away %}<div class="lead"><span class="lead-cat">{{ l.cat }}</span><b>{{ l.name }}</b><span class="lead-stat">{{ l.stat }}</span></div>{% endfor %}
+        {% for l in g.leaders.away %}
+          <a class="lead"{% if l.href %} href="{{ l.href }}" target="_blank" rel="noopener"{% endif %}>
+            <img class="lead-face" src="{{ l.img or '/static/default-team.svg' }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
+            <span class="lead-txt"><span class="lead-cat">{{ l.cat }}</span><b>{{ l.name }}</b><span class="lead-stat">{{ l.stat }}</span></span>
+          </a>
+        {% endfor %}
       </div>
       <div class="lead-col lead-col--h">
-        {% for l in g.leaders.home %}<div class="lead"><span class="lead-cat">{{ l.cat }}</span><b>{{ l.name }}</b><span class="lead-stat">{{ l.stat }}</span></div>{% endfor %}
+        {% for l in g.leaders.home %}
+          <a class="lead lead--h"{% if l.href %} href="{{ l.href }}" target="_blank" rel="noopener"{% endif %}>
+            <span class="lead-txt"><span class="lead-cat">{{ l.cat }}</span><b>{{ l.name }}</b><span class="lead-stat">{{ l.stat }}</span></span>
+            <img class="lead-face" src="{{ l.img or '/static/default-team.svg' }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
+          </a>
+        {% endfor %}
       </div>
     </div>
     {% endif %}

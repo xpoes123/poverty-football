@@ -296,11 +296,16 @@ button{font:inherit;color:inherit;background:none;border:0}
 @media (min-width:640px){.lead-cols{grid-template-columns:1fr 1fr}}
 .lead-col{background:var(--surface);padding:12px 14px}
 .lead-col--h{text-align:right}
-.lead{padding:7px 0;border-bottom:1px solid var(--rule)}
+.lead{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--rule);color:inherit}
 .lead:last-child{border-bottom:0}
+.lead:hover b{color:var(--gold-bright)}
+.lead--h{flex-direction:row-reverse}
+.lead-face{width:34px;height:34px;object-fit:cover;object-position:top center;border:1px solid var(--rule-strong);flex:none;background:var(--surface-2)}
+.lead-txt{min-width:0}
+.lead--h .lead-txt{text-align:right}
 .lead-cat{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
-.lead b{font-family:var(--serif);font-weight:500;font-size:15px;display:block;margin-top:2px}
-.lead-stat{font-size:11px;color:var(--muted)}
+.lead b{font-family:var(--serif);font-weight:500;font-size:15px;display:block;margin-top:1px}
+.lead-stat{display:block;font-size:11px;color:var(--muted)}
 .statcompare{border:1px solid var(--rule)}
 .scrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--rule)}
 .scrow:last-child{border-bottom:0}
