@@ -23,6 +23,8 @@ import odds
 import views
 from config import cfg
 from sleeper import (
+    get_draft_picks,
+    get_drafts,
     get_league,
     get_matchups,
     get_nfl_state,
@@ -63,8 +65,13 @@ TZ = ZoneInfo(cfg.timezone)
 LID = cfg.league_id
 DRAFT_HOUR = 20  # 8 PM ET, matches cfg.draft_time_label
 
-NAV = [("home", "/", "League"), ("draftboard", "/draftboard", "Draft Board"),
+NAV = [("home", "/", "League"), ("players", "/draftboard", "Players"),
        ("freeagents", "/freeagents", "Free Agents"), ("schedule", "/schedule", "Schedule")]
+
+
+def _player_subtabs(active: str):
+    return [{"label": "Rankings", "href": "/draftboard", "current": active == "rankings"},
+            {"label": "Draft", "href": "/draft", "current": active == "draft"}]
 TX_KINDS = {"trade": "Trade", "waiver": "Waiver", "free_agent": "Add"}
 STATUS_LABEL = {"pre_draft": "Pre-Draft Season", "drafting": "Draft Underway",
                 "in_season": "Regular Season", "complete": "Season Complete"}
@@ -249,7 +256,7 @@ async def home(request: Request):
 
 
 async def _board(request: Request, active: str, heading: str, base_href: str,
-                 pos: str | None, exclude: set | None):
+                 pos: str | None, exclude: set | None, subtab: str | None = None):
     ctx = await _base_ctx(request, active)
     players = await get_players()
     season = "2025"
@@ -266,12 +273,31 @@ async def _board(request: Request, active: str, heading: str, base_href: str,
     ctx["pos_chips"] = [{"label": "All", "href": base_href, "current": pos is None}] + [
         {"label": p, "href": f"{base_href}?pos={p}", "current": pos == p}
         for p in ("QB", "RB", "WR", "TE", "K", "DEF")]
+    if subtab:
+        ctx["subtabs"] = _player_subtabs(subtab)
     return templates.TemplateResponse(request, "board.html", ctx)
 
 
 @app.get("/draftboard", response_class=HTMLResponse)
 async def draftboard(request: Request, pos: str | None = None):
-    return await _board(request, "draftboard", "Draft Board", "/draftboard", pos, exclude=None)
+    return await _board(request, "players", "Players", "/draftboard", pos, exclude=None, subtab="rankings")
+
+
+@app.get("/draft", response_class=HTMLResponse)
+async def draft(request: Request):
+    ctx = await _base_ctx(request, "players")
+    league = await get_league(LID)
+    picks = []
+    drafts = await get_drafts(LID)
+    did = (drafts[0].get("draft_id") if drafts else None) or league.get("draft_id")
+    if did:
+        picks = await get_draft_picks(did)
+    ctx["rounds"] = []
+    if picks:
+        users, rosters, players = await get_users(LID), await get_rosters(LID), await get_players()
+        ctx["rounds"] = views.draft_results(picks, users, rosters, players)
+    ctx["subtabs"] = _player_subtabs("draft")
+    return templates.TemplateResponse(request, "draft.html", ctx)
 
 
 @app.get("/freeagents", response_class=HTMLResponse)

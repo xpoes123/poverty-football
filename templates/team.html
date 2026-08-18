@@ -23,11 +23,11 @@
       <div class="lineup">
         <p class="group-label"><span>Starters</span><span>{{ team.name }}</span></p>
         {% for pl in lineup.starters %}
-          <div class="slot"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
+          <div class="slot"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
         {% endfor %}
         <p class="group-label"><span>Bench</span><span>{{ lineup.bench|length }}</span></p>
         {% for pl in lineup.bench %}
-          <div class="slot slot--bench"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
+          <div class="slot slot--bench"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
         {% endfor %}
       </div>
     {% else %}

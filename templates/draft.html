@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Draft{% endblock %}
+{% block main %}
+<main class="page" data-page="draft" id="main" data-screen-label="Draft">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Players</h2>
+      <p>{% if rounds %}{{ rounds|length }}-round draft{% else %}Draft board{% endif %}</p>
+    </div>
+
+    <nav class="subtabs" aria-label="Players views">
+      {% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}
+    </nav>
+
+    {% if rounds %}
+      {% for rnd in rounds %}
+      <div class="draft-round">
+        <p class="draft-round__label">Round {{ rnd.round }}</p>
+        <ul class="draft-picks">
+          {% for p in rnd.picks %}
+          <li class="dpick">
+            <span class="dpick__no">{{ p.overall }}</span>
+            <img class="player-face" src="{{ p.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
+            <span class="dpick__player">{{ p.player }} <span class="dpick__pos">{{ p.pos }}</span></span>
+            <span class="dpick__team"><img class="team-logo" src="{{ p.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">{{ p.team }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">
+        <h3>The draft hasn't happened yet</h3>
+        <p>Every pick shows up here once the draft is complete{% if draft_line %} — {{ draft_line }}{% endif %}. For now, see <a href="/draftboard">Rankings</a> for the pre-draft board.</p>
+      </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

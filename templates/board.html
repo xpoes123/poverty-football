@@ -8,6 +8,12 @@
       <p>{{ board_note }}</p>
     </div>
 
+    {% if subtabs %}
+    <nav class="subtabs" aria-label="Players views">
+      {% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}
+    </nav>
+    {% endif %}
+
     <div class="board-controls">
       <nav aria-label="Filter by position">
         <ul class="chips chips--wrap">

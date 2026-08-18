@@ -178,6 +178,22 @@ def luck_table(weeks: list[list[dict]], users: list[dict], rosters: list[dict]) 
     return rows
 
 
+def draft_results(picks: list[dict], users: list[dict], rosters: list[dict], players: dict) -> list[dict]:
+    """Completed draft grouped by round: each pick's overall number, team, and player."""
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters}
+    rounds: dict = {}
+    for p in sorted(picks, key=lambda x: x.get("pick_no") or 0):
+        u = owner_of.get(p.get("roster_id"))
+        pl = player_line(str(p.get("player_id")), players)
+        rounds.setdefault(p.get("round") or 0, []).append({
+            "overall": p.get("pick_no"),
+            "team": team_name(u), "avatar": avatar_url(u),
+            "player": pl["name"], "pos": pl["pos"], "img": player_image(str(p.get("player_id")), pl["pos"], pl["team"]),
+        })
+    return [{"round": r, "picks": rounds[r]} for r in sorted(rounds) if r]
+
+
 def player_line(pid: str, players: dict) -> dict:
     p = players.get(pid) or {}
     pos = p.get("position") or ("DEF" if pid.isalpha() else "")
@@ -317,7 +333,8 @@ def lineup(roster: dict, players: dict, roster_positions: list[str]) -> dict:
 
     def entry(slot: str, pid: str) -> dict:
         p = player_line(pid, players)
-        return {"slot": slot, "n": p["name"], "meta": p["team"] or "FA"}
+        return {"slot": slot, "n": p["name"], "meta": p["team"] or "FA",
+                "img": player_image(pid, p["pos"], p["team"])}
 
     starters = [entry(slots[i] if i < len(slots) else "FLEX", pid) for i, pid in enumerate(starter_ids)]
     bench = [entry(player_line(pid, players)["pos"] or "BN", pid) for pid in bench_ids]

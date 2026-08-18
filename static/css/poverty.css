@@ -223,6 +223,28 @@ button{font:inherit;color:inherit;background:none;border:0}
 .sortable th[data-asc="desc"]::after{content:" ▼";font-size:8px;color:var(--gold)}
 .player-face{display:inline-block;width:38px;height:38px;object-fit:cover;object-position:top center;border:1px solid var(--rule-strong);vertical-align:middle;margin-right:11px;background:var(--surface-2)}
 
+/* Players sub-tabs (Rankings / Draft) */
+.subtabs{display:flex;gap:22px;border-bottom:1px solid var(--rule);margin:-4px 0 16px}
+.subtab{padding:0 0 9px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtab:hover{color:var(--bone)}
+.subtab.on{color:var(--gold-bright);border-bottom-color:var(--gold)}
+
+/* draft results */
+.draft-round{margin-bottom:22px}
+.draft-round__label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);padding-bottom:8px;border-bottom:1px solid var(--rule-strong);margin-bottom:2px}
+.draft-picks{list-style:none;margin:0;padding:0}
+.dpick{display:grid;grid-template-columns:34px 30px 1fr auto;align-items:center;gap:11px;padding:8px 2px;border-bottom:1px solid var(--rule)}
+.dpick__no{font-family:var(--serif);font-size:15px;color:var(--gold);font-variant-numeric:tabular-nums}
+.dpick .player-face{width:30px;height:30px;margin:0}
+.dpick__player{font-family:var(--serif);font-size:15px;line-height:1.15;min-width:0}
+.dpick__pos{font-family:var(--grot);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:4px}
+.dpick__team{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);white-space:nowrap}
+.dpick__team .team-logo{width:20px;height:20px;margin:0}
+@media (max-width:520px){.dpick__team span{display:none}}
+
+/* roster headshot */
+.slot-face{width:24px;height:24px;object-fit:cover;object-position:top center;border:1px solid var(--rule);vertical-align:middle;margin-right:9px;border-radius:2px}
+
 /* team page */
 .backlink{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px}
 .backlink a{color:var(--muted)}

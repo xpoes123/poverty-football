@@ -45,6 +45,10 @@ def _seed(url: str):
             return load(f"matchups_{parts[3]}.json", [])
         if sub == "transactions":
             return load(f"transactions_{parts[3]}.json", [])
+        if sub == "drafts":
+            return load("drafts.json", [])
+    elif parts[0] == "draft":  # draft/{id}/picks
+        return load("draft_picks.json", [])
     elif parts[0] == "state":
         return load("nfl_state.json", {})
     elif parts[0] == "players":
@@ -100,6 +104,14 @@ async def get_claimed_team_count(league_id: str) -> int:
 
 async def get_matchups(league_id: str, week: int) -> list[dict]:
     return await _get(f"{BASE}/league/{league_id}/matchups/{week}", ttl=30)
+
+
+async def get_drafts(league_id: str) -> list[dict]:
+    return await _get(f"{BASE}/league/{league_id}/drafts", ttl=300)
+
+
+async def get_draft_picks(draft_id: str) -> list[dict]:
+    return await _get(f"{BASE}/draft/{draft_id}/picks", ttl=300)
 
 
 async def get_transactions(league_id: str, week: int) -> list[dict]:
