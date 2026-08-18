@@ -53,6 +53,46 @@ def _fnum(v):
         return 0.0
 
 
+ESPN_POSCOLS = {
+    "QB": [("Pass Yd", "passingYards"), ("Pass TD", "passingTouchdowns"), ("INT", "interceptions"),
+           ("Rush Yd", "rushingYards"), ("Rush TD", "rushingTouchdowns")],
+    "RB": [("Car", "rushingAttempts"), ("Rush Yd", "rushingYards"), ("Rush TD", "rushingTouchdowns"),
+           ("Rec", "receptions"), ("Rec Yd", "receivingYards"), ("Rec TD", "receivingTouchdowns")],
+    "WR": [("Tgt", "receivingTargets"), ("Rec", "receptions"), ("Rec Yd", "receivingYards"),
+           ("Rec TD", "receivingTouchdowns"), ("Rush Yd", "rushingYards")],
+    "TE": [("Tgt", "receivingTargets"), ("Rec", "receptions"), ("Rec Yd", "receivingYards"),
+           ("Rec TD", "receivingTouchdowns")],
+}
+
+
+def game_table(gl: dict, scoring: dict, position: str) -> dict:
+    """Full-season game history as a sortable table with position-specific stat columns."""
+    cols = ESPN_POSCOLS.get(position, [])
+    names = gl.get("names") or []
+    events = gl.get("events") or {}
+    cats = (gl.get("seasonTypes") or [{}])[0].get("categories") or []
+    src = cats[0].get("events") if cats else []
+    rows = []
+    for ev in src:
+        eid = ev.get("eventId")
+        d = dict(zip(names, ev.get("stats") or []))
+        meta = events.get(eid, {})
+        cells = []
+        for _, key in cols:
+            v = d.get(key)
+            n = _fnum(v)
+            disp = (int(n) if n == int(n) else round(n, 1)) if v not in (None, "", "--", "-") else "—"
+            cells.append({"v": disp, "n": n})
+        pts = round(sum(_fnum(d.get(nm)) * scoring.get(k, 0) for nm, (_, k) in _LOG_STATS.items() if nm in d), 2)
+        gr = (meta.get("gameResult") or "").strip()
+        sc = (meta.get("score") or "").strip()
+        rows.append({"week": meta.get("week"), "opp": (meta.get("opponent") or {}).get("abbreviation"),
+                     "atvs": meta.get("atVs"), "eid": eid, "cells": cells, "pts": pts,
+                     "result": gr if any(ch.isdigit() for ch in gr) else f"{gr} {sc}".strip()})
+    rows.sort(key=lambda r: r["week"] or 0)
+    return {"columns": [label for label, _ in cols], "rows": rows}
+
+
 def game_log(gl: dict, scoring: dict, limit: int = 6) -> list[dict]:
     """Recent games for a player: opponent, result, key stats, and fantasy points (our scoring)."""
     names = gl.get("names") or []

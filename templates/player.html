@@ -66,6 +66,30 @@
     </div>
     {% endif %}
 
+    {% if game_table and game_table.rows and game_table.columns %}
+    <div class="section-head"><h2>Game History</h2><p>{{ season_stat }} · tap a header to sort</p></div>
+    <div class="table-wrap">
+    <table class="ledger sortable">
+      <thead>
+        <tr>
+          <th scope="col">Game</th>
+          {% for col in game_table.columns %}<th scope="col" data-type="num">{{ col }}</th>{% endfor %}
+          <th scope="col" data-type="num">Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in game_table.rows %}
+        <tr>
+          <td class="cell-team" data-sort="{{ r.week }}"><a class="team-link" href="/game/{{ r.eid }}?week={{ r.week }}"><span class="team-name">Wk {{ r.week }}</span></a><span class="team-owner">{{ r.atvs }} {{ r.opp }} · {{ r.result }}</span></td>
+          {% for cell in r.cells %}<td data-label="{{ game_table.columns[loop.index0] }}" data-sort="{{ cell.n }}">{{ cell.v }}</td>{% endfor %}
+          <td data-label="Pts" data-sort="{{ r.pts }}">{{ r.pts }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+
     {% if player.espn_url %}
     <p class="ext-link"><a href="{{ player.espn_url }}" target="_blank" rel="noopener">View on ESPN →</a></p>
     {% endif %}
@@ -92,6 +116,22 @@
       .map(p => `<li><a href="/compare?a=${A}&b=${p.id}">${p.name} <span class="sr-pos">${p.pos} · ${p.team}</span></a></li>`).join('');
   };
   input && input.addEventListener('input', render);
+
+  // sortable game-history table
+  const table = document.querySelector('.ledger.sortable');
+  if (table) {
+    const tbody = table.tBodies[0], ths = table.querySelectorAll('th');
+    ths.forEach((th, idx) => th.addEventListener('click', () => {
+      const num = th.dataset.type === 'num';
+      const dir = th.getAttribute('data-asc') === 'asc' ? -1 : 1;
+      ths.forEach((o) => o.removeAttribute('data-asc'));
+      th.setAttribute('data-asc', dir === 1 ? 'asc' : 'desc');
+      [...tbody.rows].sort((a, b) => {
+        const av = a.cells[idx].dataset.sort, bv = b.cells[idx].dataset.sort;
+        return (num ? parseFloat(av) - parseFloat(bv) : String(av).localeCompare(String(bv))) * dir;
+      }).forEach((r) => tbody.appendChild(r));
+    }));
+  }
 })();
 </script>
 {% endblock %}
