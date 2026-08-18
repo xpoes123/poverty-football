@@ -265,7 +265,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 .cmp-sub{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .cmp-col .pstat-strip{margin:14px 0 0}
 .cmp-col .statlist{text-align:left;margin-top:14px}
-.cmp-empty{display:flex;align-items:center;justify-content:center}
+.cmp-grid:has(.cmp-empty){grid-template-columns:1fr}
+.cmp-empty{display:none}
 
 /* fact grid (team page) */
 .factgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
