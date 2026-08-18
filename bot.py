@@ -45,14 +45,18 @@ async def build_embed(missing: list[Member], joined_count: int) -> discord.Embed
     t = tier(days)
     e = discord.Embed(
         title=f"🏈 {name} — {t['title']}",
-        description=tone_line(days),
+        url=cfg.join_url,  # makes the title clickable → the invite link
+        description=f"{tone_line(days)}\n\n**[→ Join the league]({cfg.join_url})**",
         color=t["color"],
         timestamp=dt.datetime.now(TZ),
     )
+    draft_val = countdown_line(days)
+    if cfg.draft_date:
+        draft_val += f"\n{cfg.draft_date:%b %-d}, {cfg.draft_time_label}"
     e.add_field(name=f"🚫 Still not in ({len(missing)})", value=missing_block(missing), inline=False)
     e.add_field(name="✅ Joined", value=f"**{joined_count}** / {total} seats", inline=True)
-    e.add_field(name="⏱️ Draft", value=countdown_line(days), inline=True)
-    e.set_footer(text="Join at sleeper.app → Poverty Franchises")
+    e.add_field(name="⏱️ Draft", value=draft_val, inline=True)
+    e.set_footer(text="Poverty Franchises")
     return e
 
 
