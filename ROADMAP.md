@@ -16,6 +16,17 @@ Live site: https://nfl.djiang.xyz · Sleeper league `1393861542625169408` ("Pove
 - Discord OAuth (identify + highlight-your-team) via `expected.toml` bridge — live.
 - Aesthetic: warm-espresso + antique-gold "sports almanac", Fraunces + Archivo Narrow. Keep it cohesive.
 
+## STATUS (after overnight autonomous run, 2026-08-18)
+All four requested features are BUILT and merged to main, each behind a flag (default OFF → live site unchanged).
+20 PRs merged across 5 red-team rounds. To enable a feature, add the env var to `/opt/nfl-bot/.env` on the VPS and `systemctl restart nfl-web`:
+- **Insights** (luck / expected-wins / all-play, `/insights`): `ENABLE_ANALYSIS=true`
+- **Bet on your matchups** (`/bets`, SQLite in `data/`): `ENABLE_BETTING=true` (needs Discord login working)
+- **H2H NFL-game betting** (`/h2h`, odds via OddsAPI): `ENABLE_H2H_BETTING=true` (`ODDS_API_KEY` already set)
+- **Dev-seed** (fixture in-season data for off-season dev): `DEV_SEED=true` — LOCAL/dev only, never on prod.
+Modules: `betting.py`+`test_betting.py`, `h2h.py`+`odds.py`+`test_h2h.py`, `views.luck_table`, `seed/` fixtures.
+Deployed polish (live now): countdown, standings cutline, player profiles + compare, headshot fallbacks,
+mobile-nav fix, WCAG-AA contrast, skip-link, focus rings, signed credit/debit colors, table-wrap scroll.
+
 ## Requested features (build as feature-flagged PRs)
 1. **Bet on your own matchups** (`enable_betting`) — each week, log a wager on your own game; track outcomes/standings of bets. Play-money ledger; needs a small store (SQLite) + logged-in identity.
 2. **H2H NFL game betting** (`enable_h2h_betting`) — members bet against each other on that week's NFL games. Odds from the-odds-api.com (`cfg.odds_api_key`); a handshake/escrow ledger to track who owes whom. Cache odds; do NOT hammer the API.
