@@ -80,6 +80,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 .section-head h2{font-family:var(--serif);font-weight:500;font-size:20px}
 .section-head p{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:right}
 @media (max-width:520px){.section-head{flex-wrap:wrap}.section-head p{flex-basis:100%;text-align:left;margin-top:2px}}
+/* heading-first pages: drop the leading margin so the first H2 aligns to the same 24px top as plate/backlink pages */
+.page > .wrap > .section-head:first-child{margin-top:0}
 
 /* manager cards */
 .mgr-grid{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);grid-template-columns:1fr}
