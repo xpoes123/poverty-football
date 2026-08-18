@@ -11,3 +11,6 @@ dependencies = [
 
 [dependency-groups]
 dev = ["pytest>=8.0"]
+
+[tool.setuptools]
+py-modules = ["bot", "config", "sleeper", "shame"]
