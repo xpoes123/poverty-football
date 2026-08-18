@@ -3,7 +3,7 @@
 {% macro fplist(rows) %}
 <div class="fplist">
   {% for pl in rows %}
-  <div class="fprow-wrap">
+  <div class="fprow-wrap" data-pos="{{ pl.pos }}">
     <div class="fprow" role="button" tabindex="0" aria-expanded="false">
       <img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
       <a class="fp-name" href="/player/{{ pl.pid }}">{{ pl.name }}<span class="fp-pos">{{ pl.pos }}</span></a>
@@ -38,6 +38,14 @@
       </div>
     </div>
 
+    <nav class="pos-filter" aria-label="Filter by position">
+      <ul class="chips chips--wrap">
+        {% for p in ['ALL','QB','RB','WR','TE','K','DEF'] %}
+          <li><button type="button" class="chip{{ ' on' if p == 'ALL' }}" data-pos="{{ p }}">{{ 'All' if p == 'ALL' else p }}</button></li>
+        {% endfor %}
+      </ul>
+    </nav>
+
     <div class="section-head"><h2>{{ g.away.name }}</h2><p>Fantasy points · our scoring</p></div>
     {{ fplist(groups.away) }}
 
@@ -47,6 +55,15 @@
 </main>
 <script>
 (() => {
+  // position filter
+  const chips = document.querySelectorAll('.pos-filter .chip');
+  const wraps = document.querySelectorAll('.fprow-wrap');
+  chips.forEach((ch) => ch.addEventListener('click', () => {
+    chips.forEach((c) => c.classList.toggle('on', c === ch));
+    const pos = ch.dataset.pos;
+    wraps.forEach((w) => { w.hidden = !(pos === 'ALL' || w.dataset.pos === pos); });
+  }));
+
   document.querySelectorAll('.fplist').forEach((list) => {
     const toggle = (row) => {
       const box = row.parentElement.querySelector('.fp-box');
