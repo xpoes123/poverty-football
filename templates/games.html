@@ -17,7 +17,7 @@
     {% if games %}
     <div class="nflgrid">
       {% for gm in games %}
-      <a class="nflcard" href="/game/{{ gm.id }}">
+      <a class="nflcard" href="/game/{{ gm.id }}?week={{ nfl_week }}">
         <div class="nflside{{ ' win' if gm.away.winner }}">
           <img class="nfl-logo" src="{{ gm.away.logo }}" alt="" loading="lazy">
           <span class="nfl-team">{{ gm.away.name }}</span>

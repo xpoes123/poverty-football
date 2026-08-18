@@ -341,15 +341,20 @@ async def team_page(request: Request, roster_id: int):
 @app.get("/player/{pid}", response_class=HTMLResponse)
 async def player_profile(request: Request, pid: str):
     players = await get_players()
+    real = False
+    if pid not in players:  # e.g. a real NFL player linked from Games while in preview mode
+        players = await _real(get_players)
+        real = True
     p = players.get(pid)
     if p is None:
         return RedirectResponse("/draftboard")
     ctx = await _base_ctx(request, "")
     season = "2025"
-    st = (await get_player_stats(season)).get(pid, {})
+    fetch_stats = (lambda s: _real(get_player_stats, s)) if real else get_player_stats
+    st = (await fetch_stats(season)).get(pid, {})
     if not st:
         season = "2024"
-        st = (await get_player_stats(season)).get(pid, {})
+        st = (await fetch_stats(season)).get(pid, {})
     position = p.get("position") or ""
     espn_id = p.get("espn_id")
     ctx["player"] = {
@@ -462,8 +467,17 @@ async def games_page(request: Request, week: int | None = None):
     return templates.TemplateResponse(request, "games.html", ctx)
 
 
+async def _real(fn, *args):
+    """Run a Sleeper fetch with the preview-seed override forced off (real data)."""
+    token = seed_preview.set(False)
+    try:
+        return await fn(*args)
+    finally:
+        seed_preview.reset(token)
+
+
 @app.get("/game/{eid}", response_class=HTMLResponse)
-async def game_page(request: Request, eid: str):
+async def game_page(request: Request, eid: str, week: int | None = None):
     ctx = await _base_ctx(request, "games")
     try:
         detail = espn.detail(await espn.summary(eid))
@@ -471,7 +485,16 @@ async def game_page(request: Request, eid: str):
         detail = None
     if detail is None:
         return RedirectResponse("/games")
+    wk = week if week and 1 <= week <= 18 else 1
+    # real NFL production (bypass the preview seed); franchise ownership is seed-aware
+    real_players = await _real(get_players)
+    real_wk = await _real(get_week_stats, "2025", wk)
+    users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
     ctx["g"] = detail
+    ctx["week"] = wk
+    ctx["groups"] = views.game_players(detail["away"]["abbr"], detail["home"]["abbr"],
+                                       real_wk, real_players, rosters, users,
+                                       league.get("scoring_settings") or {})
     return templates.TemplateResponse(request, "game.html", ctx)
 
 

@@ -228,6 +228,40 @@ def draft_results(picks: list[dict], users: list[dict], rosters: list[dict], pla
     return [{"round": r, "picks": rounds[r]} for r in sorted(rounds) if r]
 
 
+def game_players(away: str, home: str, week_stats: dict, players: dict,
+                 rosters: list[dict], users: list[dict], scoring: dict) -> dict:
+    """Fantasy-relevant players in one NFL game, scored by the league's own settings, with
+    the franchise that rosters each. Grouped by NFL team, sorted by fantasy points."""
+    by_uid = {u["user_id"]: u for u in users}
+    owner = {}
+    for r in rosters:
+        if r.get("owner_id"):
+            fr = team_name(by_uid.get(r["owner_id"]))
+            for pid in (r.get("players") or []):
+                owner[str(pid)] = fr
+
+    def fpts(st):
+        return round(sum((v or 0) * scoring.get(k, 0) for k, v in st.items()
+                         if isinstance(v, (int, float)) and k in scoring), 2)
+
+    groups = {"away": [], "home": []}
+    for pid, p in players.items():
+        team = p.get("team")
+        if team not in (away, home) or p.get("position") not in FANTASY_POS:
+            continue
+        st = week_stats.get(pid)
+        if not st:
+            continue
+        pl = player_line(pid, players)
+        groups["away" if team == away else "home"].append({
+            "pid": pid, "name": pl["name"], "pos": pl["pos"], "pts": fpts(st),
+            "franchise": owner.get(pid), "img": player_image(pid, pl["pos"], team),
+        })
+    for k in groups:
+        groups[k].sort(key=lambda r: r["pts"], reverse=True)
+    return groups
+
+
 def player_line(pid: str, players: dict) -> dict:
     p = players.get(pid) or {}
     pos = p.get("position") or ("DEF" if pid.isalpha() else "")

@@ -28,7 +28,7 @@ async def scoreboard(year: int = 2025, week: int = 1, seasontype: int = 2) -> di
 
 
 async def summary(event_id: str) -> dict:
-    return await _get(f"{BASE}/summary?event={event_id}", ttl=180)
+    return await _get(f"{BASE}/summary?event={event_id}", ttl=1800)  # historical games are final
 
 
 # --- pure shaping (testable on raw JSON) ------------------------------------
@@ -66,7 +66,7 @@ def detail(s: dict) -> dict | None:
         x = next((c for c in comps if c.get("homeAway") == which), {})
         t = x.get("team", {})
         logo = t.get("logo") or ((t.get("logos") or [{}])[0]).get("href")
-        return {"name": t.get("displayName"), "logo": logo,
+        return {"name": t.get("displayName"), "abbr": t.get("abbreviation"), "logo": logo,
                 "score": x.get("score"), "winner": x.get("winner")}
 
     # team stats comparison, aligned away | label | home

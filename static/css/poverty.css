@@ -313,6 +313,21 @@ button{font:inherit;color:inherit;background:none;border:0}
 .sc-a{text-align:left;font-variant-numeric:tabular-nums;font-family:var(--serif);font-size:14px}
 .sc-h{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--serif);font-size:14px}
 .sc-l{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:center}
+
+/* game: fantasy player production */
+.fplist{border:1px solid var(--rule)}
+.fprow{display:grid;grid-template-columns:30px 1fr auto auto;align-items:center;gap:11px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--rule);color:inherit}
+.fprow:last-child{border-bottom:0}
+.fprow:nth-child(even){background:rgba(243,238,227,.02)}
+.fprow:hover{background:var(--surface-2)}
+.fprow .slot-face{margin:0}
+.fprow:hover .fp-name{color:var(--gold-bright)}
+.fp-name{font-family:var(--serif);font-size:14px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-pos{font-family:var(--grot);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:6px}
+.fp-fr{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);white-space:nowrap;max-width:13ch;overflow:hidden;text-overflow:ellipsis}
+.fp-fr--fa{color:var(--muted)}
+.fp-pts{font-family:var(--serif);font-size:15px;color:var(--gold-bright);font-variant-numeric:tabular-nums;min-width:3em;text-align:right}
+@media (max-width:520px){.fp-fr{max-width:8ch;font-size:9px}.fp-name{font-size:13px}}
 .bmid{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
 .bslot{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);line-height:1}
 .bscores{display:flex;gap:5px}

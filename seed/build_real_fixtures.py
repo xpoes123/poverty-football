@@ -120,8 +120,13 @@ picks = [{"round": rnd, "pick_no": i + 1, "draft_slot": t + 1,
          for i, (rnd, t, pid) in enumerate(draft)]
 json.dump(picks, open(SEED / "draft_picks.json", "w"))
 
-# enrich weekly matchups: real starters + a plausible per-starter points split summing to the total
+# sync seed scoring to the real league so fantasy points compute correctly
 league = json.load(open(SEED / "league.json"))
+real_league = httpx.get("https://api.sleeper.app/v1/league/1393861542625169408", timeout=20).json()
+league["scoring_settings"] = real_league.get("scoring_settings") or league.get("scoring_settings")
+json.dump(league, open(SEED / "league.json", "w"))
+
+# enrich weekly matchups: real starters + a plausible per-starter points split summing to the total
 slots = [p for p in league["roster_positions"] if p != "BN"]
 SLOT_W = {"QB": 1.35, "RB": 1.25, "WR": 1.15, "TE": 0.9, "FLEX": 1.1, "K": 0.7, "DEF": 0.85}
 rmap = {r["roster_id"]: r for r in new_rosters}
