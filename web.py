@@ -498,12 +498,23 @@ async def schedule(request: Request, week: int | None = None):
 @app.get("/games", response_class=HTMLResponse)
 async def games_page(request: Request, week: int | None = None):
     ctx = await _base_ctx(request, "games")
-    wk = week if week and 1 <= week <= 18 else 1
+    # In preview we simulate being at the seed's current week, so later weeks read as unplayed —
+    # matching the fantasy Schedule instead of showing the whole 2025 season as final.
+    current = (await get_nfl_state()).get("week") if ctx["seed_on"] else None
+    wk = week if week and 1 <= week <= 18 else (current or 1)
     try:
         data = espn.games(await espn.scoreboard(year=2025, week=wk))
     except Exception:
         data = {"games": [], "week": wk}
-    ctx["games"] = data["games"]
+    games = data["games"]
+    upcoming = bool(current) and wk > current
+    if upcoming:  # strip results — these games "haven't happened yet" in the preview
+        for g in games:
+            g["away"]["score"] = g["home"]["score"] = None
+            g["away"]["winner"] = g["home"]["winner"] = False
+            g["status"] = views.kick_label(g.get("date")) or "Scheduled"
+    ctx["games"] = games
+    ctx["upcoming"] = upcoming
     ctx["nfl_week"] = data["week"] or wk
     ctx["weeks"] = [{"href": f"/games?week={w}", "label": str(w), "current": w == wk} for w in range(1, 19)]
     return templates.TemplateResponse(request, "games.html", ctx)

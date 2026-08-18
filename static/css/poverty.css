@@ -282,6 +282,9 @@ a.slot:hover .slot__name{color:var(--gold-bright)}
 @media (min-width:640px){.nflgrid{grid-template-columns:1fr 1fr}}
 .nflcard{display:block;background:var(--surface);padding:12px 15px 10px;color:inherit;transition:background .18s ease}
 .nflcard:hover{background:var(--surface-2)}
+.nflcard--sched{cursor:default}
+.nflcard--sched:hover{background:var(--surface)}
+.nflcard--sched .nfl-status{color:var(--gold)}
 .nflside{display:flex;align-items:center;gap:11px;padding:6px 0}
 .nflside+.nflside{border-top:1px solid var(--rule)}
 .nfl-logo{width:26px;height:26px;object-fit:contain;flex:none}
