@@ -19,29 +19,52 @@
       </div>
     </div>
 
-    <div class="section-head"><h2>Starters</h2><p>Points by lineup slot</p></div>
+    <div class="section-head"><h2>Starters</h2><p>Tap a player for the box score</p></div>
     <div class="breakdown">
       {% for i in range(detail.a.starters | length) %}
         {% set pa = detail.a.starters[i] %}{% set pb = detail.b.starters[i] %}
-        <div class="brow">
-          <div class="bside bside--a">
-            {% if pa.img %}<img class="slot-face" src="{{ pa.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}
-            <span class="bname">{{ pa.name }}</span>
+        <div class="brow-wrap">
+          <div class="brow">
+            <button type="button" class="bside bside--a" aria-expanded="false">
+              {% if pa.img %}<img class="slot-face" src="{{ pa.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}
+              <span class="bname">{{ pa.name }}</span>
+            </button>
+            <div class="bmid">
+              <span class="bslot">{{ pa.slot }}</span>
+              <span class="bscores">
+                <span class="bpts {{ 'win' if pa.pts > pb.pts else 'lose' if pa.pts < pb.pts else 'tie' }}">{{ pa.pts }}</span>
+                <span class="bpts {{ 'win' if pb.pts > pa.pts else 'lose' if pb.pts < pa.pts else 'tie' }}">{{ pb.pts }}</span>
+              </span>
+            </div>
+            <button type="button" class="bside bside--b" aria-expanded="false">
+              <span class="bname">{{ pb.name }}</span>
+              {% if pb.img %}<img class="slot-face" src="{{ pb.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}
+            </button>
           </div>
-          <div class="bmid">
-            <span class="bslot">{{ pa.slot }}</span>
-            <span class="bscores">
-              <span class="bpts {{ 'win' if pa.pts > pb.pts else 'lose' if pa.pts < pb.pts else 'tie' }}">{{ pa.pts }}</span>
-              <span class="bpts {{ 'win' if pb.pts > pa.pts else 'lose' if pb.pts < pa.pts else 'tie' }}">{{ pb.pts }}</span>
-            </span>
+          <div class="bstats bstats--a" hidden>
+            {% for s in pa.stats %}<span class="bstat"><b>{{ s.value }}</b> {{ s.label }}</span>{% else %}<span class="bstat bstat--muted">No box score</span>{% endfor %}
           </div>
-          <div class="bside bside--b">
-            <span class="bname">{{ pb.name }}</span>
-            {% if pb.img %}<img class="slot-face" src="{{ pb.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}
+          <div class="bstats bstats--b" hidden>
+            {% for s in pb.stats %}<span class="bstat"><b>{{ s.value }}</b> {{ s.label }}</span>{% else %}<span class="bstat bstat--muted">No box score</span>{% endfor %}
           </div>
         </div>
       {% endfor %}
     </div>
   </div>
 </main>
+<script>
+(() => {
+  const wrap = document.querySelector('.breakdown');
+  if (!wrap) return;
+  wrap.addEventListener('click', (e) => {
+    const btn = e.target.closest('.bside');
+    if (!btn) return;
+    const side = btn.classList.contains('bside--a') ? 'a' : 'b';
+    const panel = btn.closest('.brow-wrap').querySelector('.bstats--' + side);
+    const open = panel.hidden;
+    panel.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+  });
+})();
+</script>
 {% endblock %}

@@ -98,6 +98,21 @@ keep.update([pid for pid in pool if pid not in keep][:140])
 json.dump({pid: players[pid] for pid in keep}, open(SEED / "players.json", "w"))
 json.dump({pid: stats[pid] for pid in keep if pid in stats}, open(SEED / "stats_2025.json", "w"))
 
+# per-game "weekly" stat lines (season totals / games), for the matchup box-score expansion
+COUNT = {"pass_yd", "pass_td", "pass_int", "rush_yd", "rush_td", "rec", "rec_tgt", "rec_yd",
+         "rec_td", "fgm", "fga", "xpm", "sack", "def_int", "fum_rec", "def_td", "pts_ppr"}
+INT_KEYS = {"pass_td", "rush_td", "rec", "rec_td", "rec_tgt", "pass_int", "fgm", "fga", "xpm"}
+week_stats = {}
+for pid in keep:
+    st = stats.get(pid)
+    if not st:
+        continue
+    gp = st.get("gp") or 1
+    wk = {k: (round(v / gp) if k in INT_KEYS else round(v / gp, 1))
+          for k, v in st.items() if k in COUNT and isinstance(v, (int, float))}
+    week_stats[pid] = wk
+json.dump(week_stats, open(SEED / "week_stats.json", "w"))
+
 # draft picks from the recorded BPA pick order (team index t → roster_id t+1)
 owner = {r["roster_id"]: r["owner_id"] for r in new_rosters}
 picks = [{"round": rnd, "pick_no": i + 1, "draft_slot": t + 1,

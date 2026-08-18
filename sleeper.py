@@ -53,8 +53,8 @@ def _seed(url: str):
         return load("nfl_state.json", {})
     elif parts[0] == "players":
         return load("players.json", {})
-    elif parts[0] == "stats":  # stats/nfl/regular/{season}
-        return load(f"stats_{parts[3]}.json", {})
+    elif parts[0] == "stats":  # stats/nfl/regular/{season}[/{week}]
+        return load("week_stats.json", {}) if len(parts) >= 5 else load(f"stats_{parts[3]}.json", {})
     elif parts[0] == "user":  # resolve handle -> user dict, or None
         name = parts[1]
         return next((u for u in load("users.json", []) if u.get("display_name") == name), None)
@@ -137,5 +137,13 @@ async def get_player_stats(season: str) -> dict:
     """id -> season stat totals (pts_ppr, etc.). Empty dict if the season has no data."""
     try:
         return await _get(f"{BASE}/stats/nfl/regular/{season}", ttl=86400) or {}
+    except httpx.HTTPStatusError:
+        return {}
+
+
+async def get_week_stats(season: str, week: int) -> dict:
+    """id -> that week's stat line. Empty dict if unavailable."""
+    try:
+        return await _get(f"{BASE}/stats/nfl/regular/{season}/{week}", ttl=3600) or {}
     except httpx.HTTPStatusError:
         return {}

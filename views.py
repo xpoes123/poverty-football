@@ -114,9 +114,10 @@ def scoreboard(matchups: list[dict], rosters: list[dict], users: list[dict]) -> 
     return games
 
 
-def matchup_detail(week_matchups: list[dict], mid: int, rosters: list[dict],
-                   users: list[dict], players: dict, slots: list[str]) -> dict | None:
-    """Both sides of one matchup with a per-starter points breakdown (real or seeded)."""
+def matchup_detail(week_matchups: list[dict], mid: int, rosters: list[dict], users: list[dict],
+                   players: dict, slots: list[str], week_stats: dict | None = None) -> dict | None:
+    """Both sides of one matchup with a per-starter points breakdown + weekly box score."""
+    week_stats = week_stats or {}
     by_id = {u["user_id"]: u for u in users}
     owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters}
     entries = [m for m in week_matchups if m.get("matchup_id") == mid]
@@ -131,12 +132,13 @@ def matchup_detail(week_matchups: list[dict], mid: int, rosters: list[dict],
         for i, pid in enumerate(starters):
             slot = slots[i] if i < len(slots) else "FLEX"
             if not pid or pid == "0":
-                rows.append({"slot": slot, "name": "—", "pos": "", "img": None, "pts": 0.0})
+                rows.append({"slot": slot, "name": "—", "pos": "", "img": None, "pts": 0.0, "stats": []})
                 continue
             pl = player_line(str(pid), players)
             pts = sp[i] if i < len(sp) else pp.get(str(pid), 0)
             rows.append({"slot": slot, "name": pl["name"], "pos": pl["pos"],
-                         "img": player_image(str(pid), pl["pos"], pl["team"]), "pts": round(pts or 0, 1)})
+                         "img": player_image(str(pid), pl["pos"], pl["team"]), "pts": round(pts or 0, 1),
+                         "stats": player_stat_lines(pl["pos"], week_stats.get(str(pid), {}))})
         u = owner_of.get(m["roster_id"])
         return {"team": team_name(u), "avatar": avatar_url(u),
                 "points": round(m.get("points") or 0, 1), "starters": rows}

@@ -30,6 +30,7 @@ from sleeper import (
     get_nfl_state,
     get_player_stats,
     get_players,
+    get_week_stats,
     get_rosters,
     get_transactions,
     get_users,
@@ -450,7 +451,8 @@ async def matchup(request: Request, week: int, mid: int):
     users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
     players = await get_players()
     slots = [p for p in league.get("roster_positions", []) if p != "BN"]
-    detail = views.matchup_detail(await get_matchups(LID, week), mid, rosters, users, players, slots)
+    week_stats = await get_week_stats(league.get("season", "2025"), week)
+    detail = views.matchup_detail(await get_matchups(LID, week), mid, rosters, users, players, slots, week_stats)
     if detail is None:
         return RedirectResponse(f"/schedule?week={week}")
     ctx = await _base_ctx(request, "schedule")
