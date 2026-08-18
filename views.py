@@ -228,10 +228,15 @@ def draft_results(picks: list[dict], users: list[dict], rosters: list[dict], pla
     return [{"round": r, "picks": rounds[r]} for r in sorted(rounds) if r]
 
 
+ESPN_TO_SLEEPER_TEAM = {"WSH": "WAS"}  # ESPN vs Sleeper abbreviation differences
+
+
 def game_players(away: str, home: str, week_stats: dict, players: dict,
                  rosters: list[dict], users: list[dict], scoring: dict) -> dict:
     """Fantasy-relevant players in one NFL game, scored by the league's own settings, with
     the franchise that rosters each. Grouped by NFL team, sorted by fantasy points."""
+    away = ESPN_TO_SLEEPER_TEAM.get(away, away)
+    home = ESPN_TO_SLEEPER_TEAM.get(home, home)
     by_uid = {u["user_id"]: u for u in users}
     owner = {}
     for r in rosters:

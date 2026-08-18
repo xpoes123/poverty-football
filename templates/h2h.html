@@ -4,6 +4,11 @@
 {% block main %}
 <main class="page" data-page="h2h" id="main" data-screen-label="NFL Bets">
   <div class="wrap">
+    {% if subtabs and subtabs|length > 1 %}
+    <nav class="subtabs" aria-label="Gamble views">
+      {% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}
+    </nav>
+    {% endif %}
 
     <div class="section-head">
       <h2>This Week's NFL Games</h2>

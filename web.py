@@ -75,6 +75,15 @@ NAV = [("home", "/", "League"), ("players", "/draftboard", "Players"),
 def _player_subtabs(active: str):
     return [{"label": "Rankings", "href": "/draftboard", "current": active == "rankings"},
             {"label": "Draft", "href": "/draft", "current": active == "draft"}]
+
+
+def _gamble_subtabs(active: str):
+    tabs = []
+    if cfg.enable_betting:
+        tabs.append({"label": "My Matchups", "href": "/bets", "current": active == "bets"})
+    if cfg.enable_h2h_betting:
+        tabs.append({"label": "NFL Games", "href": "/h2h", "current": active == "h2h"})
+    return tabs
 TX_KINDS = {"trade": "Trade", "waiver": "Waiver", "free_agent": "Add"}
 STATUS_LABEL = {"pre_draft": "Pre-Draft Season", "drafting": "Draft Underway",
                 "in_season": "Regular Season", "complete": "Season Complete"}
@@ -123,12 +132,11 @@ async def _base_ctx(request: Request, active: str) -> dict:
     upcoming = target and target > dt.datetime.now(TZ)
     me = await _me_roster_id(request)
     nav_items = [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV]
-    if cfg.enable_betting:  # Bets tab only exists when the betting flag is on
-        nav_items.append({"href": "/bets", "label": "Bets", "current": active == "bets"})
     if cfg.enable_analysis:  # Insights tab only exists when the analysis flag is on
         nav_items.append({"href": "/insights", "label": "Insights", "current": active == "insights"})
-    if cfg.enable_h2h_betting:  # NFL Bets tab only exists when the h2h flag is on
-        nav_items.append({"href": "/h2h", "label": "NFL Bets", "current": active == "h2h"})
+    if cfg.enable_betting or cfg.enable_h2h_betting:  # single Gamble tab for both betting features
+        nav_items.append({"href": "/bets" if cfg.enable_betting else "/h2h",
+                          "label": "Gamble", "current": active == "gamble"})
     return {
         "request": request,
         "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
@@ -547,7 +555,8 @@ async def insights(request: Request):
 async def bets(request: Request):
     if not cfg.enable_betting:
         return RedirectResponse("/")
-    ctx = await _base_ctx(request, "bets")
+    ctx = await _base_ctx(request, "gamble")
+    ctx["subtabs"] = _gamble_subtabs("bets")
     users, rosters = await get_users(LID), await get_rosters(LID)
     by_id = {u["user_id"]: u for u in users}
     owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
@@ -633,7 +642,8 @@ async def place_bet(request: Request):
 async def h2h_page(request: Request):
     if not cfg.enable_h2h_betting:
         return RedirectResponse("/")
-    ctx = await _base_ctx(request, "h2h")
+    ctx = await _base_ctx(request, "gamble")
+    ctx["subtabs"] = _gamble_subtabs("h2h")
     users, rosters = await get_users(LID), await get_rosters(LID)
     by_id = {u["user_id"]: u for u in users}
     owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}

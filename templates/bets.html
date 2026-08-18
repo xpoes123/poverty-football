@@ -3,6 +3,11 @@
 {% block main %}
 <main class="page" data-page="bets" id="main" data-screen-label="Bets">
   <div class="wrap">
+    {% if subtabs and subtabs|length > 1 %}
+    <nav class="subtabs" aria-label="Gamble views">
+      {% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}
+    </nav>
+    {% endif %}
 
     {% if me_roster_id %}
       {% if my_matchup %}
