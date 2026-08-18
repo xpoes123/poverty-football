@@ -231,6 +231,11 @@ def draft_results(picks: list[dict], users: list[dict], rosters: list[dict], pla
 ESPN_TO_SLEEPER_TEAM = {"WSH": "WAS"}  # ESPN vs Sleeper abbreviation differences
 
 
+def _played(st: dict) -> bool:
+    """True if the player actually took a snap that week (not a DNP/inactive)."""
+    return bool(st.get("gp")) or any((st.get(k) or 0) > 0 for k in ("off_snp", "st_snp", "def_snp"))
+
+
 def game_players(away: str, home: str, week_stats: dict, players: dict,
                  rosters: list[dict], users: list[dict], scoring: dict) -> dict:
     """Fantasy-relevant players in one NFL game, scored by the league's own settings, with
@@ -256,6 +261,8 @@ def game_players(away: str, home: str, week_stats: dict, players: dict,
             continue
         st = week_stats.get(pid)
         if not st:
+            continue
+        if p.get("position") != "DEF" and not _played(st):  # drop DNPs / inactives
             continue
         pl = player_line(pid, players)
         groups["away" if team == away else "home"].append({
