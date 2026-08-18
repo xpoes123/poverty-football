@@ -33,8 +33,8 @@ LID = cfg.league_id
 DRAFT_HOUR = 20  # 8 PM ET, matches cfg.draft_time_label
 
 NAV = [("home", "/", "League"), ("draftboard", "/draftboard", "Draft Board"),
-       ("freeagents", "/freeagents", "Free Agents"), ("scoreboard", "/scoreboard", "Scoreboard"),
-       ("transactions", "/transactions", "Transactions")]
+       ("freeagents", "/freeagents", "Free Agents"), ("schedule", "/schedule", "Schedule")]
+TX_KINDS = {"trade": "Trade", "waiver": "Waiver", "free_agent": "Add"}
 STATUS_LABEL = {"pre_draft": "Pre-Draft Season", "drafting": "Draft Underway",
                 "in_season": "Regular Season", "complete": "Season Complete"}
 
@@ -81,6 +81,21 @@ def _standings_rows(users, rosters):
     } for r in views.standings(users, rosters)]
 
 
+async def _tx_feed(users, rosters):
+    state = await get_nfl_state()
+    raw = []
+    for wk in range(1, (state.get("week") or 1) + 1):
+        raw += await get_transactions(LID, wk)
+    players = await get_players() if raw else {}
+    feed = []
+    for e in views.transactions(raw, rosters, users, players):
+        moves = [f"added {n}" for n, _ in e["adds"]] + [f"dropped {n}" for n, _ in e["drops"]]
+        date = (dt.datetime.fromtimestamp(e["created"] / 1000, TZ).strftime("%b %-d") if e["created"] else "")
+        feed.append({"date": date, "kind": TX_KINDS.get(e["type"], e["type"].title()),
+                     "team": e["teams"][0] if e["teams"] else "—", "text": ", ".join(moves) or "—"})
+    return feed
+
+
 @app.get("/health")
 async def health():
     return {"ok": True}
@@ -96,6 +111,7 @@ async def home(request: Request):
         {"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{LID}", "external": True},
     ]
     ctx["rows"] = _standings_rows(users, rosters)
+    ctx["tx_feed"] = await _tx_feed(users, rosters) if ctx["has_season"] else []
     if ctx["is_pre"]:
         ctx["table_title"] = "Franchises"
         ctx["through_label"] = f"{ctx['seated_line']} seated"
@@ -168,9 +184,39 @@ async def team_page(request: Request, roster_id: int):
     return templates.TemplateResponse(request, "team.html", ctx)
 
 
-@app.get("/scoreboard", response_class=HTMLResponse)
-async def scoreboard(request: Request, week: int | None = None):
-    ctx = await _base_ctx(request, "scoreboard")
+@app.get("/player/{pid}", response_class=HTMLResponse)
+async def player_profile(request: Request, pid: str):
+    players = await get_players()
+    p = players.get(pid)
+    if p is None:
+        return RedirectResponse("/draftboard")
+    ctx = await _base_ctx(request, "")
+    season = "2025"
+    st = (await get_player_stats(season)).get(pid, {})
+    if not st:
+        season = "2024"
+        st = (await get_player_stats(season)).get(pid, {})
+    position = p.get("position") or ""
+    espn_id = p.get("espn_id")
+    ctx["player"] = {
+        "name": p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid,
+        "pos": position, "team": p.get("team") or "FA",
+        "img": views.player_image(pid, position, p.get("team") or pid),
+        "number": p.get("number"), "age": p.get("age"),
+        "height": views.height_str(p.get("height")), "weight": p.get("weight"),
+        "college": p.get("college") or "—",
+        "exp": "Rookie" if p.get("years_exp") == 0 else (f"{p.get('years_exp')} yrs" if p.get("years_exp") is not None else "—"),
+        "status": p.get("injury_status") or p.get("status") or "Active",
+        "espn_url": f"https://www.espn.com/nfl/player/_/id/{espn_id}" if espn_id else None,
+    }
+    ctx["season_stat"] = season
+    ctx["stat_lines"] = views.player_stat_lines(position, st)
+    return templates.TemplateResponse(request, "player.html", ctx)
+
+
+@app.get("/schedule", response_class=HTMLResponse)
+async def schedule(request: Request, week: int | None = None):
+    ctx = await _base_ctx(request, "schedule")
     state = await get_nfl_state()
     current = state.get("week") or 1
     week = week or current
@@ -194,33 +240,8 @@ async def scoreboard(request: Request, week: int | None = None):
     ctx["week_has_games"] = bool(matchups)
     ctx["week_empty"] = not matchups
     ctx["week_heading"] = f"Week {week}"
-    ctx["weeks"] = [{"href": f"/scoreboard?week={w}", "label": str(w), "current": w == week} for w in range(1, 19)]
+    ctx["weeks"] = [{"href": f"/schedule?week={w}", "label": str(w), "current": w == week} for w in range(1, 19)]
     ctx["empty_week_title"] = f"No matchups for Week {week}"
     ctx["empty_week_body"] = ("Scores appear here once the season starts."
                               + (f" Draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
-    return templates.TemplateResponse(request, "scoreboard.html", ctx)
-
-
-@app.get("/transactions", response_class=HTMLResponse)
-async def transactions(request: Request):
-    ctx = await _base_ctx(request, "transactions")
-    ctx["tx_note"] = "No entries"
-    if ctx["has_season"]:
-        state = await get_nfl_state()
-        current = state.get("week") or 1
-        users, rosters = await get_users(LID), await get_rosters(LID)
-        raw = []
-        for wk in range(1, current + 1):
-            raw += await get_transactions(LID, wk)
-        players = await get_players() if raw else {}
-        kinds = {"trade": "Trade", "waiver": "Waiver", "free_agent": "Add"}
-        feed = []
-        for e in views.transactions(raw, rosters, users, players):
-            moves = [f"added {n}" for n, _ in e["adds"]] + [f"dropped {n}" for n, _ in e["drops"]]
-            date = (dt.datetime.fromtimestamp(e["created"] / 1000, TZ).strftime("%b %-d")
-                    if e["created"] else "")
-            feed.append({"date": date, "kind": kinds.get(e["type"], e["type"].title()),
-                         "team": e["teams"][0] if e["teams"] else "—", "text": ", ".join(moves) or "—"})
-        ctx["transactions"] = feed
-        ctx["tx_note"] = f"{len(feed)} move{'s' if len(feed) != 1 else ''}"
-    return templates.TemplateResponse(request, "transactions.html", ctx)
+    return templates.TemplateResponse(request, "schedule.html", ctx)

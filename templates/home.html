@@ -42,7 +42,7 @@
         {% for team in rows %}
           <tr>
             <td class="cell-rank">{{ team.rank }}</td>
-            <td class="cell-team"><a class="team-link" href="{{ team.href }}">{% if team.avatar %}<img class="team-logo" src="{{ team.avatar }}" alt="" loading="lazy">{% endif %}<span class="team-name">{{ team.name }}</span></a><span class="team-owner">{{ team.owner }}</span></td>
+            <td class="cell-team"><a class="team-link" href="{{ team.href }}"><img class="team-logo" src="{{ team.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ team.name }}</span></a></td>
             <td data-label="W–L–T">{{ team.record }}</td>
             <td data-label="Pct">{{ team.pct }}</td>
             <td data-label="Points for">{{ team.pf }}</td>
@@ -51,6 +51,19 @@
         {% endfor %}
       </tbody>
     </table>
+
+    {% if tx_feed %}
+    <div class="section-head"><h2>Transactions</h2><p>{{ tx_feed|length }} moves</p></div>
+    <ul class="feed">
+      {% for e in tx_feed %}
+        <li class="entry">
+          <p class="entry__date">{{ e.date }}</p>
+          <p class="tag" data-kind="{{ e.kind }}">{{ e.kind }}</p>
+          <p class="entry__body"><strong>{{ e.team }}</strong> {{ e.text }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
   </div>
 </main>
 

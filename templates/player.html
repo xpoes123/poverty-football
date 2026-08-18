@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ player.name }}{% endblock %}
+{% block main %}
+<main class="page" data-page="player" id="ledger" data-screen-label="Player">
+  <div class="wrap">
+    <p class="backlink"><a href="/draftboard">← Draft Board</a></p>
+
+    <div class="team-head">
+      <img class="team-crest" src="{{ player.img }}" onerror="this.src='/static/default-team.svg'" alt="" loading="lazy">
+      <div>
+        <h1 class="team-head__name">{{ player.name }}</h1>
+        <p class="team-head__owner">{{ player.pos }} · {{ player.team }}{% if player.number %} · #{{ player.number }}{% endif %}</p>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>Profile</h2></div>
+    <dl class="factgrid">
+      <div><dt>Age</dt><dd>{{ player.age or '—' }}</dd></div>
+      <div><dt>Height</dt><dd>{{ player.height }}</dd></div>
+      <div><dt>Weight</dt><dd>{{ player.weight or '—' }}{% if player.weight %} lb{% endif %}</dd></div>
+      <div><dt>Experience</dt><dd>{{ player.exp }}</dd></div>
+      <div><dt>College</dt><dd>{{ player.college }}</dd></div>
+      <div><dt>Status</dt><dd>{{ player.status }}</dd></div>
+    </dl>
+
+    <div class="section-head"><h2>{{ season_stat }} Season</h2></div>
+    {% if stat_lines %}
+      <dl class="factgrid">
+        {% for s in stat_lines %}<div><dt>{{ s.label }}</dt><dd>{{ s.value }}</dd></div>{% endfor %}
+      </dl>
+    {% else %}
+      <div class="empty"><h3>No {{ season_stat }} stats</h3><p>No recorded stats for the {{ season_stat }} season.</p></div>
+    {% endif %}
+
+    {% if player.espn_url %}
+    <p class="ext-link"><a href="{{ player.espn_url }}" target="_blank" rel="noopener">View on ESPN →</a></p>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

@@ -174,15 +174,20 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
             continue
         exp = p.get("years_exp")
         age = p.get("age")
-        pts = (stats.get(pid) or {}).get("pts_ppr")
+        st = stats.get(pid) or {}
+        pts = st.get("pts_ppr")
+        gp = st.get("gp")
+        ppg = round(pts / gp, 1) if (pts and gp) else None
         name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
         rows.append({
-            "sr": sr, "name": name, "pos": position, "team": p.get("team") or "FA",
+            "pid": pid, "sr": sr, "name": name, "pos": position, "team": p.get("team") or "FA",
             "img": player_image(pid, position, p.get("team") or pid),
             "age": str(age) if age is not None else "—", "age_n": age if age is not None else -1,
             "exp": "R" if exp == 0 else (str(exp) if exp is not None else "—"),
             "exp_n": exp if exp is not None else -1,
+            "gp": str(int(gp)) if gp else "—", "gp_n": int(gp) if gp else -1,
             "pts": str(round(pts)) if pts else "—", "pts_n": round(pts) if pts else -1,
+            "ppg": str(ppg) if ppg else "—", "ppg_n": ppg if ppg else -1,
         })
     rows.sort(key=lambda r: r["sr"])
     if limit:
@@ -190,6 +195,47 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
     for i, r in enumerate(rows, 1):
         r["rank"] = i
     return rows
+
+
+STAT_SPECS = {
+    "QB": [("Games", "gp"), ("Pass yds", "pass_yd"), ("Pass TD", "pass_td"), ("INT", "pass_int"),
+           ("Rush yds", "rush_yd"), ("Rush TD", "rush_td")],
+    "RB": [("Games", "gp"), ("Rush yds", "rush_yd"), ("Rush TD", "rush_td"), ("Targets", "rec_tgt"),
+           ("Rec", "rec"), ("Rec yds", "rec_yd"), ("Rec TD", "rec_td")],
+    "WR": [("Games", "gp"), ("Targets", "rec_tgt"), ("Rec", "rec"), ("Rec yds", "rec_yd"),
+           ("Rec TD", "rec_td"), ("Rush yds", "rush_yd")],
+    "TE": [("Games", "gp"), ("Targets", "rec_tgt"), ("Rec", "rec"), ("Rec yds", "rec_yd"), ("Rec TD", "rec_td")],
+    "K": [("Games", "gp"), ("FG made", "fgm"), ("FG att", "fga"), ("XP made", "xpm")],
+    "DEF": [("Games", "gp"), ("Sacks", "sack"), ("INT", "int"), ("Fum rec", "fum_rec"), ("Def TD", "def_td")],
+}
+
+
+def _num(v):
+    if v is None:
+        return None
+    return int(v) if float(v).is_integer() else round(v, 1)
+
+
+def player_stat_lines(position: str, st: dict) -> list[dict]:
+    """Position-relevant season stat lines (label + value), skipping stats not present."""
+    lines = []
+    for label, key in [("PPR pts", "pts_ppr"), ("PPR / game", None)] + STAT_SPECS.get(position, []):
+        if key is None:  # points per game, derived
+            pts, gp = st.get("pts_ppr"), st.get("gp")
+            val = round(pts / gp, 1) if (pts and gp) else None
+        else:
+            val = _num(st.get(key))
+        if val is not None:
+            lines.append({"label": label, "value": val})
+    return lines
+
+
+def height_str(inches) -> str:
+    try:
+        n = int(inches)
+        return f"{n // 12}'{n % 12}\""
+    except (TypeError, ValueError):
+        return "—"
 
 
 def lineup(roster: dict, players: dict, roster_positions: list[str]) -> dict:

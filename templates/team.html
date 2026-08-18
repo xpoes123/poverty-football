@@ -6,7 +6,7 @@
     <p class="backlink"><a href="/">← All franchises</a></p>
 
     <div class="team-head">
-      {% if team.avatar %}<img class="team-crest" src="{{ team.avatar }}" alt="" loading="lazy">{% else %}<span class="team-crest team-crest--blank"></span>{% endif %}
+      <img class="team-crest" src="{{ team.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">
       <div>
         <h1 class="team-head__name">{{ team.name }}</h1>
         <p class="team-head__owner">@{{ team.owner }}{% if team.co_owners %} · with {{ team.co_owners|join(', ') }}{% endif %}</p>
