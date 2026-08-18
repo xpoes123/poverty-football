@@ -325,6 +325,21 @@ button{font:inherit;color:inherit;background:none;border:0}
 .fp-name{font-family:var(--serif);font-size:14px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit}
 .fp-name:hover{color:var(--gold-bright)}
 .fp-box{padding:8px 12px 12px 53px}
+
+/* player recent games (game log) */
+.gamelog{border:1px solid var(--rule)}
+.glrow{display:grid;grid-template-columns:auto auto auto 1fr auto;align-items:center;gap:12px;padding:9px 12px;background:var(--surface);border-bottom:1px solid var(--rule);color:inherit}
+.glrow:last-child{border-bottom:0}
+.glrow:nth-child(even){background:rgba(243,238,227,.02)}
+.glrow:hover{background:var(--surface-2)}
+.gl-wk{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);min-width:3.4em}
+.gl-opp{font-family:var(--serif);font-size:14px;min-width:4.5em}
+.gl-res{font-size:11px;color:var(--muted);min-width:5.5em}
+.gl-stats{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0}
+.gl-stats .bstat{color:var(--muted);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+.gl-stats .bstat b{font-family:var(--serif);font-size:13px;color:var(--bone-dim);letter-spacing:0;text-transform:none;margin-right:3px}
+.gl-pts{font-family:var(--serif);font-size:15px;color:var(--gold-bright);font-variant-numeric:tabular-nums;min-width:2.6em;text-align:right}
+@media (max-width:560px){.glrow{grid-template-columns:auto 1fr auto;gap:8px 10px}.gl-res{display:none}.gl-stats{grid-column:1 / -1;order:5}}
 .fp-pos{font-family:var(--grot);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-left:6px}
 .fp-fr{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);white-space:nowrap;max-width:13ch;overflow:hidden;text-overflow:ellipsis}
 .fp-fr--fa{color:var(--muted)}

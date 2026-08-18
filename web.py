@@ -380,6 +380,14 @@ async def player_profile(request: Request, pid: str):
     ctx["headline"] = views.player_headline(st)
     ctx["stat_lines"] = views.player_stat_lines(position, st)
     ctx["pid"] = pid
+    ctx["recent_games"] = []
+    if espn_id:
+        try:
+            gl = await espn.gamelog(espn_id)
+            scoring = (await get_league(LID)).get("scoring_settings") or {}
+            ctx["recent_games"] = espn.game_log(gl, scoring)
+        except Exception:
+            pass
     return templates.TemplateResponse(request, "player.html", ctx)
 
 
