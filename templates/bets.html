@@ -48,6 +48,7 @@
       <p>Everyone starts at {{ starting_balance }}</p>
     </div>
     {% if standings %}
+    <div class="table-wrap">
     <table class="ledger">
       <caption>Play-money balance from settled weekly matchup bets</caption>
       <thead>
@@ -67,6 +68,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% else %}
     <div class="empty">
       <h3>No franchises yet</h3>
@@ -79,6 +81,7 @@
       <p>{{ recent|length }} recent</p>
     </div>
     {% if recent %}
+    <div class="table-wrap">
     <table class="ledger">
       <caption>Most recent settled weekly wagers</caption>
       <thead>
@@ -102,6 +105,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% else %}
     <div class="empty">
       <h3>No settled bets yet</h3>
