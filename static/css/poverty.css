@@ -47,6 +47,11 @@ button{font:inherit;color:inherit;background:none;border:0}
 .ledger tbody tr.me td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .ledger tbody tr.me .cell-rank{color:var(--gold-bright)}
 
+/* signed credit/debit two-tone for ledger value cells (Luck, Result, Chips).
+   selector ties the desktop .ledger td:not(.cell-rank):not(.cell-team) rule so it wins at >=720px */
+.ledger td.pos:not(.cell-rank):not(.cell-team){color:var(--gold-bright)}
+.ledger td.neg:not(.cell-rank):not(.cell-team){color:#c98b7a}
+
 /* playoff cut line — divider under the last playoff seed (in-season only) */
 .ledger tbody tr.cutline td{border-bottom:2px solid var(--gold-dim)}
 @media (max-width:719px){.ledger tbody tr.cutline{border-bottom:2px solid var(--gold-dim)}}
