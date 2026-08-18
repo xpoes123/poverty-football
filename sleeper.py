@@ -13,6 +13,14 @@ async def get_joined_user_ids(league_id: str) -> set[str]:
         return {u["user_id"] for u in r.json()}
 
 
+async def get_claimed_team_count(league_id: str) -> int:
+    """Rosters with an owner — counts co-owned teams once (a team, not per account)."""
+    async with httpx.AsyncClient(timeout=10) as c:
+        r = await c.get(f"{BASE}/league/{league_id}/rosters")
+        r.raise_for_status()
+        return sum(1 for roster in r.json() if roster.get("owner_id"))
+
+
 async def get_league_meta(league_id: str) -> tuple[str, int, str]:
     """(league name, total roster slots, status) — for the embed header."""
     async with httpx.AsyncClient(timeout=10) as c:

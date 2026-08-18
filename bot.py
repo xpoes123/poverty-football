@@ -16,7 +16,7 @@ from shame import (
     tier,
     tone_line,
 )
-from sleeper import get_joined_user_ids, get_league_meta, resolve_user_id
+from sleeper import get_claimed_team_count, get_joined_user_ids, get_league_meta, resolve_user_id
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("nfl-bot")
@@ -30,17 +30,18 @@ def load_members() -> list[Member]:
     return [Member(**m) for m in data["member"]]
 
 
-async def compute_missing(members: list[Member]) -> tuple[list[Member], set[str]]:
+async def compute_missing(members: list[Member]) -> list[Member]:
     joined = await get_joined_user_ids(cfg.league_id)
     for m in members:
         m.user_id = await resolve_user_id(m.sleeper)
         if m.user_id is None:
             log.warning("could not resolve Sleeper handle %r (%s) — check expected.toml", m.sleeper, m.name)
-    return find_missing(members, joined), joined
+    return find_missing(members, joined)
 
 
-async def build_embed(missing: list[Member], joined_count: int) -> discord.Embed:
+async def build_embed(missing: list[Member]) -> discord.Embed:
     name, total, status = await get_league_meta(cfg.league_id)
+    teams = await get_claimed_team_count(cfg.league_id)
     days = days_until_draft(cfg.draft_date, dt.datetime.now(TZ).date())
     t = tier(days)
     e = discord.Embed(
@@ -54,7 +55,7 @@ async def build_embed(missing: list[Member], joined_count: int) -> discord.Embed
     if cfg.draft_date:
         draft_val += f"\n{cfg.draft_date:%b %-d}, {cfg.draft_time_label}"
     e.add_field(name=f"🚫 Still not in ({len(missing)})", value=missing_block(missing), inline=False)
-    e.add_field(name="✅ Joined", value=f"**{joined_count}** / {total} seats", inline=True)
+    e.add_field(name="✅ Teams in", value=f"**{teams}** / {total}", inline=True)
     e.add_field(name="⏱️ Draft", value=draft_val, inline=True)
     e.set_footer(text="Poverty Franchises")
     return e
@@ -67,14 +68,14 @@ class NflBot(discord.Client):
     async def on_ready(self):
         log.info("logged in as %s", self.user)
         # startup: log who's missing but DON'T ping — avoids spam on every restart
-        missing, _ = await compute_missing(load_members())
+        missing = await compute_missing(load_members())
         log.info("startup check: %d missing (%s)", len(missing), ", ".join(m.name for m in missing) or "none")
         if not self.daily_nag.is_running():
             self.daily_nag.start()
 
     @tasks.loop(time=dt.time(hour=cfg.check_hour, tzinfo=TZ))
     async def daily_nag(self):
-        missing, joined = await compute_missing(load_members())
+        missing = await compute_missing(load_members())
         if not missing:
             log.info("everyone's in — staying quiet")
             return
@@ -82,7 +83,7 @@ class NflBot(discord.Client):
         if channel is None:
             log.error("shame channel %s not found", cfg.shame_channel_id)
             return
-        embed = await build_embed(missing, len(joined))
+        embed = await build_embed(missing)
         # content carries the pings so people get notified; embed is the pretty part
         await channel.send(content=" ".join(f"<@{m.discord_id}>" for m in missing if m.discord_id), embed=embed)
         log.info("shamed %d: %s", len(missing), ", ".join(m.name for m in missing))
