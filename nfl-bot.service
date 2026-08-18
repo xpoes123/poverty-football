@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/nfl-bot
-ExecStart=/opt/nfl-bot/.venv/bin/python bot.py
+ExecStart=/opt/nfl-bot/venv/bin/python bot.py
 Restart=on-failure
 RestartSec=10
 

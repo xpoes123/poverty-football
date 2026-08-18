@@ -42,7 +42,7 @@ python test_shame.py          # or: pytest
 ```sh
 # once:
 git clone <repo> /opt/nfl-bot && cd /opt/nfl-bot
-uv venv && uv sync
+python3 -m venv venv && venv/bin/pip install -e .
 # create /opt/nfl-bot/.env and /opt/nfl-bot/expected.toml
 sudo cp nfl-bot.service /etc/systemd/system/ && sudo systemctl enable --now nfl-bot
 
