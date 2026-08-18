@@ -356,6 +356,12 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 /* team page */
 .backlink{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px}
+.crumbs{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+.phead-row .crumbs{margin-bottom:0}
+.crumbs a{color:var(--muted)}
+.crumbs a:hover{color:var(--bone)}
+.crumbs .sep{color:var(--rule-strong)}
+.crumbs .here{color:var(--bone-dim)}
 .backlink a{color:var(--muted)}
 .backlink a:hover{color:var(--bone)}
 .team-head{display:flex;align-items:center;gap:16px;border-top:2px solid var(--gold-dim);border-bottom:1px solid var(--rule);padding:20px 0}

@@ -3,7 +3,7 @@
 {% block main %}
 <main class="page" data-page="team" id="main" data-screen-label="Team">
   <div class="wrap">
-    <p class="backlink"><a href="/">← All franchises</a></p>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">League</a><span class="sep">/</span><span class="here">{{ team.name }}</span></nav>
 
     <div class="team-head">
       <img class="team-crest" src="{{ team.avatar or '/static/default-team.svg' }}" alt="" loading="lazy">

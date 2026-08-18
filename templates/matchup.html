@@ -3,7 +3,7 @@
 {% block main %}
 <main class="page" data-page="matchup" id="main" data-screen-label="Matchup">
   <div class="wrap">
-    <p class="backlink"><a href="{{ back }}">← Week {{ week }}</a></p>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ back }}">Schedule</a><span class="sep">/</span><span class="here">Week {{ week }} · {{ detail.a.team }} vs {{ detail.b.team }}</span></nav>
 
     <div class="mvs">
       <div class="mvs__team{{ ' win' if detail.winner == 0 }}">

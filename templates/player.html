@@ -4,9 +4,9 @@
 <main class="page" data-page="player" id="main" data-screen-label="Player">
   <div class="wrap">
     <div class="phead-row">
-      <p class="backlink"><a href="/draftboard">← Draft Board</a></p>
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="/draftboard">Players</a><span class="sep">/</span><span class="here">{{ player.name }}</span></nav>
       <div class="phead-actions">
-        {% if player.espn_url %}<a class="cmp-btn" href="{{ player.espn_url }}" target="_blank" rel="noopener">ESPN →</a>{% endif %}
+        {% if player.espn_url %}<a class="cmp-btn" href="{{ player.espn_url }}" target="_blank" rel="noopener">View on ESPN</a>{% endif %}
         <button class="cmp-btn" id="cmpOpen" type="button" aria-expanded="false">＋ Compare</button>
       </div>
     </div>
