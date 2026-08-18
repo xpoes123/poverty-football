@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ board_heading }}{% endblock %}
+{% block main %}
+<main class="page" data-page="board" id="ledger" data-screen-label="{{ board_heading }}">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>{{ board_heading }}</h2>
+      <p>{{ board_note }}</p>
+    </div>
+
+    <div class="board-controls">
+      <nav aria-label="Filter by position">
+        <ul class="chips chips--wrap">
+          {% for c in pos_chips %}
+            <li><a class="chip" href="{{ c.href }}"{% if c.current %} aria-current="true"{% endif %}>{{ c.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      <label class="sort-select">Sort
+        <select id="sortsel">
+          <option value="0:1">Rank</option>
+          <option value="1:1">Player A–Z</option>
+          <option value="2:-1">Age (high)</option>
+          <option value="3:-1">Experience (high)</option>
+          <option value="4:-1">{{ season_stat }} PPR (high)</option>
+        </select>
+      </label>
+    </div>
+
+    <table class="ledger sortable">
+      <caption>Ranked by Sleeper value — tap a column header to sort</caption>
+      <thead>
+        <tr>
+          <th scope="col" data-type="num">Rk</th>
+          <th scope="col">Player</th>
+          <th scope="col" data-type="num">Age</th>
+          <th scope="col" data-type="num">Exp</th>
+          <th scope="col" data-type="num">{{ season_stat }} PPR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pl in players %}
+          <tr>
+            <td class="cell-rank" data-sort="{{ pl.rank }}">{{ pl.rank }}</td>
+            <td class="cell-team" data-sort="{{ pl.name }}">{% if pl.img %}<img class="player-face" src="{{ pl.img }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="team-name">{{ pl.name }}</span><span class="team-owner">{{ pl.pos }} · {{ pl.team }}</span></td>
+            <td data-label="Age" data-sort="{{ pl.age_n }}">{{ pl.age }}</td>
+            <td data-label="Exp" data-sort="{{ pl.exp_n }}">{{ pl.exp }}</td>
+            <td data-label="{{ season_stat }} PPR" data-sort="{{ pl.pts_n }}">{{ pl.pts }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+(() => {
+  const table = document.querySelector('.ledger.sortable');
+  if (!table) return;
+  const tbody = table.tBodies[0];
+  const ths = table.querySelectorAll('th');
+  const sortBy = (idx, dir) => {
+    const num = ths[idx].dataset.type === 'num';
+    ths.forEach(o => o.removeAttribute('data-asc'));
+    ths[idx].setAttribute('data-asc', dir === 1 ? 'asc' : 'desc');
+    [...tbody.rows].sort((a, b) => {
+      const av = a.cells[idx].dataset.sort ?? a.cells[idx].textContent.trim();
+      const bv = b.cells[idx].dataset.sort ?? b.cells[idx].textContent.trim();
+      return (num ? parseFloat(av) - parseFloat(bv) : String(av).localeCompare(String(bv))) * dir;
+    }).forEach(r => tbody.appendChild(r));
+  };
+  ths.forEach((th, idx) => th.addEventListener('click', () => {
+    sortBy(idx, th.getAttribute('data-asc') === 'asc' ? -1 : 1);
+  }));
+  const sel = document.getElementById('sortsel');
+  if (sel) sel.addEventListener('change', () => {
+    const [idx, dir] = sel.value.split(':').map(Number);
+    sortBy(idx, dir);
+  });
+})();
+</script>
+{% endblock %}

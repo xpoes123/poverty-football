@@ -8,7 +8,7 @@ import datetime as dt
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -30,10 +30,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 TZ = ZoneInfo(cfg.timezone)
 LID = cfg.league_id
+DRAFT_HOUR = 20  # 8 PM ET, matches cfg.draft_time_label
 
 NAV = [("home", "/", "League"), ("draftboard", "/draftboard", "Draft Board"),
-       ("standings", "/standings", "Standings"), ("scoreboard", "/scoreboard", "Scoreboard"),
-       ("rosters", "/rosters", "Rosters"), ("transactions", "/transactions", "Transactions")]
+       ("freeagents", "/freeagents", "Free Agents"), ("scoreboard", "/scoreboard", "Scoreboard"),
+       ("transactions", "/transactions", "Transactions")]
 STATUS_LABEL = {"pre_draft": "Pre-Draft Season", "drafting": "Draft Underway",
                 "in_season": "Regular Season", "complete": "Season Complete"}
 
@@ -51,6 +52,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
     total = league["total_rosters"]
     d = cfg.draft_date
     draft_line = f"{d:%b %-d}, {cfg.draft_time_label}" if d else "To be announced"
+    target = dt.datetime.combine(d, dt.time(DRAFT_HOUR), tzinfo=TZ) if d else None
+    upcoming = target and target > dt.datetime.now(TZ)
     return {
         "request": request,
         "nav_items": [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV],
@@ -60,10 +63,22 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "has_season": not is_pre,
         "draft_line": draft_line,
         "draft_date_label": f"{d:%b %-d}" if d else "the draft",
+        "draft_target": target.isoformat() if upcoming else None,
+        "draft_when": f"{d:%b %-d, %Y} · {cfg.draft_time_label}" if d else "",
         "seated_line": f"{teams_in} of {total}",
         "_teams_in": teams_in,
         "_total": total,
     }
+
+
+def _standings_rows(users, rosters):
+    return [{
+        "rank": r["rank"], "name": r["team"], "owner": "@" + r["owner"], "avatar": r["avatar"],
+        "href": f"/team/{r['roster_id']}",
+        "record": views.record_str(r["wins"], r["losses"], r["ties"]),
+        "pct": views.win_pct(r["wins"], r["losses"], r["ties"]),
+        "pf": _fmt(r["pf"]), "pa": _fmt(r["pa"]),
+    } for r in views.standings(users, rosters)]
 
 
 @app.get("/health")
@@ -77,22 +92,11 @@ async def home(request: Request):
     users, rosters = await get_users(LID), await get_rosters(LID)
     teams_in, total = ctx["_teams_in"], ctx["_total"]
 
-    ctx["teams"] = [{
-        "initials": views.initials(m["team"]),
-        "avatar": m["avatar"],
-        "name": m["team"],
-        "owner": "@" + m["owner"] + (" + " + ", ".join(m["co_owners"]) if m["co_owners"] else ""),
-        "record": views.record_str(m["wins"], m["losses"], m["ties"]),
-        "pf_label": "—" if ctx["is_pre"] else _fmt(m["pf"]),
-    } for m in views.managers(users, rosters)]
-    ctx["managers_note"] = f"{teams_in} of {total} seated"
     ctx["links"] = [
         {"label": "Join the League", "href": cfg.join_url, "external": True},
         {"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{LID}", "external": True},
-        {"label": "FF Wrapped", "href": "https://ffwrapped.com", "external": True},
-        {"label": "League Rewind", "href": "https://leaguerewind.com", "external": True},
     ]
-
+    ctx["rows"] = _standings_rows(users, rosters)
     if ctx["is_pre"]:
         open_seats = total - teams_in
         d = cfg.draft_date
@@ -101,48 +105,77 @@ async def home(request: Request):
                         "note": f"{open_seats} seat{'s' if open_seats != 1 else ''} open" if open_seats else "Full house"}
         ctx["stat2"] = {"label": "Draft Day", "value": f"{d:%b %-d}" if d else "TBA",
                         "note": f"{cfg.draft_time_label}" + (f" · {days}d out" if days and days > 0 else "")}
+        ctx["table_title"] = "Franchises"
+        ctx["through_label"] = f"{ctx['seated_line']} seated"
     else:
         state = await get_nfl_state()
-        ctx["stat1"] = {"label": "Week", "value": str(state.get("week") or 1), "note": STATUS_LABEL.get("in_season")}
+        wk = state.get("week") or 1
+        ctx["stat1"] = {"label": "Week", "value": str(wk), "note": STATUS_LABEL["in_season"]}
         ctx["stat2"] = {"label": "Franchises", "value": str(total), "note": "Full house"}
+        ctx["table_title"] = "Standings"
+        ctx["through_label"] = f"Through Week {wk}"
     return templates.TemplateResponse(request, "home.html", ctx)
+
+
+async def _board(request: Request, active: str, heading: str, base_href: str,
+                 pos: str | None, exclude: set | None):
+    ctx = await _base_ctx(request, active)
+    players = await get_players()
+    season = "2025"
+    stats = await get_player_stats(season)
+    if not stats:
+        season = "2024"
+        stats = await get_player_stats(season)
+    pos = pos if pos in views.FANTASY_POS else None
+    rows = views.draft_board(players, stats, pos, exclude=exclude)
+    ctx["players"] = rows
+    ctx["season_stat"] = season
+    ctx["board_heading"] = heading
+    ctx["board_note"] = f"{len(rows)} players · {season} PPR · tap a header to sort"
+    ctx["pos_chips"] = [{"label": "All", "href": base_href, "current": pos is None}] + [
+        {"label": p, "href": f"{base_href}?pos={p}", "current": pos == p}
+        for p in ("QB", "RB", "WR", "TE", "K", "DEF")]
+    return templates.TemplateResponse(request, "board.html", ctx)
 
 
 @app.get("/draftboard", response_class=HTMLResponse)
 async def draftboard(request: Request, pos: str | None = None):
-    ctx = await _base_ctx(request, "draftboard")
-    players = await get_players()
-    season = "2025"
-    stats = await get_player_stats(season)
-    if not stats:  # fall back if the latest season isn't published yet
-        season = "2024"
-        stats = await get_player_stats(season)
-    pos = pos if pos in views.FANTASY_POS else None
-    ctx["players"] = views.draft_board(players, stats, pos, limit=200)
-    ctx["season_stat"] = season
-    ctx["board_note"] = f"Top 200 by Sleeper rank · {season} PPR"
-    ctx["pos_chips"] = [{"label": "All", "href": "/draftboard", "current": pos is None}] + [
-        {"label": p, "href": f"/draftboard?pos={p}", "current": pos == p}
-        for p in ("QB", "RB", "WR", "TE", "K", "DEF")]
-    return templates.TemplateResponse(request, "draftboard.html", ctx)
+    return await _board(request, "draftboard", "Draft Board", "/draftboard", pos, exclude=None)
 
 
-@app.get("/standings", response_class=HTMLResponse)
-async def standings(request: Request):
-    ctx = await _base_ctx(request, "standings")
-    users, rosters = await get_users(LID), await get_rosters(LID)
-    ctx["teams"] = [{
-        "rank": r["rank"], "name": r["team"], "owner": "@" + r["owner"], "avatar": r["avatar"],
-        "record": views.record_str(r["wins"], r["losses"], r["ties"]),
-        "pct": views.win_pct(r["wins"], r["losses"], r["ties"]),
-        "pf": _fmt(r["pf"]), "pa": _fmt(r["pa"]),
-    } for r in views.standings(users, rosters)]
-    if ctx["is_pre"]:
-        ctx["through_label"] = "Awaiting kickoff"
-    else:
-        state = await get_nfl_state()
-        ctx["through_label"] = f"Through Week {state.get('week') or 1}"
-    return templates.TemplateResponse(request, "standings.html", ctx)
+@app.get("/freeagents", response_class=HTMLResponse)
+async def freeagents(request: Request, pos: str | None = None):
+    rosters = await get_rosters(LID)
+    rostered = {pid for r in rosters for pid in (r.get("players") or []) if pid}
+    return await _board(request, "freeagents", "Free Agents", "/freeagents", pos, exclude=rostered)
+
+
+@app.get("/team/{roster_id}", response_class=HTMLResponse)
+async def team_page(request: Request, roster_id: int):
+    users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
+    roster = next((r for r in rosters if r["roster_id"] == roster_id and r.get("owner_id")), None)
+    if roster is None:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "")
+    by_id = {u["user_id"]: u for u in users}
+    owner = by_id.get(roster["owner_id"])
+    s = roster.get("settings", {})
+    rank = next((row["rank"] for row in views.standings(users, rosters)
+                 if row["roster_id"] == roster_id), None)
+    ctx["team"] = {
+        "name": views.team_name(owner),
+        "owner": (owner or {}).get("display_name", "—"),
+        "avatar": views.avatar_url(owner),
+        "co_owners": [by_id[c]["display_name"] for c in (roster.get("co_owners") or []) if c in by_id],
+        "record": views.record_str(s.get("wins", 0), s.get("losses", 0), s.get("ties", 0)),
+        "pf": _fmt(s.get("fpts", 0) + s.get("fpts_decimal", 0) / 100),
+        "pa": _fmt(s.get("fpts_against", 0) + s.get("fpts_against_decimal", 0) / 100),
+        "rank": rank,
+    }
+    if ctx["has_season"]:
+        players = await get_players()
+        ctx["lineup"] = views.lineup(roster, players, league.get("roster_positions", []))
+    return templates.TemplateResponse(request, "team.html", ctx)
 
 
 @app.get("/scoreboard", response_class=HTMLResponse)
@@ -176,32 +209,6 @@ async def scoreboard(request: Request, week: int | None = None):
     ctx["empty_week_body"] = ("Scores appear here once the season starts."
                               + (f" Draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
     return templates.TemplateResponse(request, "scoreboard.html", ctx)
-
-
-@app.get("/rosters", response_class=HTMLResponse)
-async def rosters(request: Request, team: str | None = None):
-    ctx = await _base_ctx(request, "rosters")
-    ctx["roster_note"] = "Unfurnished"
-    if ctx["has_season"]:
-        users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
-        players = await get_players()
-        positions = league.get("roster_positions", [])
-        by_id = {u["user_id"]: u for u in users}
-        claimed = [r for r in rosters if r.get("owner_id")]
-        valid = [str(r["roster_id"]) for r in claimed]
-        active_id = team if team in valid else (valid[0] if valid else None)
-
-        chips, active_team, active_roster = [], {"name": "", "owner": ""}, {"starters": [], "bench": []}
-        for r in claimed:
-            owner = by_id.get(r["owner_id"])
-            name, rid = views.team_name(owner), str(r["roster_id"])
-            chips.append({"href": f"/rosters?team={rid}", "label": name, "current": rid == active_id})
-            if rid == active_id:
-                active_team = {"name": name, "owner": "@" + (owner or {}).get("display_name", "")}
-                active_roster = views.lineup(r, players, positions)
-        ctx.update(team_chips=chips, active_team=active_team, active_roster=active_roster,
-                   roster_note=active_team["name"])
-    return templates.TemplateResponse(request, "rosters.html", ctx)
 
 
 @app.get("/transactions", response_class=HTMLResponse)

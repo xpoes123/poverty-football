@@ -7,6 +7,15 @@
       <h1 class="plate__name">Poverty Franchises</h1>
       <p class="crest"><span>Est. 2026 · Twelve Franchises</span></p>
     </div>
+
+    {% if draft_target %}
+    <section class="countdown" data-target="{{ draft_target }}">
+      <p class="countdown__label">Draft begins in</p>
+      <p class="countdown__clock tnum" id="cd">—</p>
+      <p class="countdown__when">{{ draft_when }}</p>
+    </section>
+    {% endif %}
+
     <nav class="link-row" aria-label="League links">
       {% for l in links %}
         <a class="linkbtn" href="{{ l.href }}"{% if l.external %} target="_blank" rel="noopener"{% endif %}>{{ l.label }}</a>
@@ -27,30 +36,55 @@
     </div>
 
     <div class="section-head">
-      <h2>The Managers</h2>
-      <p>{{ managers_note }}</p>
+      <h2>{{ table_title }}</h2>
+      <p>{{ through_label }}</p>
     </div>
-    <div class="mgr-grid">
-      {% for team in teams %}
-        <article class="mgr">
-          <p class="crest-mark" aria-hidden="true">{% if team.avatar %}<img src="{{ team.avatar }}" alt="" loading="lazy">{% else %}{{ team.initials }}{% endif %}</p>
-          <div class="mgr__body">
-            <h3 class="mgr__name">{{ team.name }}</h3>
-            <p class="mgr__owner">{{ team.owner }}</p>
-            <div class="figs">
-              <div>
-                <p class="fig__k">Record</p>
-                <p class="fig__v" {% if is_pre %}data-quiet="true"{% endif %}>{{ team.record }}</p>
-              </div>
-              <div>
-                <p class="fig__k">Points for</p>
-                <p class="fig__v" {% if is_pre %}data-quiet="true"{% endif %}>{{ team.pf_label }}</p>
-              </div>
-            </div>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
+    <table class="ledger">
+      <caption>Tap a franchise for its team page</caption>
+      <thead>
+        <tr>
+          <th scope="col">Rk</th>
+          <th scope="col">Franchise</th>
+          <th scope="col">W–L–T</th>
+          <th scope="col">Pct</th>
+          <th scope="col">Points for</th>
+          <th scope="col">Points against</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for team in rows %}
+          <tr>
+            <td class="cell-rank">{{ team.rank }}</td>
+            <td class="cell-team"><a class="team-link" href="{{ team.href }}">{% if team.avatar %}<img class="team-logo" src="{{ team.avatar }}" alt="" loading="lazy">{% endif %}<span class="team-name">{{ team.name }}</span></a><span class="team-owner">{{ team.owner }}</span></td>
+            <td data-label="W–L–T">{{ team.record }}</td>
+            <td data-label="Pct">{{ team.pct }}</td>
+            <td data-label="Points for">{{ team.pf }}</td>
+            <td data-label="Points against">{{ team.pa }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </main>
+
+{% if draft_target %}
+<script>
+(() => {
+  const el = document.getElementById('cd');
+  if (!el) return;
+  const target = new Date(el.closest('.countdown').dataset.target).getTime();
+  const tick = () => {
+    let s = Math.floor((target - Date.now()) / 1000);
+    if (s <= 0) { el.textContent = "It's draft day"; clearInterval(t); return; }
+    const d = Math.floor(s / 86400); s -= d * 86400;
+    const h = Math.floor(s / 3600); s -= h * 3600;
+    const m = Math.floor(s / 60); const sec = s - m * 60;
+    const p = (n) => String(n).padStart(2, '0');
+    el.textContent = `${d}d ${p(h)}h ${p(m)}m ${p(sec)}s`;
+  };
+  tick();
+  const t = setInterval(tick, 1000);
+})();
+</script>
+{% endif %}
 {% endblock %}

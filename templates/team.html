@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }}{% endblock %}
+{% block main %}
+<main class="page" data-page="team" id="ledger" data-screen-label="Team">
+  <div class="wrap">
+    <p class="backlink"><a href="/">← All franchises</a></p>
+
+    <div class="team-head">
+      {% if team.avatar %}<img class="team-crest" src="{{ team.avatar }}" alt="" loading="lazy">{% else %}<span class="team-crest team-crest--blank"></span>{% endif %}
+      <div>
+        <h1 class="team-head__name">{{ team.name }}</h1>
+        <p class="team-head__owner">@{{ team.owner }}{% if team.co_owners %} · with {{ team.co_owners|join(', ') }}{% endif %}</p>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><p class="stat__label">Record</p><p class="stat__value">{{ team.record if has_season else '—' }}</p><p class="stat__note">{% if has_season and team.rank %}Rank {{ team.rank }} of 12{% else %}Pre-season{% endif %}</p></div>
+      <div class="stat"><p class="stat__label">Points For</p><p class="stat__value">{{ team.pf if has_season else '—' }}</p><p class="stat__note">Points against {{ team.pa if has_season else '—' }}</p></div>
+    </div>
+
+    {% if has_season %}
+      <div class="section-head"><h2>Roster</h2></div>
+      <div class="lineup">
+        <p class="group-label"><span>Starters</span><span>{{ team.name }}</span></p>
+        {% for pl in lineup.starters %}
+          <div class="slot"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
+        {% endfor %}
+        <p class="group-label"><span>Bench</span><span>{{ lineup.bench|length }}</span></p>
+        {% for pl in lineup.bench %}
+          <div class="slot slot--bench"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">
+        <h3>Roster is empty until the draft</h3>
+        <p>This franchise's lineup appears once the draft is complete.</p>
+        <p class="empty__ledger"><span>Draft · <b>{{ draft_line }}</b></span></p>
+      </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

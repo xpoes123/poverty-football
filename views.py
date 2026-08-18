@@ -52,6 +52,7 @@ def managers(users: list[dict], rosters: list[dict]) -> list[dict]:
         owner = by_id.get(r["owner_id"])
         s = r.get("settings", {})
         out.append({
+            "roster_id": r["roster_id"],
             "team": team_name(owner),
             "owner": (owner or {}).get("display_name", "—"),
             "avatar": avatar_url(owner),
@@ -74,6 +75,7 @@ def standings(users: list[dict], rosters: list[dict]) -> list[dict]:
         owner = by_id.get(r["owner_id"])
         s = r.get("settings", {})
         rows.append({
+            "roster_id": r["roster_id"],
             "team": team_name(owner),
             "owner": (owner or {}).get("display_name", "—"),
             "avatar": avatar_url(owner),
@@ -144,9 +146,20 @@ def team_rosters(rosters: list[dict], users: list[dict], players: dict) -> list[
 FANTASY_POS = {"QB", "RB", "WR", "TE", "K", "DEF"}
 
 
-def draft_board(players: dict, stats: dict, pos: str | None = None, limit: int = 200) -> list[dict]:
-    """Fantasy-relevant players ordered by Sleeper's search_rank (1 = most valued),
-    annotated with age/experience and last-season PPR points. Display-ready strings."""
+def player_image(pid: str, position: str, team: str | None) -> str | None:
+    """Sleeper CDN: headshot by player id, or the team logo for a defense."""
+    if position == "DEF":
+        t = (team or pid or "").lower()
+        return f"https://sleepercdn.com/images/team_logos/nfl/{t}.png" if t else None
+    return f"https://sleepercdn.com/content/nfl/players/thumb/{pid}.jpg"
+
+
+def draft_board(players: dict, stats: dict, pos: str | None = None,
+                limit: int | None = None, exclude: set | None = None) -> list[dict]:
+    """Every fantasy-relevant player ordered by Sleeper's search_rank (1 = most valued),
+    with headshot, age, experience and last-season PPR. Each row carries both a display
+    string and an `*_n` numeric key so the table can be sorted client-side. `exclude` drops
+    already-rostered player ids (used for the free-agent pool)."""
     rows = []
     for pid, p in players.items():
         sr = p.get("search_rank")
@@ -157,18 +170,23 @@ def draft_board(players: dict, stats: dict, pos: str | None = None, limit: int =
             continue
         if pos and position != pos:
             continue
+        if exclude and pid in exclude:
+            continue
         exp = p.get("years_exp")
         age = p.get("age")
         pts = (stats.get(pid) or {}).get("pts_ppr")
         name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
         rows.append({
             "sr": sr, "name": name, "pos": position, "team": p.get("team") or "FA",
-            "age": str(age) if age is not None else "—",
+            "img": player_image(pid, position, p.get("team") or pid),
+            "age": str(age) if age is not None else "—", "age_n": age if age is not None else -1,
             "exp": "R" if exp == 0 else (str(exp) if exp is not None else "—"),
-            "pts": str(round(pts)) if pts else "—",
+            "exp_n": exp if exp is not None else -1,
+            "pts": str(round(pts)) if pts else "—", "pts_n": round(pts) if pts else -1,
         })
     rows.sort(key=lambda r: r["sr"])
-    rows = rows[:limit]
+    if limit:
+        rows = rows[:limit]
     for i, r in enumerate(rows, 1):
         r["rank"] = i
     return rows
