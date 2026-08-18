@@ -90,7 +90,6 @@ async def health():
 async def home(request: Request):
     ctx = await _base_ctx(request, "home")
     users, rosters = await get_users(LID), await get_rosters(LID)
-    teams_in, total = ctx["_teams_in"], ctx["_total"]
 
     ctx["links"] = [
         {"label": "Join the League", "href": cfg.join_url, "external": True},
@@ -98,20 +97,11 @@ async def home(request: Request):
     ]
     ctx["rows"] = _standings_rows(users, rosters)
     if ctx["is_pre"]:
-        open_seats = total - teams_in
-        d = cfg.draft_date
-        days = (d - dt.datetime.now(TZ).date()).days if d else None
-        ctx["stat1"] = {"label": "Franchises Seated", "value": f"{teams_in} of {total}",
-                        "note": f"{open_seats} seat{'s' if open_seats != 1 else ''} open" if open_seats else "Full house"}
-        ctx["stat2"] = {"label": "Draft Day", "value": f"{d:%b %-d}" if d else "TBA",
-                        "note": f"{cfg.draft_time_label}" + (f" · {days}d out" if days and days > 0 else "")}
         ctx["table_title"] = "Franchises"
         ctx["through_label"] = f"{ctx['seated_line']} seated"
     else:
         state = await get_nfl_state()
         wk = state.get("week") or 1
-        ctx["stat1"] = {"label": "Week", "value": str(wk), "note": STATUS_LABEL["in_season"]}
-        ctx["stat2"] = {"label": "Franchises", "value": str(total), "note": "Full house"}
         ctx["table_title"] = "Standings"
         ctx["through_label"] = f"Through Week {wk}"
     return templates.TemplateResponse(request, "home.html", ctx)
