@@ -1,28 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Standings · {{ league_name }}{% endblock %}
-{% block content %}
-<h2 class="section-head">Standings</h2>
-{% if pre_draft %}
-<p class="empty">Standings open once the season starts. Draft is {{ draft_date.strftime('%b %-d') if draft_date }}.</p>
-{% else %}
-<table class="ledger">
-  <thead>
-    <tr><th>#</th><th>Team</th><th>Owner</th><th>W–L</th><th class="num">PF</th><th class="num">PA</th></tr>
-  </thead>
-  <tbody>
-    {% for r in rows %}
-    <tr>
-      <td class="rank">{{ r.rank }}</td>
-      <td class="team-cell">
-        {% if r.avatar %}<img class="av-sm" src="{{ r.avatar }}" alt="" loading="lazy">{% endif %}{{ r.team }}
-      </td>
-      <td class="muted">@{{ r.owner }}</td>
-      <td>{{ r.wins }}–{{ r.losses }}{% if r.ties %}–{{ r.ties }}{% endif %}</td>
-      <td class="num">{{ r.pf }}</td>
-      <td class="num">{{ r.pa }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
+{% block title %}Standings{% endblock %}
+{% block main %}
+<main class="page" data-page="standings" id="ledger" data-screen-label="Standings">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Standings</h2>
+      <p>{{ through_label }}</p>
+    </div>
+    {% if has_season %}
+      <table class="ledger">
+        <caption>Won · lost · tied, with points for and against</caption>
+        <thead>
+          <tr>
+            <th scope="col">Rk</th>
+            <th scope="col">Franchise</th>
+            <th scope="col">W–L–T</th>
+            <th scope="col">Pct</th>
+            <th scope="col">Points for</th>
+            <th scope="col">Points against</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for team in teams %}
+            <tr>
+              <td class="cell-rank">{{ team.rank }}</td>
+              <td class="cell-team"><span class="team-name">{{ team.name }}</span><span class="team-owner">{{ team.owner }}</span></td>
+              <td data-label="W–L–T">{{ team.record }}</td>
+              <td data-label="Pct">{{ team.pct }}</td>
+              <td data-label="Points for">{{ team.pf }}</td>
+              <td data-label="Points against">{{ team.pa }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    {% if is_pre %}
+      <div class="empty">
+        <p class="empty__mark">The books are closed</p>
+        <h3>No standings until the draft is settled</h3>
+        <p>Twelve franchises, no games played. Records post after the first Sunday slate; the table opens the moment the draft board clears.</p>
+        <p class="empty__ledger"><span>Draft · <b>{{ draft_line }}</b></span><span>Teams in · <b>{{ seated_line }}</b></span></p>
+      </div>
+    {% endif %}
+  </div>
+</main>
 {% endblock %}

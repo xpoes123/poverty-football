@@ -1,32 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Scoreboard · {{ league_name }}{% endblock %}
-{% block content %}
-<div class="section-head-row">
-  <h2 class="section-head">Scoreboard</h2>
-  <form method="get" class="week-select">
-    <label>Week
-      <select name="week" onchange="this.form.submit()">
-        {% for w in weeks %}<option value="{{ w }}" {{ 'selected' if w == week }}>{{ w }}</option>{% endfor %}
-      </select>
-    </label>
-  </form>
-</div>
-
-{% if not games %}
-<p class="empty">No matchups for week {{ week }} yet.{% if pre_draft %} Season starts after the draft.{% endif %}</p>
-{% else %}
-<div class="games">
-  {% for g in games %}
-  <article class="game">
-    {% for s in g.sides %}
-    <div class="side {{ 'win' if g.winner == loop.index0 }}">
-      {% if s.avatar %}<img class="av-sm" src="{{ s.avatar }}" alt="" loading="lazy">{% endif %}
-      <span class="side-team">{{ s.team }}</span>
-      <span class="num side-pts">{{ s.points }}</span>
+{% block title %}Scoreboard{% endblock %}
+{% block main %}
+<main class="page" data-page="scoreboard" id="ledger" data-screen-label="Scoreboard">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Scoreboard</h2>
+      <p>{{ week_heading }}</p>
     </div>
-    {% endfor %}
-  </article>
-  {% endfor %}
-</div>
-{% endif %}
+    <nav aria-label="Select week">
+      <ul class="chips">
+        {% for wk in weeks %}
+          <li><a class="chip" href="{{ wk.href }}"{% if wk.current %} aria-current="true"{% endif %}>{{ wk.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    {% if week_has_games %}
+      <div class="matchups">
+        {% for m in matchups %}
+          <article class="matchup">
+            <p class="matchup__meta"><span>{{ m.slot }}</span><span>{{ m.status }}</span></p>
+            <div class="side" data-winner="{{ m.a.win }}">
+              <p class="mark" aria-hidden="true">{{ m.a.initials }}</p>
+              <h3 class="side__name">{{ m.a.name }}</h3>
+              <p class="side__score">{{ m.a.score }}</p>
+            </div>
+            <div class="side" data-winner="{{ m.b.win }}">
+              <p class="mark" aria-hidden="true">{{ m.b.initials }}</p>
+              <h3 class="side__name">{{ m.b.name }}</h3>
+              <p class="side__score">{{ m.b.score }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if week_empty %}
+      <div class="empty">
+        <p class="empty__mark">{{ empty_week_mark }}</p>
+        <h3>{{ empty_week_title }}</h3>
+        <p>{{ empty_week_body }}</p>
+      </div>
+    {% endif %}
+  </div>
+</main>
 {% endblock %}

@@ -1,33 +1,52 @@
 {% extends "base.html" %}
-{% block content %}
-<section class="hero">
-  <h1>{{ league_name }}</h1>
-  <p class="sub">
-    {{ teams_in }} of {{ total_teams }} teams in
-    {% if pre_draft %}· pre-draft{% endif %}
-  </p>
-</section>
+{% block title %}League{% endblock %}
+{% block main %}
+<main class="page" data-page="home" id="ledger" data-screen-label="Home">
+  <div class="wrap">
+    <div class="plate">
+      <h1 class="plate__name">Poverty Franchises</h1>
+      <p class="crest"><span>Est. 2026 · Twelve Franchises</span></p>
+      <p class="plate__sub">A gentleman's league of modest means, kept in good order.</p>
+    </div>
 
-<section>
-  <h2 class="section-head">Managers</h2>
-  <div class="grid">
-    {% for m in managers %}
-    <article class="card">
-      <div class="card-top">
-        {% if m.avatar %}<img class="av" src="{{ m.avatar }}" alt="" loading="lazy">{% else %}<div class="av av-blank"></div>{% endif %}
-        <div>
-          <div class="team">{{ m.team }}</div>
-          <div class="owner">@{{ m.owner }}{% if m.co_owners %} + {{ m.co_owners|join(', ') }}{% endif %}</div>
-        </div>
+    <div class="stats">
+      <div class="stat">
+        <p class="stat__label">{{ stat1.label }}</p>
+        <p class="stat__value">{{ stat1.value }}</p>
+        <p class="stat__note">{{ stat1.note }}</p>
       </div>
-      <div class="card-stats">
-        <span>{{ m.wins }}–{{ m.losses }}{% if m.ties %}–{{ m.ties }}{% endif %}</span>
-        <span class="num">{{ m.pf }} PF</span>
+      <div class="stat">
+        <p class="stat__label">{{ stat2.label }}</p>
+        <p class="stat__value">{{ stat2.value }}</p>
+        <p class="stat__note">{{ stat2.note }}</p>
       </div>
-    </article>
-    {% else %}
-    <p class="empty">No teams have joined yet.</p>
-    {% endfor %}
+    </div>
+
+    <div class="section-head">
+      <h2>The Managers</h2>
+      <p>{{ managers_note }}</p>
+    </div>
+    <div class="mgr-grid">
+      {% for team in teams %}
+        <article class="mgr">
+          <p class="crest-mark" aria-hidden="true">{{ team.initials }}</p>
+          <div class="mgr__body">
+            <h3 class="mgr__name">{{ team.name }}</h3>
+            <p class="mgr__owner">{{ team.owner }}</p>
+            <div class="figs">
+              <div>
+                <p class="fig__k">Record</p>
+                <p class="fig__v" {% if is_pre %}data-quiet="true"{% endif %}>{{ team.record }}</p>
+              </div>
+              <div>
+                <p class="fig__k">Points for</p>
+                <p class="fig__v" {% if is_pre %}data-quiet="true"{% endif %}>{{ team.pf_label }}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
   </div>
-</section>
+</main>
 {% endblock %}

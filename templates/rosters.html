@@ -1,31 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Rosters · {{ league_name }}{% endblock %}
-{% block content %}
-<h2 class="section-head">Rosters</h2>
-{% if pre_draft %}
-<p class="empty">Rosters fill in at the draft{% if draft_date %} on {{ draft_date.strftime('%b %-d') }}{% endif %}.</p>
-{% else %}
-<div class="roster-grid">
-  {% for t in teams %}
-  <article class="roster">
-    <h3 class="roster-team">
-      {% if t.avatar %}<img class="av-sm" src="{{ t.avatar }}" alt="" loading="lazy">{% endif %}{{ t.team }}
-    </h3>
-    <ul class="lineup">
-      {% for p in t.starters %}
-      <li><span class="pos">{{ p.pos }}</span> {{ p.name }} <span class="muted">{{ p.team }}</span></li>
-      {% endfor %}
-    </ul>
-    {% if t.bench %}
-    <div class="bench-label">Bench</div>
-    <ul class="lineup bench">
-      {% for p in t.bench %}
-      <li><span class="pos">{{ p.pos }}</span> {{ p.name }} <span class="muted">{{ p.team }}</span></li>
-      {% endfor %}
-    </ul>
+{% block title %}Rosters{% endblock %}
+{% block main %}
+<main class="page" data-page="rosters" id="ledger" data-screen-label="Rosters">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Rosters</h2>
+      <p>{{ roster_note }}</p>
+    </div>
+    {% if has_season %}
+      <nav aria-label="Select franchise">
+        <ul class="chips chips--wrap">
+          {% for c in team_chips %}
+            <li><a class="chip" href="{{ c.href }}"{% if c.current %} aria-current="true"{% endif %}>{{ c.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      <div class="lineup">
+        <p class="group-label"><span>Starters</span><span>{{ active_team.name }} · {{ active_team.owner }}</span></p>
+        {% for pl in active_roster.starters %}
+          <div class="slot">
+            <p class="slot__pos">{{ pl.slot }}</p>
+            <p class="slot__player">{{ pl.n }}</p>
+            <p class="slot__meta">{{ pl.meta }}</p>
+          </div>
+        {% endfor %}
+        <p class="group-label"><span>Bench</span><span>{{ active_roster.bench|length }}</span></p>
+        {% for pl in active_roster.bench %}
+          <div class="slot slot--bench">
+            <p class="slot__pos">{{ pl.slot }}</p>
+            <p class="slot__player">{{ pl.n }}</p>
+            <p class="slot__meta">{{ pl.meta }}</p>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
-  </article>
-  {% endfor %}
-</div>
-{% endif %}
+    {% if is_pre %}
+      <div class="empty">
+        <p class="empty__mark">Unfurnished</p>
+        <h3>Every roster is empty until {{ draft_date_label }}</h3>
+        <p>Twelve lineups, one hundred and ninety-two slots, nothing in them yet. Rosters publish as the draft board fills, pick by pick.</p>
+        <p class="empty__ledger"><span>Rounds · <b>16</b></span><span>Slots per team · <b>10 starters, 6 bench</b></span></p>
+      </div>
+    {% endif %}
+  </div>
+</main>
 {% endblock %}

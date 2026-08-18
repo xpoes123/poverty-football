@@ -3,6 +3,25 @@
 CDN = "https://sleepercdn.com/avatars/thumbs"
 
 
+def initials(name: str) -> str:
+    parts = [p for p in name.split() if p]
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[1][0]).upper()
+    return (name[:2] or "—").upper()
+
+
+def record_str(w: int, l: int, t: int) -> str:
+    return f"{w}–{l}" + (f"–{t}" if t else "")
+
+
+def win_pct(w: int, l: int, t: int) -> str:
+    g = w + l + t
+    if not g:
+        return "—"
+    s = f"{(w + 0.5 * t) / g:.3f}"
+    return s[1:] if s.startswith("0") else s  # ".667", but keep "1.000"
+
+
 def team_name(user: dict | None) -> str:
     if not user:
         return "Unclaimed"
@@ -120,6 +139,22 @@ def team_rosters(rosters: list[dict], users: list[dict], players: dict) -> list[
         })
     out.sort(key=lambda t: t["team"].lower())
     return out
+
+
+def lineup(roster: dict, players: dict, roster_positions: list[str]) -> dict:
+    """Starters mapped to their lineup slots (QB/RB/FLEX/…), then the bench."""
+    slots = [p for p in roster_positions if p != "BN"]
+    starter_ids = [pid for pid in (roster.get("starters") or []) if pid and pid != "0"]
+    starter_set = set(starter_ids)
+    bench_ids = [pid for pid in (roster.get("players") or []) if pid and pid != "0" and pid not in starter_set]
+
+    def entry(slot: str, pid: str) -> dict:
+        p = player_line(pid, players)
+        return {"slot": slot, "n": p["name"], "meta": p["team"] or "FA"}
+
+    starters = [entry(slots[i] if i < len(slots) else "FLEX", pid) for i, pid in enumerate(starter_ids)]
+    bench = [entry(player_line(pid, players)["pos"] or "BN", pid) for pid in bench_ids]
+    return {"starters": starters, "bench": bench}
 
 
 def transactions(txns: list[dict], rosters: list[dict], users: list[dict], players: dict) -> list[dict]:

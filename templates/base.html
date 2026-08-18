@@ -1,43 +1,40 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{{ league_name }}{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{% block title %}Poverty Franchises{% endblock %} · Poverty Franchises</title>
+<meta name="color-scheme" content="dark" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;1,6..96,400&family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/static/css/poverty.css" />
 </head>
 <body>
-  <header class="masthead">
-    <div class="wrap">
-      <a class="brand" href="/">
-        <span class="brand-name">{{ league_name }}</span>
-        <span class="brand-est">EST. {{ season }}</span>
-      </a>
-      <nav class="nav">
-        {% set pages = [('home','/','Home'), ('standings','/standings','Standings'),
-                        ('scoreboard','/scoreboard','Scoreboard'), ('rosters','/rosters','Rosters'),
-                        ('transactions','/transactions','Transactions')] %}
-        {% for key, href, label in pages %}
-          <a href="{{ href }}" class="{{ 'on' if active == key }}">{{ label }}</a>
-        {% endfor %}
-      </nav>
+<a class="skip" href="#ledger">Skip to ledger</a>
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-header__bar">
+      <p class="wordmark">Poverty <em>Franchises</em></p>
+      <p class="season-tag">{{ season_tag }}</p>
     </div>
-  </header>
-
-  {% if draft_days is not none and draft_days >= 0 %}
-  <div class="strip">
-    Draft · {{ draft_date.strftime('%b %-d') }}, {{ draft_time }}
-    · {{ 'TODAY' if draft_days == 0 else draft_days ~ ' day' ~ ('' if draft_days == 1 else 's') ~ ' out' }}
+    <nav aria-label="League sections">
+      <ul class="nav">
+        {% for item in nav_items %}
+          <li><a class="nav__link" href="{{ item.href }}" {% if item.current %}aria-current="page"{% endif %}>{{ item.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
   </div>
-  {% endif %}
+</header>
 
-  <main class="wrap">
-    {% block content %}{% endblock %}
-  </main>
+{% block main %}{% endblock %}
 
-  <footer class="foot wrap">
-    <span>Poverty Franchises · {{ season }}</span>
-    <a href="{{ join_url }}">Join the league →</a>
-  </footer>
+<footer class="site-footer">
+  <div class="wrap" style="display:flex;justify-content:space-between;gap:10px 20px;flex-wrap:wrap;padding:0 18px">
+    <span>Poverty Franchises · Est. 2026</span>
+    <span>{{ footer_note }}</span>
+  </div>
+</footer>
 </body>
 </html>

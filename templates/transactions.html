@@ -1,21 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Transactions · {{ league_name }}{% endblock %}
-{% block content %}
-<h2 class="section-head">Transactions</h2>
-{% if not feed %}
-<p class="empty">No transactions yet.{% if pre_draft %} Waivers and trades start once the season's underway.{% endif %}</p>
-{% else %}
-<ul class="feed">
-  {% for t in feed %}
-  <li class="txn">
-    <span class="txn-type txn-{{ t.type }}">{{ t.type|replace('_',' ') }}</span>
-    <div class="txn-body">
-      {% if t.teams %}<span class="txn-teams">{{ t.teams|join(' ↔ ') }}</span>{% endif %}
-      {% for name, team in t.adds %}<div class="add">+ {{ name }} <span class="muted">→ {{ team }}</span></div>{% endfor %}
-      {% for name, team in t.drops %}<div class="drop">− {{ name }} <span class="muted">← {{ team }}</span></div>{% endfor %}
+{% block title %}Transactions{% endblock %}
+{% block main %}
+<main class="page" data-page="transactions" id="ledger" data-screen-label="Transactions">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Transactions</h2>
+      <p>{{ tx_note }}</p>
     </div>
-  </li>
-  {% endfor %}
-</ul>
-{% endif %}
+    {% if has_season %}
+      <ul class="feed">
+        {% for e in transactions %}
+          <li class="entry">
+            <p class="entry__date">{{ e.date }}</p>
+            <p class="tag" data-kind="{{ e.kind }}">{{ e.kind }}</p>
+            <p class="entry__body"><strong>{{ e.team }}</strong> {{ e.text }}</p>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if is_pre %}
+      <div class="empty">
+        <p class="empty__mark">Nothing entered</p>
+        <h3>The ledger has no entries</h3>
+        <p>Adds, drops, waivers and trades are recorded here from the first waiver run — Tuesday, Sep 8, 3:00 AM ET.</p>
+        <p class="empty__ledger"><span>Waiver order · <b>Reverse standings</b></span><span>Trade deadline · <b>Nov 20</b></span></p>
+      </div>
+    {% endif %}
+  </div>
+</main>
 {% endblock %}
