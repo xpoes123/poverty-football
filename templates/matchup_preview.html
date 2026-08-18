@@ -41,6 +41,25 @@
         </div>
       {% endfor %}
     </div>
+    {% if p.a.bench or p.b.bench %}
+    <div class="section-head"><h2>Bench</h2></div>
+    <div class="benchcols">
+      {% for side in [p.a, p.b] %}
+      <div class="lineup benchcol">
+        <p class="group-label"><span>{{ side.team }}</span><span>Proj</span></p>
+        {% for pl in side.bench %}
+          <a class="slot slot--bench" href="/player/{{ pl.pid }}">
+            <span class="slot__pos">{{ pl.pos }}</span>
+            <span class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}<span class="slot__text"><span class="slot__name">{{ pl.name }}</span><span class="slot__meta">{{ pl.game }}</span></span></span>
+            <span class="slot__stats"><span class="slot__avg">{{ pl.proj }}</span></span>
+          </a>
+        {% else %}
+          <div class="slot"><span class="slot__pos"></span><span class="slot__player"><span class="slot__text"><span class="slot__meta">No bench players</span></span></span></div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
     <p class="empty" style="border:0;padding:14px 0 0"><span class="bstat bstat--muted">Projections from Sleeper, scored by this league's settings.</span></p>
   </div>
 </main>

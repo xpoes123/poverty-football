@@ -145,22 +145,25 @@ def matchup_preview(week_matchups: list[dict], mid: int, rosters: list[dict], us
         r = roster_of.get(entry["roster_id"], {})
         owner = by_uid.get(r.get("owner_id"))
         starter_ids = [pid for pid in (r.get("starters") or []) if pid and pid != "0"]
-        out, total = [], 0.0
-        for i, pid in enumerate(starter_ids):
+        seen = set(starter_ids)
+        bench_ids = [pid for pid in (r.get("players") or []) if pid and pid != "0" and pid not in seen]
+
+        def entry(pid, slot):
             pl = player_line(pid, players)
             proj = projections.get(pid)
             has_proj = bool(proj) and any(k in scoring for k in proj)  # empty = player out that week
             pts = round(fantasy_points(proj, scoring), 1) if has_proj else None
-            if pts:
-                total += pts
             g = sched.get(pl["team"]) if pl["team"] else None
-            out.append({"pid": pid, "name": pl["name"], "pos": pl["pos"], "team": pl["team"] or "FA",
-                        "img": player_image(pid, pl["pos"], pl["team"]),
-                        "slot": slots[i] if i < len(slots) else "FLEX",
-                        "proj": pts if pts is not None else "—",
-                        "game": (f'{g["at"]} {g["opp"]} · {kick_label(g["kick"])}' if g else "Bye")})
+            return {"pid": pid, "name": pl["name"], "pos": pl["pos"], "team": pl["team"] or "FA",
+                    "img": player_image(pid, pl["pos"], pl["team"]), "slot": slot,
+                    "proj": pts if pts is not None else "—", "_pts": pts,
+                    "game": (f'{g["at"]} {g["opp"]} · {kick_label(g["kick"])}' if g else "Bye")}
+
+        starters = [entry(pid, slots[i] if i < len(slots) else "FLEX") for i, pid in enumerate(starter_ids)]
+        bench = [entry(pid, player_line(pid, players)["pos"]) for pid in bench_ids]
+        total = sum(s["_pts"] for s in starters if s["_pts"])
         return {"team": team_name(owner), "avatar": avatar_url(owner),
-                "proj_total": round(total, 1), "starters": out}
+                "proj_total": round(total, 1), "starters": starters, "bench": bench}
 
     a = team_block(entries[0])
     b = team_block(entries[1]) if len(entries) > 1 else None

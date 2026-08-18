@@ -192,8 +192,8 @@ def test_matchup_preview():
     players = {"p1": {"position": "RB", "full_name": "Runner", "team": "ATL"},
                "p2": {"position": "WR", "full_name": "Catcher", "team": "DET"},  # out: no projection
                "p3": {"position": "QB", "full_name": "Thrower", "team": "KC"}}
-    rosters = [{"roster_id": 1, "owner_id": "uA", "starters": ["p3", "p1"]},
-               {"roster_id": 2, "owner_id": "uB", "starters": ["p2"]}]
+    rosters = [{"roster_id": 1, "owner_id": "uA", "starters": ["p3", "p1"], "players": ["p3", "p1", "p2"]},
+               {"roster_id": 2, "owner_id": "uB", "starters": ["p2"], "players": ["p2"]}]
     users = [{"user_id": "uA", "display_name": "A"}, {"user_id": "uB", "display_name": "B"}]
     week = [{"roster_id": 1, "matchup_id": 1}, {"roster_id": 2, "matchup_id": 1}]
     scoring = {"rush_yd": 0.1, "pass_yd": 0.04}
@@ -203,6 +203,8 @@ def test_matchup_preview():
     assert pv["a"]["proj_total"] == 18.0  # 10 (pass) + 8 (rush)
     assert pv["a"]["starters"][1]["proj"] == 8.0 and pv["a"]["starters"][1]["game"].startswith("@ NO")
     assert pv["b"]["starters"][0]["proj"] == "—"  # empty projection -> out
+    assert [b["pid"] for b in pv["a"]["bench"]] == ["p2"]  # non-starter listed on bench
+    assert pv["a"]["bench"][0]["slot"] == "WR"  # bench slot = player's own position
 
 
 if __name__ == "__main__":

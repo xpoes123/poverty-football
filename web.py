@@ -127,10 +127,12 @@ async def _base_ctx(request: Request, active: str) -> dict:
     is_pre = status in ("pre_draft", "drafting")
     teams_in = sum(1 for r in rosters if r.get("owner_id"))
     total = league["total_rosters"]
+    seed_on = cfg.dev_seed or request.cookies.get("seed_preview") == "1"
     d = cfg.draft_date
     draft_line = f"{d:%b %-d}, {cfg.draft_time_label}" if d else "To be announced"
     target = dt.datetime.combine(d, dt.time(DRAFT_HOUR), tzinfo=TZ) if d else None
-    upcoming = target and target > dt.datetime.now(TZ)
+    # preview pretends the season is underway, so a real draft countdown would contradict it
+    upcoming = target and target > dt.datetime.now(TZ) and not seed_on
     me = await _me_roster_id(request)
     nav_items = [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV]
     if cfg.enable_analysis:  # Insights tab only exists when the analysis flag is on
@@ -143,7 +145,7 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
                      "analysis": cfg.enable_analysis},
         "oauth_enabled": cfg.oauth_enabled,
-        "seed_on": cfg.dev_seed or request.cookies.get("seed_preview") == "1",
+        "seed_on": seed_on,
         "logged_in": bool(request.session.get("discord_id")),
         "me_roster_id": me,
         "my_team_href": f"/team/{me}" if me else None,
