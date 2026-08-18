@@ -18,7 +18,7 @@
 
     <nav class="link-row" aria-label="League links">
       {% for l in links %}
-        <a class="linkbtn" href="{{ l.href }}"{% if l.external %} target="_blank" rel="noopener"{% endif %}>{{ l.label }}</a>
+        <a class="btn" href="{{ l.href }}"{% if l.external %} target="_blank" rel="noopener"{% endif %}>{{ l.label }}</a>
       {% endfor %}
     </nav>
 

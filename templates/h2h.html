@@ -43,7 +43,7 @@
                     <div class="bet-form__row">
                       <input class="bet-form__input" name="stake" type="number" min="1" step="1"
                              inputmode="numeric" placeholder="Chips" aria-label="Chips on {{ g.away }}" required>
-                      <button class="linkbtn" type="submit">Propose</button>
+                      <button class="btn" type="submit">Propose</button>
                     </div>
                   </form>
                 {% endif %}
@@ -59,7 +59,7 @@
                     <div class="bet-form__row">
                       <input class="bet-form__input" name="stake" type="number" min="1" step="1"
                              inputmode="numeric" placeholder="Chips" aria-label="Chips on {{ g.home }}" required>
-                      <button class="linkbtn" type="submit">Propose</button>
+                      <button class="btn" type="submit">Propose</button>
                     </div>
                   </form>
                 {% endif %}
@@ -90,7 +90,7 @@
             {% if logged_in and w.proposer != me_roster_id %}
               <form class="bet-form game-card__bet" method="post" action="/h2h/accept">
                 <input type="hidden" name="wager_id" value="{{ w.id }}">
-                <button class="linkbtn" type="submit">Accept the other side</button>
+                <button class="btn" type="submit">Accept the other side</button>
               </form>
             {% endif %}
           </div>
