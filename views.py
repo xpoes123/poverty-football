@@ -114,6 +114,70 @@ def scoreboard(matchups: list[dict], rosters: list[dict], users: list[dict]) -> 
     return games
 
 
+def luck_table(weeks: list[list[dict]], users: list[dict], rosters: list[dict]) -> list[dict]:
+    """Luck / expected-wins per franchise over the PLAYED `weeks` (raw Sleeper matchup arrays).
+
+    All-play: each week a roster is credited a win vs every other roster it outscored and a
+    loss vs every roster that outscored it (equal points count for neither). Expected wins =
+    all-play win pct * games; luck = actual head-to-head wins - expected. Pure, no I/O."""
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
+    ids = set(owner_of)
+    if not weeks or not ids:
+        return []
+    acc = {rid: {"games": 0, "w": 0, "l": 0, "t": 0, "apw": 0, "apl": 0, "pts": 0.0} for rid in ids}
+    for wk in weeks:
+        entries = [m for m in wk if m.get("roster_id") in ids]
+        pts = {m["roster_id"]: (m.get("points") or 0) for m in entries}
+        # head-to-head, paired by matchup_id like scoreboard()
+        groups: dict = {}
+        for m in entries:
+            groups.setdefault(m.get("matchup_id"), []).append(m)
+        for grp in groups.values():
+            if len(grp) != 2:
+                continue
+            a, b = grp[0], grp[1]
+            ra, rb = a["roster_id"], b["roster_id"]
+            pa, pb = pts[ra], pts[rb]
+            if pa == pb:
+                acc[ra]["t"] += 1; acc[rb]["t"] += 1
+            elif pa > pb:
+                acc[ra]["w"] += 1; acc[rb]["l"] += 1
+            else:
+                acc[rb]["w"] += 1; acc[ra]["l"] += 1
+        # all-play + games + points
+        for rid, p in pts.items():
+            acc[rid]["games"] += 1
+            acc[rid]["pts"] += p
+            for orid, op in pts.items():
+                if orid == rid:
+                    continue
+                if p > op:
+                    acc[rid]["apw"] += 1
+                elif p < op:
+                    acc[rid]["apl"] += 1
+    rows = []
+    for rid, a in acc.items():
+        if a["games"] == 0:
+            continue
+        ap = a["apw"] + a["apl"]
+        exp = round(a["apw"] / ap * a["games"], 1) if ap else 0
+        rows.append({
+            "roster_id": rid,
+            "team": team_name(owner_of.get(rid)),
+            "avatar": avatar_url(owner_of.get(rid)),
+            "wins": a["w"], "losses": a["l"], "ties": a["t"],
+            "all_play": record_str(a["apw"], a["apl"], 0),
+            "expected_wins": exp,
+            "luck": round(a["w"] - exp, 1),
+            "avg_pts": round(a["pts"] / a["games"], 1),
+        })
+    rows.sort(key=lambda r: r["luck"], reverse=True)
+    for i, r in enumerate(rows, 1):
+        r["rank"] = i
+    return rows
+
+
 def player_line(pid: str, players: dict) -> dict:
     p = players.get(pid) or {}
     pos = p.get("position") or ("DEF" if pid.isalpha() else "")
