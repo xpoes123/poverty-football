@@ -214,7 +214,7 @@ async def _board(request: Request, active: str, heading: str, base_href: str,
     ctx["players"] = rows
     ctx["season_stat"] = season
     ctx["board_heading"] = heading
-    ctx["board_note"] = f"{len(rows)} players · {season} PPR · tap a header to sort"
+    ctx["board_note"] = f"{len(rows)} players · {season} PPR"
     ctx["pos_chips"] = [{"label": "All", "href": base_href, "current": pos is None}] + [
         {"label": p, "href": f"{base_href}?pos={p}", "current": pos == p}
         for p in ("QB", "RB", "WR", "TE", "K", "DEF")]
