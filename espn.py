@@ -120,31 +120,6 @@ def game_table(gl: dict, scoring: dict, position: str) -> dict:
     return {"columns": [label for label, _ in cols], "rows": rows}
 
 
-def game_log(gl: dict, scoring: dict, limit: int = 6) -> list[dict]:
-    """Recent games for a player: opponent, result, key stats, and fantasy points (our scoring)."""
-    names = gl.get("names") or []
-    events = gl.get("events") or {}
-    seas = (gl.get("seasonTypes") or [{}])[0]
-    cats = seas.get("categories") or []
-    src = cats[0].get("events") if cats else []
-    out = []
-    for ev in src:
-        eid = ev.get("eventId")
-        d = dict(zip(names, ev.get("stats") or []))
-        meta = events.get(eid, {})
-        chips = [{"label": lbl, "value": d[n]} for n, (lbl, _) in _LOG_STATS.items()
-                 if n in d and _fnum(d[n]) != 0]
-        pts = round(sum(_fnum(d.get(n)) * scoring.get(key, 0)
-                        for n, (_, key) in _LOG_STATS.items() if n in d), 2)
-        gr = (meta.get("gameResult") or "").strip()
-        sc = (meta.get("score") or "").strip()
-        result = gr if any(ch.isdigit() for ch in gr) else f"{gr} {sc}".strip()
-        out.append({"week": meta.get("week"), "opp": (meta.get("opponent") or {}).get("abbreviation"),
-                    "atvs": meta.get("atVs"), "result": result, "eid": eid, "chips": chips, "pts": pts})
-    out.sort(key=lambda r: r["week"] or 0, reverse=True)
-    return out[:limit]
-
-
 # --- pure shaping (testable on raw JSON) ------------------------------------
 def _side(comp: dict) -> dict:
     t = comp.get("team", {})

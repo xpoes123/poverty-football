@@ -57,30 +57,6 @@ def _points(settings: dict, key="fpts") -> float:
     return settings.get(key, 0) + settings.get(f"{key}_decimal", 0) / 100
 
 
-def managers(users: list[dict], rosters: list[dict]) -> list[dict]:
-    """One card per claimed team: team name, owner, co-owners, avatar, record."""
-    by_id = {u["user_id"]: u for u in users}
-    out = []
-    for r in rosters:
-        if not r.get("owner_id"):
-            continue
-        owner = by_id.get(r["owner_id"])
-        s = r.get("settings", {})
-        out.append({
-            "roster_id": r["roster_id"],
-            "team": team_name(owner),
-            "owner": (owner or {}).get("display_name", "—"),
-            "avatar": avatar_url(owner),
-            "co_owners": [by_id[c]["display_name"] for c in (r.get("co_owners") or []) if c in by_id],
-            "wins": s.get("wins", 0),
-            "losses": s.get("losses", 0),
-            "ties": s.get("ties", 0),
-            "pf": round(_points(s), 1),
-        })
-    out.sort(key=lambda m: m["team"].lower())
-    return out
-
-
 def standings(users: list[dict], rosters: list[dict]) -> list[dict]:
     by_id = {u["user_id"]: u for u in users}
     rows = []
@@ -368,26 +344,6 @@ def player_line(pid: str, players: dict) -> dict:
     return {"name": name, "pos": pos, "team": p.get("team") or ""}
 
 
-def team_rosters(rosters: list[dict], users: list[dict], players: dict) -> list[dict]:
-    by_id = {u["user_id"]: u for u in users}
-    out = []
-    for r in rosters:
-        if not r.get("owner_id"):
-            continue
-        owner = by_id.get(r["owner_id"])
-        starters = [pid for pid in (r.get("starters") or []) if pid and pid != "0"]
-        all_players = [pid for pid in (r.get("players") or []) if pid and pid != "0"]
-        bench = [pid for pid in all_players if pid not in set(starters)]
-        out.append({
-            "team": team_name(owner),
-            "avatar": avatar_url(owner),
-            "starters": [player_line(p, players) for p in starters],
-            "bench": [player_line(p, players) for p in bench],
-        })
-    out.sort(key=lambda t: t["team"].lower())
-    return out
-
-
 FANTASY_POS = {"QB", "RB", "WR", "TE", "K", "DEF"}
 
 
@@ -407,11 +363,10 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
     already-rostered player ids (used for the free-agent pool)."""
     rows = []
     for pid, p in players.items():
-        sr = p.get("search_rank")
         position = p.get("position")
-        if not sr or sr >= 100000 or position not in FANTASY_POS:
+        if position not in FANTASY_POS:
             continue
-        if position != "DEF" and not p.get("team"):  # drop free agents / inactive
+        if position != "DEF" and not p.get("team"):  # drop free agents / inactive skill players
             continue
         if pos and position != pos:
             continue
@@ -422,6 +377,11 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
         st = stats.get(pid) or {}
         pts = st.get("pts_ppr")
         gp = st.get("gp")
+        sr = p.get("search_rank")
+        if position == "DEF":  # Sleeper gives defenses no search_rank; list them after ranked players, best first
+            sr = 1_000_000 - (pts or 0)
+        elif not sr or sr >= 100000:
+            continue
         ppg = round(pts / gp, 1) if (pts and gp) else None
         name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
         rows.append({
@@ -552,23 +512,6 @@ def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], u
                     "mid": mine.get("matchup_id")})
     out.sort(key=lambda x: x["week"], reverse=True)
     return out
-
-
-def lineup(roster: dict, players: dict, roster_positions: list[str]) -> dict:
-    """Starters mapped to their lineup slots (QB/RB/FLEX/…), then the bench."""
-    slots = [p for p in roster_positions if p != "BN"]
-    starter_ids = [pid for pid in (roster.get("starters") or []) if pid and pid != "0"]
-    starter_set = set(starter_ids)
-    bench_ids = [pid for pid in (roster.get("players") or []) if pid and pid != "0" and pid not in starter_set]
-
-    def entry(slot: str, pid: str) -> dict:
-        p = player_line(pid, players)
-        return {"slot": slot, "n": p["name"], "meta": p["team"] or "FA",
-                "img": player_image(pid, p["pos"], p["team"])}
-
-    starters = [entry(slots[i] if i < len(slots) else "FLEX", pid) for i, pid in enumerate(starter_ids)]
-    bench = [entry(player_line(pid, players)["pos"] or "BN", pid) for pid in bench_ids]
-    return {"starters": starters, "bench": bench}
 
 
 def transactions(txns: list[dict], rosters: list[dict], users: list[dict], players: dict) -> list[dict]:

@@ -1,4 +1,4 @@
-from views import (draft_board, initials, lineup, luck_table, positional_ranks, record_str,
+from views import (draft_board, initials, luck_table, positional_ranks, record_str,
                    roster_view, scoreboard, standings, team_name, team_schedule, win_pct)
 
 
@@ -29,19 +29,6 @@ def test_record_and_pct():
     assert win_pct(0, 0, 0) == "—"
     assert win_pct(2, 1, 0) == ".667"
     assert win_pct(3, 0, 0) == "1.000"
-
-
-def test_lineup_maps_slots_then_bench():
-    roster = {"starters": ["1", "2"], "players": ["1", "2", "3"]}
-    players = {
-        "1": {"full_name": "A B", "position": "QB", "team": "KC"},
-        "2": {"full_name": "C D", "position": "RB", "team": "SF"},
-        "3": {"full_name": "E F", "position": "WR", "team": "BUF"},
-    }
-    out = lineup(roster, players, ["QB", "RB", "BN"])
-    assert [s["slot"] for s in out["starters"]] == ["QB", "RB"]
-    assert out["starters"][0]["n"] == "A B" and out["starters"][0]["meta"] == "KC"
-    assert [b["n"] for b in out["bench"]] == ["E F"]  # player 3 not a starter
 
 
 USERS = [
@@ -179,6 +166,23 @@ def test_team_schedule():
     assert [g["week"] for g in sched] == [2, 1]  # most recent first
     assert sched[1]["result"] == "W" and sched[1]["my_pts"] == 120.0 and sched[1]["opp_pts"] == 100.0
     assert sched[0]["result"] == "L"
+
+
+def test_draft_board_includes_defenses():
+    # Sleeper gives defenses no search_rank; they must still appear (after ranked players).
+    players = {
+        "4046": {"full_name": "Patrick Q", "position": "QB", "team": "KC", "search_rank": 5},
+        "PHI": {"full_name": "Philadelphia", "position": "DEF", "team": "PHI", "search_rank": None},
+        "DAL": {"full_name": "Dallas", "position": "DEF", "team": "DAL", "search_rank": None},
+    }
+    stats = {"PHI": {"pts_ppr": 140}, "DAL": {"pts_ppr": 90}}
+    rows = draft_board(players, stats)
+    names = [r["name"] for r in rows]
+    assert "Philadelphia" in names and "Dallas" in names       # defenses included
+    assert names.index("Patrick Q") < names.index("Philadelphia")  # ranked players first
+    assert names.index("Philadelphia") < names.index("Dallas")     # DEF ordered by points
+    # the DEF-only chip is no longer empty
+    assert [r["name"] for r in draft_board(players, stats, pos="DEF")] == ["Philadelphia", "Dallas"]
 
 
 def test_kick_label():

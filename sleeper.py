@@ -19,7 +19,9 @@ SEED_DIR = pathlib.Path(__file__).parent / "seed"
 
 # Per-request override so a visitor can preview seeded season data via a cookie,
 # independent of the global cfg.dev_seed env flag. Set by web.py middleware.
-seed_preview: contextvars.ContextVar[bool] = contextvars.ContextVar("seed_preview", default=False)
+# Tri-state: None = defer to cfg.dev_seed; True/False = force seed/real (so _real() wins
+# even when cfg.dev_seed is on, e.g. local DEV_SEED=1 runs).
+seed_preview: contextvars.ContextVar[bool | None] = contextvars.ContextVar("seed_preview", default=None)
 
 _cache: dict[str, tuple[float, object]] = {}
 
@@ -62,7 +64,10 @@ def _seed(url: str):
 
 
 async def _get(url: str, ttl: float):
-    if cfg.dev_seed or seed_preview.get():
+    use_seed = seed_preview.get()  # tri-state: None defers to cfg.dev_seed
+    if use_seed is None:
+        use_seed = cfg.dev_seed
+    if use_seed:
         return _seed(url)
     now = time.monotonic()
     hit = _cache.get(url)
