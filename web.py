@@ -18,6 +18,7 @@ from sleeper import (
     get_league,
     get_matchups,
     get_nfl_state,
+    get_player_stats,
     get_players,
     get_rosters,
     get_transactions,
@@ -30,9 +31,9 @@ templates = Jinja2Templates(directory="templates")
 TZ = ZoneInfo(cfg.timezone)
 LID = cfg.league_id
 
-NAV = [("home", "/", "League"), ("standings", "/standings", "Standings"),
-       ("scoreboard", "/scoreboard", "Scoreboard"), ("rosters", "/rosters", "Rosters"),
-       ("transactions", "/transactions", "Transactions")]
+NAV = [("home", "/", "League"), ("draftboard", "/draftboard", "Draft Board"),
+       ("standings", "/standings", "Standings"), ("scoreboard", "/scoreboard", "Scoreboard"),
+       ("rosters", "/rosters", "Rosters"), ("transactions", "/transactions", "Transactions")]
 STATUS_LABEL = {"pre_draft": "Pre-Draft Season", "drafting": "Draft Underway",
                 "in_season": "Regular Season", "complete": "Season Complete"}
 
@@ -85,6 +86,12 @@ async def home(request: Request):
         "pf_label": "—" if ctx["is_pre"] else _fmt(m["pf"]),
     } for m in views.managers(users, rosters)]
     ctx["managers_note"] = f"{teams_in} of {total} seated"
+    ctx["links"] = [
+        {"label": "Join the League", "href": cfg.join_url, "external": True},
+        {"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{LID}", "external": True},
+        {"label": "FF Wrapped", "href": "https://ffwrapped.com", "external": True},
+        {"label": "League Rewind", "href": "https://leaguerewind.com", "external": True},
+    ]
 
     if ctx["is_pre"]:
         open_seats = total - teams_in
@@ -99,6 +106,25 @@ async def home(request: Request):
         ctx["stat1"] = {"label": "Week", "value": str(state.get("week") or 1), "note": STATUS_LABEL.get("in_season")}
         ctx["stat2"] = {"label": "Franchises", "value": str(total), "note": "Full house"}
     return templates.TemplateResponse(request, "home.html", ctx)
+
+
+@app.get("/draftboard", response_class=HTMLResponse)
+async def draftboard(request: Request, pos: str | None = None):
+    ctx = await _base_ctx(request, "draftboard")
+    players = await get_players()
+    season = "2025"
+    stats = await get_player_stats(season)
+    if not stats:  # fall back if the latest season isn't published yet
+        season = "2024"
+        stats = await get_player_stats(season)
+    pos = pos if pos in views.FANTASY_POS else None
+    ctx["players"] = views.draft_board(players, stats, pos, limit=200)
+    ctx["season_stat"] = season
+    ctx["board_note"] = f"Top 200 by Sleeper rank · {season} PPR"
+    ctx["pos_chips"] = [{"label": "All", "href": "/draftboard", "current": pos is None}] + [
+        {"label": p, "href": f"/draftboard?pos={p}", "current": pos == p}
+        for p in ("QB", "RB", "WR", "TE", "K", "DEF")]
+    return templates.TemplateResponse(request, "draftboard.html", ctx)
 
 
 @app.get("/standings", response_class=HTMLResponse)
@@ -146,10 +172,9 @@ async def scoreboard(request: Request, week: int | None = None):
     ctx["week_empty"] = not matchups
     ctx["week_heading"] = f"Week {week}"
     ctx["weeks"] = [{"href": f"/scoreboard?week={w}", "label": str(w), "current": w == week} for w in range(1, 19)]
-    ctx["empty_week_mark"] = "No slate"
-    ctx["empty_week_title"] = f"Week {week} hasn't kicked off"
-    ctx["empty_week_body"] = ("Head-to-head scores post here every Sunday once the season is underway."
-                              + (f" The draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
+    ctx["empty_week_title"] = f"No matchups for Week {week}"
+    ctx["empty_week_body"] = ("Scores appear here once the season starts."
+                              + (f" Draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
     return templates.TemplateResponse(request, "scoreboard.html", ctx)
 
 

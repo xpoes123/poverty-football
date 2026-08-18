@@ -36,10 +36,9 @@
     {% endif %}
     {% if is_pre %}
       <div class="empty">
-        <p class="empty__mark">Unfurnished</p>
-        <h3>Every roster is empty until {{ draft_date_label }}</h3>
-        <p>Twelve lineups, one hundred and ninety-two slots, nothing in them yet. Rosters publish as the draft board fills, pick by pick.</p>
-        <p class="empty__ledger"><span>Rounds · <b>16</b></span><span>Slots per team · <b>10 starters, 6 bench</b></span></p>
+        <h3>Rosters are empty until the draft</h3>
+        <p>Lineups appear once the draft is complete.</p>
+        <p class="empty__ledger"><span>Draft · <b>{{ draft_line }}</b></span><span>Teams in · <b>{{ seated_line }}</b></span></p>
       </div>
     {% endif %}
   </div>

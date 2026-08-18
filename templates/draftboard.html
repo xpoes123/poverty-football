@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Draft Board{% endblock %}
+{% block main %}
+<main class="page" data-page="draftboard" id="ledger" data-screen-label="Draft Board">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Draft Board</h2>
+      <p>{{ board_note }}</p>
+    </div>
+    <nav aria-label="Filter by position">
+      <ul class="chips chips--wrap">
+        {% for c in pos_chips %}
+          <li><a class="chip" href="{{ c.href }}"{% if c.current %} aria-current="true"{% endif %}>{{ c.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    <table class="ledger">
+      <caption>Ranked by Sleeper value, with age, experience and {{ season_stat }} PPR points</caption>
+      <thead>
+        <tr>
+          <th scope="col">Rk</th>
+          <th scope="col">Player</th>
+          <th scope="col">Age</th>
+          <th scope="col">Exp</th>
+          <th scope="col">{{ season_stat }} PPR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pl in players %}
+          <tr>
+            <td class="cell-rank">{{ pl.rank }}</td>
+            <td class="cell-team"><span class="team-name">{{ pl.name }}</span><span class="team-owner">{{ pl.pos }} · {{ pl.team }}</span></td>
+            <td data-label="Age">{{ pl.age }}</td>
+            <td data-label="Exp">{{ pl.exp }}</td>
+            <td data-label="{{ season_stat }} PPR">{{ pl.pts }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+{% endblock %}

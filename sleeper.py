@@ -74,3 +74,11 @@ async def get_nfl_state() -> dict:
 async def get_players() -> dict:
     """id -> player metadata. ~5MB, so cache hard (24h) and only fetch when a page needs names."""
     return await _get(f"{BASE}/players/nfl", ttl=86400)
+
+
+async def get_player_stats(season: str) -> dict:
+    """id -> season stat totals (pts_ppr, etc.). Empty dict if the season has no data."""
+    try:
+        return await _get(f"{BASE}/stats/nfl/regular/{season}", ttl=86400) or {}
+    except httpx.HTTPStatusError:
+        return {}

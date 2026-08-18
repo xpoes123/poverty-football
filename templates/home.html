@@ -6,8 +6,12 @@
     <div class="plate">
       <h1 class="plate__name">Poverty Franchises</h1>
       <p class="crest"><span>Est. 2026 · Twelve Franchises</span></p>
-      <p class="plate__sub">A gentleman's league of modest means, kept in good order.</p>
     </div>
+    <nav class="link-row" aria-label="League links">
+      {% for l in links %}
+        <a class="linkbtn" href="{{ l.href }}"{% if l.external %} target="_blank" rel="noopener"{% endif %}>{{ l.label }}</a>
+      {% endfor %}
+    </nav>
 
     <div class="stats">
       <div class="stat">

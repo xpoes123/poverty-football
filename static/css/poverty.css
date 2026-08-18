@@ -162,6 +162,11 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 .site-footer{border-top:1px solid var(--rule);padding:16px 0 30px;display:flex;justify-content:space-between;gap:10px 20px;flex-wrap:wrap;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 
+/* home link row */
+.link-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
+.linkbtn{display:inline-block;border:1px solid var(--gold-dim);color:var(--gold-bright);padding:9px 15px;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;transition:background .18s ease,border-color .18s ease}
+.linkbtn:hover{background:var(--surface-2);border-color:var(--gold);color:var(--gold-bright)}
+
 /* team logos (real Sleeper avatars, framed like a crest) */
 .crest-mark img,.mark img{width:100%;height:100%;object-fit:cover;display:block}
 .team-logo{display:inline-block;width:26px;height:26px;object-fit:cover;border:1px solid var(--gold-dim);vertical-align:middle;margin-right:9px}

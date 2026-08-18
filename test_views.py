@@ -1,4 +1,19 @@
-from views import initials, lineup, record_str, scoreboard, standings, team_name, win_pct
+from views import draft_board, initials, lineup, record_str, scoreboard, standings, team_name, win_pct
+
+
+def test_draft_board_orders_by_search_rank_and_filters():
+    players = {
+        "a": {"full_name": "Star RB", "position": "RB", "team": "SF", "search_rank": 2, "age": 25, "years_exp": 3},
+        "b": {"full_name": "Top WR", "position": "WR", "team": "CIN", "search_rank": 1, "age": 24, "years_exp": 0},
+        "c": {"full_name": "No Team", "position": "RB", "team": None, "search_rank": 5},  # dropped: no team
+        "d": {"full_name": "Bench Guy", "position": "OL", "team": "NYG", "search_rank": 9},  # dropped: non-fantasy
+    }
+    stats = {"b": {"pts_ppr": 403.0}}
+    board = draft_board(players, stats)
+    assert [r["name"] for r in board] == ["Top WR", "Star RB"]  # rank 1 before rank 2, others filtered
+    assert board[0]["rank"] == 1 and board[0]["pts"] == "403" and board[0]["exp"] == "R"
+    assert board[1]["pts"] == "—"  # no stats for Star RB
+    assert [r["name"] for r in draft_board(players, stats, pos="WR")] == ["Top WR"]
 
 
 def test_initials():

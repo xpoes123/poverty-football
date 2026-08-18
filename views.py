@@ -141,6 +141,39 @@ def team_rosters(rosters: list[dict], users: list[dict], players: dict) -> list[
     return out
 
 
+FANTASY_POS = {"QB", "RB", "WR", "TE", "K", "DEF"}
+
+
+def draft_board(players: dict, stats: dict, pos: str | None = None, limit: int = 200) -> list[dict]:
+    """Fantasy-relevant players ordered by Sleeper's search_rank (1 = most valued),
+    annotated with age/experience and last-season PPR points. Display-ready strings."""
+    rows = []
+    for pid, p in players.items():
+        sr = p.get("search_rank")
+        position = p.get("position")
+        if not sr or sr >= 100000 or position not in FANTASY_POS:
+            continue
+        if position != "DEF" and not p.get("team"):  # drop free agents / inactive
+            continue
+        if pos and position != pos:
+            continue
+        exp = p.get("years_exp")
+        age = p.get("age")
+        pts = (stats.get(pid) or {}).get("pts_ppr")
+        name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
+        rows.append({
+            "sr": sr, "name": name, "pos": position, "team": p.get("team") or "FA",
+            "age": str(age) if age is not None else "—",
+            "exp": "R" if exp == 0 else (str(exp) if exp is not None else "—"),
+            "pts": str(round(pts)) if pts else "—",
+        })
+    rows.sort(key=lambda r: r["sr"])
+    rows = rows[:limit]
+    for i, r in enumerate(rows, 1):
+        r["rank"] = i
+    return rows
+
+
 def lineup(roster: dict, players: dict, roster_positions: list[str]) -> dict:
     """Starters mapped to their lineup slots (QB/RB/FLEX/…), then the bench."""
     slots = [p for p in roster_positions if p != "BN"]
