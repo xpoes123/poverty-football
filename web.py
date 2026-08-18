@@ -281,8 +281,54 @@ async def player_profile(request: Request, pid: str):
         "espn_url": f"https://www.espn.com/nfl/player/_/id/{espn_id}" if espn_id else None,
     }
     ctx["season_stat"] = season
+    ctx["headline"] = views.player_headline(st)
     ctx["stat_lines"] = views.player_stat_lines(position, st)
+    ctx["pid"] = pid
     return templates.TemplateResponse(request, "player.html", ctx)
+
+
+def _profile(pid: str, players: dict, st: dict, season: str) -> dict:
+    p = players.get(pid, {})
+    position = p.get("position") or ""
+    return {
+        "pid": pid,
+        "name": p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid,
+        "pos": position, "team": p.get("team") or "FA",
+        "img": views.player_image(pid, position, p.get("team") or pid),
+        "age": p.get("age"), "height": views.height_str(p.get("height")), "weight": p.get("weight"),
+        "college": p.get("college") or "—",
+        "exp": "Rookie" if p.get("years_exp") == 0 else (f"{p.get('years_exp')} yrs" if p.get("years_exp") is not None else "—"),
+        "headline": views.player_headline(st), "stat_lines": views.player_stat_lines(position, st),
+    }
+
+
+@app.get("/api/players")
+async def api_players():
+    players = await get_players()
+    out = [{"id": pid, "name": p.get("full_name") or pid,
+            "pos": p.get("position"), "team": p.get("team") or ""}
+           for pid, p in players.items()
+           if p.get("search_rank") and p["search_rank"] < 100000
+           and p.get("position") in views.FANTASY_POS and (p.get("team") or p.get("position") == "DEF")]
+    out.sort(key=lambda x: x["name"])
+    return out
+
+
+@app.get("/compare", response_class=HTMLResponse)
+async def compare(request: Request, a: str, b: str | None = None):
+    players = await get_players()
+    if a not in players:
+        return RedirectResponse("/draftboard")
+    season = "2025"
+    stats = await get_player_stats(season)
+    if not stats:
+        season = "2024"
+        stats = await get_player_stats(season)
+    ctx = await _base_ctx(request, "")
+    ctx["season_stat"] = season
+    ctx["a"] = _profile(a, players, stats.get(a, {}), season)
+    ctx["b"] = _profile(b, players, stats.get(b, {}), season) if b in players else None
+    return templates.TemplateResponse(request, "compare.html", ctx)
 
 
 @app.get("/schedule", response_class=HTMLResponse)

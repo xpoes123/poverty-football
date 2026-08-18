@@ -216,15 +216,21 @@ def _num(v):
     return int(v) if float(v).is_integer() else round(v, 1)
 
 
+def player_headline(st: dict) -> list[dict]:
+    """The three big numbers shown in the profile stat strip."""
+    pts, gp = st.get("pts_ppr"), st.get("gp")
+    ppg = round(pts / gp, 1) if (pts and gp) else None
+    trio = [("PPR", _num(pts)), ("PPR / GM", ppg), ("Games", _num(gp))]
+    return [{"k": k, "v": v if v is not None else "—"} for k, v in trio]
+
+
 def player_stat_lines(position: str, st: dict) -> list[dict]:
-    """Position-relevant season stat lines (label + value), skipping stats not present."""
+    """Position-relevant season stat lines (label + value); games/PPR live in the headline."""
     lines = []
-    for label, key in [("PPR pts", "pts_ppr"), ("PPR / game", None)] + STAT_SPECS.get(position, []):
-        if key is None:  # points per game, derived
-            pts, gp = st.get("pts_ppr"), st.get("gp")
-            val = round(pts / gp, 1) if (pts and gp) else None
-        else:
-            val = _num(st.get(key))
+    for label, key in STAT_SPECS.get(position, []):
+        if key == "gp":
+            continue
+        val = _num(st.get(key))
         if val is not None:
             lines.append({"label": label, "value": val})
     return lines

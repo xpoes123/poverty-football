@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Compare{% endblock %}
+
+{% macro col(p) %}
+<div class="cmp-col">
+  <img class="cmp-crest" src="{{ p.img }}" onerror="this.src='/static/default-team.svg'" alt="" loading="lazy">
+  <h3 class="cmp-name">{{ p.name }}</h3>
+  <p class="cmp-sub">{{ p.pos }} · {{ p.team }}</p>
+  <div class="pstat-strip cmp-strip">
+    {% for s in p.headline %}<div class="pstat"><span class="pstat-v">{{ s.v }}</span><span class="pstat-k">{{ s.k }}</span></div>{% endfor %}
+  </div>
+  <dl class="statlist">
+    {% for s in p.stat_lines %}<div class="statrow"><dt>{{ s.label }}</dt><dd>{{ s.value }}</dd></div>{% endfor %}
+  </dl>
+</div>
+{% endmacro %}
+
+{% block main %}
+<main class="page" data-page="compare" id="ledger" data-screen-label="Compare">
+  <div class="wrap">
+    <div class="phead-row">
+      <p class="backlink"><a href="/player/{{ a.pid }}">← {{ a.name }}</a></p>
+      <button class="cmp-btn" id="cmpOpen" type="button" aria-expanded="{{ 'false' if b else 'true' }}">＋ {{ 'Change' if b else 'Add' }} player</button>
+    </div>
+
+    <div class="search-panel" id="searchPanel" data-a="{{ a.pid }}" {% if b %}hidden{% endif %}>
+      <input type="search" id="searchInput" placeholder="Search a player to compare…" autocomplete="off" aria-label="Search players">
+      <ul class="search-results" id="searchResults"></ul>
+    </div>
+
+    <div class="section-head"><h2>Compare</h2><p>{{ season_stat }} season</p></div>
+
+    <div class="cmp-grid">
+      {{ col(a) }}
+      {% if b %}
+        {{ col(b) }}
+      {% else %}
+        <div class="cmp-col cmp-empty"><p class="muted-note">Search a player above to compare with {{ a.name }}.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  const btn = document.getElementById('cmpOpen'), panel = document.getElementById('searchPanel');
+  const input = document.getElementById('searchInput'), out = document.getElementById('searchResults');
+  if (!btn) return;
+  const A = panel.dataset.a;
+  let list = null;
+  const load = async () => { if (!list) list = await (await fetch('/api/players')).json(); };
+  btn.addEventListener('click', async () => {
+    const open = panel.hidden; panel.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) { input.focus(); await load(); }
+  });
+  if (!panel.hidden) { load(); input.focus(); }
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q || !list) { out.innerHTML = ''; return; }
+    out.innerHTML = list.filter(p => p.name.toLowerCase().includes(q)).slice(0, 12)
+      .map(p => `<li><a href="/compare?a=${A}&b=${p.id}">${p.name} <span class="sr-pos">${p.pos} · ${p.team}</span></a></li>`).join('');
+  });
+})();
+</script>
+{% endblock %}

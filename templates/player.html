@@ -3,38 +3,80 @@
 {% block main %}
 <main class="page" data-page="player" id="ledger" data-screen-label="Player">
   <div class="wrap">
-    <p class="backlink"><a href="/draftboard">← Draft Board</a></p>
+    <div class="phead-row">
+      <p class="backlink"><a href="/draftboard">← Draft Board</a></p>
+      <button class="cmp-btn" id="cmpOpen" type="button" aria-expanded="false">＋ Compare</button>
+    </div>
+
+    <div class="search-panel" id="searchPanel" data-a="{{ pid }}" hidden>
+      <input type="search" id="searchInput" placeholder="Search a player to compare…" autocomplete="off" aria-label="Search players">
+      <ul class="search-results" id="searchResults"></ul>
+    </div>
 
     <div class="team-head">
       <img class="team-crest" src="{{ player.img }}" onerror="this.src='/static/default-team.svg'" alt="" loading="lazy">
-      <div>
+      <div class="team-head__text">
         <h1 class="team-head__name">{{ player.name }}</h1>
         <p class="team-head__owner">{{ player.pos }} · {{ player.team }}{% if player.number %} · #{{ player.number }}{% endif %}</p>
       </div>
     </div>
 
-    <div class="section-head"><h2>Profile</h2></div>
-    <dl class="factgrid">
-      <div><dt>Age</dt><dd>{{ player.age or '—' }}</dd></div>
-      <div><dt>Height</dt><dd>{{ player.height }}</dd></div>
-      <div><dt>Weight</dt><dd>{{ player.weight or '—' }}{% if player.weight %} lb{% endif %}</dd></div>
-      <div><dt>Experience</dt><dd>{{ player.exp }}</dd></div>
-      <div><dt>College</dt><dd>{{ player.college }}</dd></div>
-      <div><dt>Status</dt><dd>{{ player.status }}</dd></div>
-    </dl>
+    <div class="pstat-strip">
+      {% for s in headline %}
+        <div class="pstat"><span class="pstat-v">{{ s.v }}</span><span class="pstat-k">{{ s.k }}</span></div>
+      {% endfor %}
+    </div>
 
-    <div class="section-head"><h2>{{ season_stat }} Season</h2></div>
-    {% if stat_lines %}
-      <dl class="factgrid">
-        {% for s in stat_lines %}<div><dt>{{ s.label }}</dt><dd>{{ s.value }}</dd></div>{% endfor %}
-      </dl>
-    {% else %}
-      <div class="empty"><h3>No {{ season_stat }} stats</h3><p>No recorded stats for the {{ season_stat }} season.</p></div>
-    {% endif %}
+    <div class="profile-cols">
+      <section>
+        <h2 class="mini-head">Bio</h2>
+        <dl class="statlist">
+          <div class="statrow"><dt>Age</dt><dd>{{ player.age or '—' }}</dd></div>
+          <div class="statrow"><dt>Height</dt><dd>{{ player.height }}</dd></div>
+          <div class="statrow"><dt>Weight</dt><dd>{{ player.weight or '—' }}{% if player.weight %} lb{% endif %}</dd></div>
+          <div class="statrow"><dt>Experience</dt><dd>{{ player.exp }}</dd></div>
+          <div class="statrow"><dt>College</dt><dd>{{ player.college }}</dd></div>
+          <div class="statrow"><dt>Status</dt><dd>{{ player.status }}</dd></div>
+        </dl>
+      </section>
+      <section>
+        <h2 class="mini-head">{{ season_stat }} Season</h2>
+        {% if stat_lines %}
+          <dl class="statlist">
+            {% for s in stat_lines %}<div class="statrow"><dt>{{ s.label }}</dt><dd>{{ s.value }}</dd></div>{% endfor %}
+          </dl>
+        {% else %}
+          <p class="muted-note">No {{ season_stat }} stats recorded.</p>
+        {% endif %}
+      </section>
+    </div>
 
     {% if player.espn_url %}
     <p class="ext-link"><a href="{{ player.espn_url }}" target="_blank" rel="noopener">View on ESPN →</a></p>
     {% endif %}
   </div>
 </main>
+
+<script>
+(() => {
+  const btn = document.getElementById('cmpOpen'), panel = document.getElementById('searchPanel');
+  const input = document.getElementById('searchInput'), out = document.getElementById('searchResults');
+  if (!btn) return;
+  const A = panel.dataset.a;
+  let list = null;
+  btn.addEventListener('click', async () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) { input.focus(); if (!list) list = await (await fetch('/api/players')).json(); }
+  });
+  const render = () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q || !list) { out.innerHTML = ''; return; }
+    out.innerHTML = list.filter(p => p.name.toLowerCase().includes(q)).slice(0, 12)
+      .map(p => `<li><a href="/compare?a=${A}&b=${p.id}">${p.name} <span class="sr-pos">${p.pos} · ${p.team}</span></a></li>`).join('');
+  };
+  input && input.addEventListener('input', render);
+})();
+</script>
 {% endblock %}

@@ -205,7 +205,54 @@ button{font:inherit;color:inherit;background:none;border:0}
 .team-head__name{font-family:var(--serif);font-weight:500;font-size:clamp(24px,6vw,34px);line-height:1.05}
 .team-head__owner{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
 
-/* fact grid (player profile / team page) */
+/* nav: push auth links to the far right */
+.nav__spacer{margin-left:auto}
+
+/* player / compare header row + compare button */
+.phead-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.phead-row .backlink{margin-bottom:0}
+.cmp-btn{border:1px solid var(--gold-dim);color:var(--gold-bright);padding:7px 13px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.cmp-btn:hover{background:var(--surface-2)}
+
+/* player search panel */
+.search-panel{border:1px solid var(--rule);background:var(--surface);padding:10px;margin-bottom:18px}
+.search-panel input{width:100%;background:var(--espresso);border:1px solid var(--rule-strong);color:var(--bone);padding:10px 12px;font:inherit}
+.search-results{list-style:none;margin:8px 0 0;padding:0}
+.search-results li a{display:flex;justify-content:space-between;gap:12px;padding:9px 6px;border-bottom:1px solid var(--rule);color:var(--bone)}
+.search-results li a:hover{background:var(--surface-2)}
+.sr-pos{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+
+/* team-head text block */
+.team-head__text{min-width:0;display:flex;flex-direction:column;gap:6px}
+.team-head__owner{margin-top:0}
+
+/* profile headline strip */
+.pstat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin:20px 0}
+.pstat{background:var(--surface);padding:16px 14px;text-align:center}
+.pstat-v{display:block;font-family:var(--serif);font-size:clamp(24px,6vw,32px);color:var(--gold-bright);font-variant-numeric:tabular-nums;line-height:1}
+.pstat-k{display:block;margin-top:8px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+
+/* profile two-column bio + stats */
+.profile-cols{display:grid;gap:0 28px;grid-template-columns:1fr}
+@media(min-width:640px){.profile-cols{grid-template-columns:1fr 1fr}}
+.mini-head{font-family:var(--serif);font-weight:500;font-size:15px;color:var(--gold);margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--rule-strong)}
+.statlist{margin:0}
+.statrow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:9px 2px;border-bottom:1px solid var(--rule)}
+.statrow dt{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.statrow dd{margin:0;font-family:var(--serif);font-size:16px;color:var(--bone);font-variant-numeric:tabular-nums;text-align:right}
+.muted-note{color:var(--muted);padding:10px 2px}
+
+/* compare grid */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.cmp-col{background:var(--surface);padding:18px 15px;text-align:center}
+.cmp-crest{width:56px;height:56px;object-fit:cover;border:1px solid var(--gold-dim);margin:0 auto;display:block}
+.cmp-name{font-family:var(--serif);font-weight:500;font-size:18px;margin-top:10px;line-height:1.15}
+.cmp-sub{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.cmp-col .pstat-strip{margin:14px 0 0}
+.cmp-col .statlist{text-align:left;margin-top:14px}
+.cmp-empty{display:flex;align-items:center;justify-content:center}
+
+/* fact grid (team page) */
 .factgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
 .factgrid > div{background:var(--surface);padding:12px 14px}
 .factgrid dt{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
