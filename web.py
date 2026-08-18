@@ -68,13 +68,13 @@ LID = cfg.league_id
 DRAFT_HOUR = 20  # 8 PM ET, matches cfg.draft_time_label
 
 NAV = [("home", "/", "League"), ("players", "/draftboard", "Players"),
-       ("freeagents", "/freeagents", "Free Agents"), ("schedule", "/schedule", "Schedule"),
-       ("games", "/games", "Games")]
+       ("schedule", "/schedule", "Schedule"), ("games", "/games", "Games")]
 
 
 def _player_subtabs(active: str):
     return [{"label": "Rankings", "href": "/draftboard", "current": active == "rankings"},
-            {"label": "Draft", "href": "/draft", "current": active == "draft"}]
+            {"label": "Draft", "href": "/draft", "current": active == "draft"},
+            {"label": "Free Agents", "href": "/freeagents", "current": active == "freeagents"}]
 
 
 def _gamble_subtabs(active: str):
@@ -315,7 +315,7 @@ async def draft(request: Request):
 async def freeagents(request: Request, pos: str | None = None):
     rosters = await get_rosters(LID)
     rostered = {pid for r in rosters for pid in (r.get("players") or []) if pid}
-    return await _board(request, "freeagents", "Free Agents", "/freeagents", pos, exclude=rostered)
+    return await _board(request, "players", "Free Agents", "/freeagents", pos, exclude=rostered, subtab="freeagents")
 
 
 @app.get("/team/{roster_id}", response_class=HTMLResponse)
