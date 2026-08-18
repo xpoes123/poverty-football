@@ -39,8 +39,12 @@
         <h2>Place a Wager</h2>
         <p>Week {{ current_week }}</p>
       </div>
-      <p class="bet-standby">Bet play-money chips that your roster wins its weekly matchup.
-        <a class="bet-link" href="/login">Log in</a> to place a bet on your team.</p>
+      {% if oauth_enabled %}
+        <p class="bet-standby">Bet play-money chips that your roster wins its weekly matchup.
+          <a class="bet-link" href="/login">Log in</a> to place a bet on your team.</p>
+      {% else %}
+        <p class="bet-standby">Betting sign-in isn't enabled for this league.</p>
+      {% endif %}
     {% endif %}
 
     <div class="section-head">
