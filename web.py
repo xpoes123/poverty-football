@@ -319,12 +319,18 @@ async def freeagents(request: Request, pos: str | None = None):
 
 
 @app.get("/team/{roster_id}", response_class=HTMLResponse)
-async def team_page(request: Request, roster_id: int):
+async def team_page(request: Request, roster_id: int, view: str = "roster"):
     users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
     roster = next((r for r in rosters if r["roster_id"] == roster_id and r.get("owner_id")), None)
     if roster is None:
         return RedirectResponse("/")
+    view = view if view in ("roster", "schedule") else "roster"
     ctx = await _base_ctx(request, "")
+    ctx["view"] = view
+    ctx["team_tabs"] = [
+        {"label": "Roster", "href": f"/team/{roster_id}", "current": view == "roster"},
+        {"label": "Schedule", "href": f"/team/{roster_id}?view=schedule", "current": view == "schedule"},
+    ]
     by_id = {u["user_id"]: u for u in users}
     owner = by_id.get(roster["owner_id"])
     s = roster.get("settings", {})
@@ -342,7 +348,16 @@ async def team_page(request: Request, roster_id: int):
     }
     if ctx["has_season"]:
         players = await get_players()
-        ctx["lineup"] = views.lineup(roster, players, league.get("roster_positions", []))
+        if view == "schedule":
+            current = (await get_nfl_state()).get("week") or 1
+            by_week = {wk: m for wk in range(1, current + 1) if (m := await get_matchups(LID, wk))}
+            ctx["schedule"] = views.team_schedule(by_week, roster_id, rosters, users)
+        else:
+            scoring = league.get("scoring_settings") or {}
+            stats = await get_player_stats("2025")
+            pos_ranks = views.positional_ranks(players, stats, scoring)
+            ctx["roster"] = views.roster_view(roster, players, stats, scoring,
+                                               league.get("roster_positions", []), pos_ranks)
     return templates.TemplateResponse(request, "team.html", ctx)
 
 

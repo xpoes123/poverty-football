@@ -19,17 +19,45 @@
     </div>
 
     {% if has_season %}
-      <div class="section-head"><h2>Roster</h2></div>
-      <div class="lineup">
-        <p class="group-label"><span>Starters</span><span>{{ team.name }}</span></p>
-        {% for pl in lineup.starters %}
-          <div class="slot"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
-        {% endfor %}
-        <p class="group-label"><span>Bench</span><span>{{ lineup.bench|length }}</span></p>
-        {% for pl in lineup.bench %}
-          <div class="slot slot--bench"><p class="slot__pos">{{ pl.slot }}</p><p class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}{{ pl.n }}</p><p class="slot__meta">{{ pl.meta }}</p></div>
-        {% endfor %}
-      </div>
+      <nav class="subtabs" aria-label="Team views">
+        {% for t in team_tabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}
+      </nav>
+
+      {% if view == 'schedule' %}
+        {% if schedule %}
+          <div class="lineup">
+            <p class="group-label"><span>Week</span><span>Result · Score</span></p>
+            {% for g in schedule %}
+              <a class="slot slot--game" href="/matchup/{{ g.week }}/{{ g.mid }}">
+                <span class="slot__pos">W{{ g.week }}</span>
+                <span class="slot__player"><img class="slot-face" src="{{ g.opp_avatar or '/static/default-team.svg' }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy"><span class="slot__name">{{ g.opp }}</span></span>
+                <span class="slot__stats"><span class="slot__avg {{ 'win' if g.result == 'W' else 'loss' if g.result == 'L' else '' }}">{{ g.result }} · {{ g.my_pts }}–{{ g.opp_pts }}</span></span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty"><h3>No games played yet</h3><p>This franchise's weekly results appear here once the season is underway.</p></div>
+        {% endif %}
+      {% else %}
+        <div class="lineup">
+          <p class="group-label"><span>Starters</span><span>Avg · Rank</span></p>
+          {% for pl in roster.starters %}
+            <a class="slot" href="/player/{{ pl.pid }}">
+              <span class="slot__pos">{{ pl.slot }}</span>
+              <span class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}<span class="slot__text"><span class="slot__name">{{ pl.n }}</span><span class="slot__meta">{{ pl.pos }} · {{ pl.team }}</span></span></span>
+              <span class="slot__stats"><span class="slot__avg">{{ pl.avg }}</span><span class="slot__rank">{{ pl.rank }}</span></span>
+            </a>
+          {% endfor %}
+          <p class="group-label"><span>Bench</span><span>{{ roster.bench|length }}</span></p>
+          {% for pl in roster.bench %}
+            <a class="slot slot--bench" href="/player/{{ pl.pid }}">
+              <span class="slot__pos">{{ pl.slot }}</span>
+              <span class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}<span class="slot__text"><span class="slot__name">{{ pl.n }}</span><span class="slot__meta">{{ pl.pos }} · {{ pl.team }}</span></span></span>
+              <span class="slot__stats"><span class="slot__avg">{{ pl.avg }}</span><span class="slot__rank">{{ pl.rank }}</span></span>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
     {% else %}
       <div class="empty">
         <h3>Roster is empty until the draft</h3>

@@ -1,4 +1,5 @@
-from views import draft_board, initials, lineup, luck_table, record_str, scoreboard, standings, team_name, win_pct
+from views import (draft_board, initials, lineup, luck_table, positional_ranks, record_str,
+                   roster_view, scoreboard, standings, team_name, team_schedule, win_pct)
 
 
 def test_draft_board_orders_by_search_rank_and_filters():
@@ -143,6 +144,41 @@ def test_luck_table_handles_ties():
     assert r["ties"] == 1 and r["wins"] == 0 and r["losses"] == 0
     assert r["all_play"] == "0–0" and r["expected_wins"] == 0 and r["luck"] == 0.0
     assert r["avg_pts"] == 111.0
+
+
+def test_positional_ranks_and_roster_view():
+    players = {
+        "1": {"position": "RB", "full_name": "Back One", "team": "ATL"},
+        "2": {"position": "RB", "full_name": "Back Two", "team": "DET"},
+        "3": {"position": "QB", "full_name": "Passer", "team": "WAS"},
+    }
+    scoring = {"rush_yd": 0.1, "pass_yd": 0.04}
+    stats = {
+        "1": {"rush_yd": 1000, "gp": 10},   # 100 pts, avg 10.0, best RB
+        "2": {"rush_yd": 500, "gp": 10},    # 50 pts, avg 5.0, RB2
+        "3": {"pass_yd": 4000, "gp": 16},   # 160 pts, avg 10.0, QB1
+    }
+    ranks = positional_ranks(players, stats, scoring)
+    assert ranks == {"1": 1, "2": 2, "3": 1}
+
+    roster = {"starters": ["3", "1"], "players": ["3", "1", "2"]}
+    rv = roster_view(roster, players, stats, scoring, ["QB", "RB", "BN"], ranks)
+    assert [s["slot"] for s in rv["starters"]] == ["QB", "RB"]
+    assert rv["starters"][1]["avg"] == 10.0 and rv["starters"][1]["rank"] == "RB1"
+    assert [b["pid"] for b in rv["bench"]] == ["2"]  # only non-starter
+
+
+def test_team_schedule():
+    by_week = {
+        1: [{"roster_id": 1, "matchup_id": 1, "points": 120.0},
+            {"roster_id": 2, "matchup_id": 1, "points": 100.0}],
+        2: [{"roster_id": 1, "matchup_id": 1, "points": 90.0},
+            {"roster_id": 2, "matchup_id": 1, "points": 110.0}],
+    }
+    sched = team_schedule(by_week, 1, LROSTERS, LUSERS)
+    assert [g["week"] for g in sched] == [2, 1]  # most recent first
+    assert sched[1]["result"] == "W" and sched[1]["my_pts"] == 120.0 and sched[1]["opp_pts"] == 100.0
+    assert sched[0]["result"] == "L"
 
 
 if __name__ == "__main__":

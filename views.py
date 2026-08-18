@@ -433,6 +433,71 @@ def height_str(inches) -> str:
         return "—"
 
 
+def fantasy_points(st: dict, scoring: dict) -> float:
+    return round(sum((v or 0) * scoring.get(k, 0) for k, v in st.items()
+                     if isinstance(v, (int, float)) and k in scoring), 2)
+
+
+def positional_ranks(players: dict, stats: dict, scoring: dict) -> dict:
+    """pid -> positional rank by total season fantasy points (our scoring). 1 = best at position."""
+    by_pos: dict = {}
+    for pid, st in stats.items():
+        p = players.get(pid)
+        if p and p.get("position") in FANTASY_POS:
+            by_pos.setdefault(p["position"], []).append((pid, fantasy_points(st, scoring)))
+    ranks = {}
+    for lst in by_pos.values():
+        lst.sort(key=lambda x: x[1], reverse=True)
+        for i, (pid, _) in enumerate(lst, 1):
+            ranks[pid] = i
+    return ranks
+
+
+def roster_view(roster: dict, players: dict, stats: dict, scoring: dict,
+                roster_positions: list[str], pos_ranks: dict) -> dict:
+    """Starters + bench, each with average fantasy points/game and positional rank."""
+    slots = [p for p in roster_positions if p != "BN"]
+    starter_ids = [pid for pid in (roster.get("starters") or []) if pid and pid != "0"]
+    seen = set(starter_ids)
+    bench_ids = [pid for pid in (roster.get("players") or []) if pid and pid != "0" and pid not in seen]
+
+    def entry(slot: str, pid: str) -> dict:
+        pl = player_line(pid, players)
+        st = stats.get(pid) or {}
+        gp = st.get("gp") or 0
+        avg = round(fantasy_points(st, scoring) / gp, 1) if gp else None
+        rk = pos_ranks.get(pid)
+        return {"slot": slot, "pid": pid, "n": pl["name"], "pos": pl["pos"], "team": pl["team"] or "FA",
+                "img": player_image(pid, pl["pos"], pl["team"]),
+                "avg": avg if avg is not None else "—", "rank": f"{pl['pos']}{rk}" if rk else "—"}
+
+    starters = [entry(slots[i] if i < len(slots) else "FLEX", pid) for i, pid in enumerate(starter_ids)]
+    bench = [entry((players.get(pid, {}).get("position") or "BN"), pid) for pid in bench_ids]
+    return {"starters": starters, "bench": bench}
+
+
+def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], users: list[dict]) -> list[dict]:
+    """The franchise's week-by-week matchups: opponent, score, result — most recent first."""
+    by_uid = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_uid.get(r.get("owner_id")) for r in rosters}
+    out = []
+    for wk, ms in matchups_by_week.items():
+        mine = next((m for m in ms if m.get("roster_id") == roster_id), None)
+        if not mine or mine.get("matchup_id") is None:
+            continue
+        opp = next((m for m in ms if m.get("matchup_id") == mine["matchup_id"] and m.get("roster_id") != roster_id), None)
+        my_pts = round(mine.get("points") or 0, 1)
+        opp_pts = round(opp.get("points") or 0, 1) if opp else None
+        result = "—" if opp_pts is None else ("W" if my_pts > opp_pts else "L" if my_pts < opp_pts else "T")
+        opp_u = owner_of.get(opp["roster_id"]) if opp else None
+        out.append({"week": wk, "opp": team_name(opp_u) if opp else "Bye",
+                    "opp_avatar": avatar_url(opp_u), "my_pts": my_pts,
+                    "opp_pts": opp_pts if opp_pts is not None else "—", "result": result,
+                    "mid": mine.get("matchup_id")})
+    out.sort(key=lambda x: x["week"], reverse=True)
+    return out
+
+
 def lineup(roster: dict, players: dict, roster_positions: list[str]) -> dict:
     """Starters mapped to their lineup slots (QB/RB/FLEX/…), then the bench."""
     slots = [p for p in roster_positions if p != "BN"]
