@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ g.away.name }} @ {{ g.home.name }}{% endblock %}
 
-{% macro fplist(rows) %}
+{% macro fplist(rows, empty_note='No box score') %}
 <div class="fplist">
   {% for pl in rows %}
   <div class="fprow-wrap" data-pos="{{ pl.pos }}">
@@ -12,7 +12,7 @@
       <span class="fp-pts">{{ pl.pts }}</span>
     </div>
     <div class="fp-box bstats" hidden>
-      {% for s in pl.stats %}<span class="bstat"><b>{{ s.value }}</b> {{ s.label }}</span>{% else %}<span class="bstat bstat--muted">No box score</span>{% endfor %}
+      {% for s in pl.stats %}<span class="bstat"><b>{{ s.value }}</b> {{ s.label }}</span>{% else %}<span class="bstat bstat--muted">{{ empty_note }}</span>{% endfor %}
     </div>
   </div>
   {% else %}
@@ -33,13 +33,13 @@
       <div class="mvs__team{{ ' win' if g.away.winner }}">
         <img class="mvs__crest mvs__crest--logo" src="{{ g.away.logo }}" alt="" loading="lazy">
         <span class="mvs__name">{{ g.away.name }}</span>
-        <span class="mvs__score">{{ g.away.score }}</span>
+        <span class="mvs__score">{{ g.away.score or '' }}</span>
       </div>
       <span class="mvs__vs">{{ g.status }}</span>
       <div class="mvs__team{{ ' win' if g.home.winner }}">
         <img class="mvs__crest mvs__crest--logo" src="{{ g.home.logo }}" alt="" loading="lazy">
         <span class="mvs__name">{{ g.home.name }}</span>
-        <span class="mvs__score">{{ g.home.score }}</span>
+        <span class="mvs__score">{{ g.home.score or '' }}</span>
       </div>
     </div>
 
@@ -52,7 +52,7 @@
     </nav>
 
     {% if table_pos %}
-      <div class="section-head"><h2>{{ table_pos }}s</h2><p>Fantasy points · our scoring · tap a header to sort</p></div>
+      <div class="section-head"><h2>{{ table_pos }}s</h2><p>{{ unit_note }} · tap a header to sort</p></div>
       <div class="table-wrap">
       <table class="ledger sortable">
         <thead>
@@ -74,10 +74,10 @@
       </table>
       </div>
     {% else %}
-      <div class="section-head"><h2>{{ g.away.name }}</h2><p>Fantasy points · our scoring</p></div>
-      {{ fplist(groups.away) }}
-      <div class="section-head"><h2>{{ g.home.name }}</h2><p>Fantasy points · our scoring</p></div>
-      {{ fplist(groups.home) }}
+      <div class="section-head"><h2>{{ g.away.name }}</h2><p>{{ unit_note }}</p></div>
+      {{ fplist(groups.away, 'No projection' if preview else 'No box score') }}
+      <div class="section-head"><h2>{{ g.home.name }}</h2><p>{{ unit_note }}</p></div>
+      {{ fplist(groups.home, 'No projection' if preview else 'No box score') }}
     {% endif %}
   </div>
 </main>

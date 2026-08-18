@@ -488,7 +488,8 @@ async def schedule(request: Request, week: int | None = None):
     ctx["week_has_games"] = bool(matchups)
     ctx["week_empty"] = not matchups
     ctx["week_heading"] = f"Week {week}"
-    ctx["weeks"] = [{"href": f"/schedule?week={w}", "label": str(w), "current": w == week} for w in range(1, 19)]
+    ctx["weeks"] = [{"href": f"/schedule?week={w}", "label": str(w), "current": w == week,
+                     "done": not ctx["is_pre"] and w <= current} for w in range(1, 19)]
     ctx["empty_week_title"] = f"No matchups for Week {week}"
     ctx["empty_week_body"] = (f"Scores appear here once the season starts. Draft is {ctx['draft_date_label']}."
                               if ctx["is_pre"] else "Matchups for this week aren't set yet.")
@@ -516,7 +517,8 @@ async def games_page(request: Request, week: int | None = None):
     ctx["games"] = games
     ctx["upcoming"] = upcoming
     ctx["nfl_week"] = data["week"] or wk
-    ctx["weeks"] = [{"href": f"/games?week={w}", "label": str(w), "current": w == wk} for w in range(1, 19)]
+    ctx["weeks"] = [{"href": f"/games?week={w}", "label": str(w), "current": w == wk,
+                     "done": bool(current) and w <= current} for w in range(1, 19)]
     return templates.TemplateResponse(request, "games.html", ctx)
 
 
@@ -539,15 +541,26 @@ async def game_page(request: Request, eid: str, week: int | None = None, pos: st
     if detail is None:
         return RedirectResponse("/games")
     wk = week if week and 1 <= week <= 18 else 1
-    # real NFL production (bypass the preview seed); franchise ownership is seed-aware
-    real_players = await _real(get_players)
-    real_wk = await _real(get_week_stats, "2025", wk)
     users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
-    groups = views.game_players(detail["away"]["abbr"], detail["home"]["abbr"], real_wk,
-                                real_players, rosters, users, league.get("scoring_settings") or {})
+    scoring = league.get("scoring_settings") or {}
+    real_players = await _real(get_players)  # real NFL players; franchise ownership stays seed-aware
+    # In preview, a game past the current week hasn't happened yet -> show projections, not results.
+    current = (await get_nfl_state()).get("week") if ctx["seed_on"] else None
+    preview = bool(current) and wk > current
+    if preview:
+        stats = await get_projections(league.get("season", "2025"), wk)
+        detail["away"]["score"] = detail["home"]["score"] = None
+        detail["away"]["winner"] = detail["home"]["winner"] = False
+        detail["status"] = views.kick_label(detail.get("date"), full=True) or "Scheduled"
+    else:
+        stats = await _real(get_week_stats, "2025", wk)
+    groups = views.game_players(detail["away"]["abbr"], detail["home"]["abbr"], stats,
+                                real_players, rosters, users, scoring)
     ctx["g"] = detail
     ctx["week"] = wk
-    ctx["espn_url"] = f"https://www.espn.com/nfl/game/_/gameId/{eid}"
+    ctx["preview"] = preview
+    ctx["unit_note"] = ("Projected points · our scoring" if preview else "Fantasy points · our scoring")
+    ctx["espn_url"] = None if preview else f"https://www.espn.com/nfl/game/_/gameId/{eid}"
     pos = pos if pos in views.FANTASY_POS else None
     ctx["table_pos"] = pos
     if pos:

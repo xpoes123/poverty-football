@@ -10,14 +10,14 @@
     <nav aria-label="Select week">
       <ul class="chips">
         {% for w in weeks %}
-          <li><a class="chip" href="{{ w.href }}"{% if w.current %} aria-current="true"{% endif %}>{{ w.label }}</a></li>
+          <li><a class="chip{{ ' chip--done' if w.done }}" href="{{ w.href }}"{% if w.current %} aria-current="true"{% endif %}>{{ w.label }}</a></li>
         {% endfor %}
       </ul>
     </nav>
     {% if games %}
     <div class="nflgrid">
       {% for gm in games %}
-      {% if upcoming %}<div class="nflcard nflcard--sched">{% else %}<a class="nflcard" href="/game/{{ gm.id }}?week={{ nfl_week }}">{% endif %}
+      <a class="nflcard{{ ' nflcard--sched' if upcoming }}" href="/game/{{ gm.id }}?week={{ nfl_week }}">
         <div class="nflside{{ ' win' if gm.away.winner }}">
           <img class="nfl-logo" src="{{ gm.away.logo }}" alt="" loading="lazy">
           <span class="nfl-team">{{ gm.away.name }}</span>
@@ -29,7 +29,7 @@
           <span class="nfl-score">{{ gm.home.score or '' }}</span>
         </div>
         <p class="nfl-status">{{ gm.status }}</p>
-      {% if upcoming %}</div>{% else %}</a>{% endif %}
+      </a>
       {% endfor %}
     </div>
     {% else %}

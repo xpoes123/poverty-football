@@ -7,13 +7,13 @@ CDN = "https://sleepercdn.com/avatars/thumbs"
 _ET = ZoneInfo("America/New_York")
 
 
-def kick_label(iso: str | None) -> str:
-    """ESPN UTC kickoff -> 'Sun 1:00 PM' in Eastern."""
+def kick_label(iso: str | None, full: bool = False) -> str:
+    """ESPN UTC kickoff -> 'Sun 1:00 PM' (or 'Sun, Oct 19 · 1:00 PM' when full) in Eastern."""
     if not iso:
         return ""
     try:
         dt = datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(_ET)
-        return dt.strftime("%a %-I:%M %p")
+        return dt.strftime("%a, %b %-d · %-I:%M %p" if full else "%a %-I:%M %p")
     except ValueError:
         return ""
 

@@ -224,5 +224,6 @@ def detail(s: dict) -> dict | None:
     return {
         "away": header_side("away"), "home": header_side("home"),
         "status": comp.get("status", {}).get("type", {}).get("shortDetail"),
+        "date": comp.get("date"),
         "stat_rows": rows, "leaders": leaders,
     }

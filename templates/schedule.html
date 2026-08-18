@@ -10,7 +10,7 @@
     <nav aria-label="Select week">
       <ul class="chips">
         {% for wk in weeks %}
-          <li><a class="chip" href="{{ wk.href }}"{% if wk.current %} aria-current="true"{% endif %}>{{ wk.label }}</a></li>
+          <li><a class="chip{{ ' chip--done' if wk.done }}" href="{{ wk.href }}"{% if wk.current %} aria-current="true"{% endif %}>{{ wk.label }}</a></li>
         {% endfor %}
       </ul>
     </nav>
