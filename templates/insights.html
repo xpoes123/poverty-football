@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Insights{% endblock %}
+{% block main %}
+<main class="page" data-page="insights" id="ledger" data-screen-label="Insights">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Luck &amp; Expected Wins</h2>
+      <p>{{ through_label }}</p>
+    </div>
+
+    {% if has_games %}
+    <table class="ledger">
+      <caption>All-play record: a win vs every team you outscored each week, a loss vs every team that outscored you</caption>
+      <thead>
+        <tr>
+          <th scope="col">Rk</th>
+          <th scope="col">Franchise</th>
+          <th scope="col">Actual (W–L–T)</th>
+          <th scope="col">All-Play</th>
+          <th scope="col">Exp. Wins</th>
+          <th scope="col">Luck</th>
+          <th scope="col">Avg PF</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in insights %}
+          <tr{% if row.roster_id == me_roster_id %} class="me"{% endif %}>
+            <td class="cell-rank">{{ row.rank }}</td>
+            <td class="cell-team"><a class="team-link" href="/team/{{ row.roster_id }}"><img class="team-logo" src="{{ row.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ row.team }}</span></a></td>
+            <td data-label="Actual">{{ row.wins }}–{{ row.losses }}{% if row.ties %}–{{ row.ties }}{% endif %}</td>
+            <td data-label="All-Play">{{ row.all_play }}</td>
+            <td data-label="Exp. Wins">{{ '%.1f'|format(row.expected_wins) }}</td>
+            <td data-label="Luck">{{ '+%.1f'|format(row.luck) if row.luck > 0 else '%.1f'|format(row.luck) }}</td>
+            <td data-label="Avg PF">{{ '%.1f'|format(row.avg_pts) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">
+      <h3>No games yet</h3>
+      <p>Luck and expected-wins appear once games are played.</p>
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

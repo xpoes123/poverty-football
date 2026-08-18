@@ -88,6 +88,9 @@ async def _base_ctx(request: Request, active: str) -> dict:
     target = dt.datetime.combine(d, dt.time(DRAFT_HOUR), tzinfo=TZ) if d else None
     upcoming = target and target > dt.datetime.now(TZ)
     me = await _me_roster_id(request)
+    nav_items = [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV]
+    if cfg.enable_analysis:  # Insights tab only exists when the analysis flag is on
+        nav_items.append({"href": "/insights", "label": "Insights", "current": active == "insights"})
     return {
         "request": request,
         "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
@@ -96,7 +99,7 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "logged_in": bool(request.session.get("discord_id")),
         "me_roster_id": me,
         "my_team_href": f"/team/{me}" if me else None,
-        "nav_items": [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV],
+        "nav_items": nav_items,
         "season_tag": f"{season} · {STATUS_LABEL.get(status, status)}",
         "footer_note": draft_line if is_pre else "Records live via Sleeper",
         "is_pre": is_pre,
@@ -365,3 +368,24 @@ async def schedule(request: Request, week: int | None = None):
     ctx["empty_week_body"] = ("Scores appear here once the season starts."
                               + (f" Draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
     return templates.TemplateResponse(request, "schedule.html", ctx)
+
+
+@app.get("/insights", response_class=HTMLResponse)
+async def insights(request: Request):
+    if not cfg.enable_analysis:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "insights")
+    users, rosters = await get_users(LID), await get_rosters(LID)
+    state = await get_nfl_state()
+    current = state.get("week") or 1
+    weeks = []
+    for wk in range(1, current + 1):
+        m = await get_matchups(LID, wk)
+        if m:  # only weeks that actually have matchup data (played)
+            weeks.append(m)
+    rows = views.luck_table(weeks, users, rosters)
+    ctx["insights"] = rows
+    ctx["has_games"] = bool(rows)
+    ctx["weeks_played"] = len(weeks)
+    ctx["through_label"] = (f"{len(weeks)} weeks played" if len(weeks) != 1 else "1 week played")
+    return templates.TemplateResponse(request, "insights.html", ctx)
