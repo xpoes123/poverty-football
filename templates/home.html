@@ -40,7 +40,7 @@
       </thead>
       <tbody>
         {% for team in rows %}
-          <tr{% if team.roster_id == me_roster_id %} class="me"{% endif %}>
+          <tr class="{{ 'me ' if team.roster_id == me_roster_id }}{{ 'cutline' if has_season and team.rank == playoff_teams }}">
             <td class="cell-rank">{{ team.rank }}</td>
             <td class="cell-team"><a class="team-link" href="{{ team.href }}"><img class="team-logo" src="{{ team.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ team.name }}</span></a></td>
             <td data-label="W–L–T">{{ team.record }}</td>
@@ -51,6 +51,7 @@
         {% endfor %}
       </tbody>
     </table>
+    {% if has_season %}<p class="cutline-note">Top {{ playoff_teams }} make the playoffs</p>{% endif %}
 
     {% if tx_feed %}
     <div class="section-head"><h2>Transactions</h2><p>{{ tx_feed|length }} moves</p></div>

@@ -47,6 +47,11 @@ button{font:inherit;color:inherit;background:none;border:0}
 .ledger tbody tr.me td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .ledger tbody tr.me .cell-rank{color:var(--gold-bright)}
 
+/* playoff cut line — divider under the last playoff seed (in-season only) */
+.ledger tbody tr.cutline td{border-bottom:2px solid var(--gold-dim)}
+@media (max-width:719px){.ledger tbody tr.cutline{border-bottom:2px solid var(--gold-dim)}}
+.cutline-note{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+
 .page{padding:24px 0 60px;animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.page{animation:none}}
