@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}NFL Games{% endblock %}
+{% block main %}
+<main class="page" data-page="games" id="main" data-screen-label="Games">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>NFL Games</h2>
+      <p>2025 Season{% if nfl_week %} · Week {{ nfl_week }}{% endif %}</p>
+    </div>
+    <nav aria-label="Select week">
+      <ul class="chips">
+        {% for w in weeks %}
+          <li><a class="chip" href="{{ w.href }}"{% if w.current %} aria-current="true"{% endif %}>{{ w.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+    {% if games %}
+    <div class="nflgrid">
+      {% for gm in games %}
+      <a class="nflcard" href="/game/{{ gm.id }}">
+        <div class="nflside{{ ' win' if gm.away.winner }}">
+          <img class="nfl-logo" src="{{ gm.away.logo }}" alt="" loading="lazy">
+          <span class="nfl-team">{{ gm.away.name }}</span>
+          <span class="nfl-score">{{ gm.away.score }}</span>
+        </div>
+        <div class="nflside{{ ' win' if gm.home.winner }}">
+          <img class="nfl-logo" src="{{ gm.home.logo }}" alt="" loading="lazy">
+          <span class="nfl-team">{{ gm.home.name }}</span>
+          <span class="nfl-score">{{ gm.home.score }}</span>
+        </div>
+        <p class="nfl-status">{{ gm.status }}</p>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <h3>No games right now</h3>
+      <p>NFL games show up here when they're on the schedule.</p>
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

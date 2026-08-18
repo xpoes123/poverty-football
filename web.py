@@ -20,6 +20,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import betting
 import h2h
 import odds
+import espn
 import views
 from config import cfg
 from sleeper import (
@@ -67,7 +68,8 @@ LID = cfg.league_id
 DRAFT_HOUR = 20  # 8 PM ET, matches cfg.draft_time_label
 
 NAV = [("home", "/", "League"), ("players", "/draftboard", "Players"),
-       ("freeagents", "/freeagents", "Free Agents"), ("schedule", "/schedule", "Schedule")]
+       ("freeagents", "/freeagents", "Free Agents"), ("schedule", "/schedule", "Schedule"),
+       ("games", "/games", "Games")]
 
 
 def _player_subtabs(active: str):
@@ -444,6 +446,33 @@ async def schedule(request: Request, week: int | None = None):
     ctx["empty_week_body"] = ("Scores appear here once the season starts."
                               + (f" Draft is {ctx['draft_date_label']}." if ctx["is_pre"] else ""))
     return templates.TemplateResponse(request, "schedule.html", ctx)
+
+
+@app.get("/games", response_class=HTMLResponse)
+async def games_page(request: Request, week: int | None = None):
+    ctx = await _base_ctx(request, "games")
+    wk = week if week and 1 <= week <= 18 else 1
+    try:
+        data = espn.games(await espn.scoreboard(year=2025, week=wk))
+    except Exception:
+        data = {"games": [], "week": wk}
+    ctx["games"] = data["games"]
+    ctx["nfl_week"] = data["week"] or wk
+    ctx["weeks"] = [{"href": f"/games?week={w}", "label": str(w), "current": w == wk} for w in range(1, 19)]
+    return templates.TemplateResponse(request, "games.html", ctx)
+
+
+@app.get("/game/{eid}", response_class=HTMLResponse)
+async def game_page(request: Request, eid: str):
+    ctx = await _base_ctx(request, "games")
+    try:
+        detail = espn.detail(await espn.summary(eid))
+    except Exception:
+        detail = None
+    if detail is None:
+        return RedirectResponse("/games")
+    ctx["g"] = detail
+    return templates.TemplateResponse(request, "game.html", ctx)
 
 
 @app.get("/matchup/{week}/{mid}", response_class=HTMLResponse)

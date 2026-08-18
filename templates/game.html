@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ g.away.name }} @ {{ g.home.name }}{% endblock %}
+{% block main %}
+<main class="page" data-page="game" id="main" data-screen-label="Game">
+  <div class="wrap">
+    <p class="backlink"><a href="/games">← NFL Games</a></p>
+
+    <div class="mvs">
+      <div class="mvs__team{{ ' win' if g.away.winner }}">
+        <img class="mvs__crest mvs__crest--logo" src="{{ g.away.logo }}" alt="" loading="lazy">
+        <span class="mvs__name">{{ g.away.name }}</span>
+        <span class="mvs__score">{{ g.away.score }}</span>
+      </div>
+      <span class="mvs__vs">{{ g.status }}</span>
+      <div class="mvs__team{{ ' win' if g.home.winner }}">
+        <img class="mvs__crest mvs__crest--logo" src="{{ g.home.logo }}" alt="" loading="lazy">
+        <span class="mvs__name">{{ g.home.name }}</span>
+        <span class="mvs__score">{{ g.home.score }}</span>
+      </div>
+    </div>
+
+    {% if g.leaders.away or g.leaders.home %}
+    <div class="section-head"><h2>Leaders</h2></div>
+    <div class="lead-cols">
+      <div class="lead-col">
+        {% for l in g.leaders.away %}<div class="lead"><span class="lead-cat">{{ l.cat }}</span><b>{{ l.name }}</b><span class="lead-stat">{{ l.stat }}</span></div>{% endfor %}
+      </div>
+      <div class="lead-col lead-col--h">
+        {% for l in g.leaders.home %}<div class="lead"><span class="lead-cat">{{ l.cat }}</span><b>{{ l.name }}</b><span class="lead-stat">{{ l.stat }}</span></div>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if g.stat_rows %}
+    <div class="section-head"><h2>Team Stats</h2><p>Away · Home</p></div>
+    <div class="statcompare">
+      {% for r in g.stat_rows %}
+      <div class="scrow"><span class="sc-a">{{ r.away }}</span><span class="sc-l">{{ r.label }}</span><span class="sc-h">{{ r.home }}</span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
