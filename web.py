@@ -7,7 +7,7 @@ Thin FastAPI layer: each route gathers Sleeper data (cached) → shapes it via v
 import datetime as dt
 import secrets
 import tomllib
-from urllib.parse import parse_qs, urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -176,7 +176,13 @@ async def health():
 @app.get("/toggle-seed")
 async def toggle_seed(request: Request):
     on = request.cookies.get("seed_preview") == "1"
-    resp = RedirectResponse(request.headers.get("referer") or "/", status_code=303)
+    # Redirect back to the referring page, but only its local path — never an
+    # attacker-supplied host (open-redirect guard; also proxy-safe behind Caddy).
+    ref = urlparse(request.headers.get("referer") or "/")
+    target = ref.path if ref.path.startswith("/") else "/"
+    if ref.query:
+        target += "?" + ref.query
+    resp = RedirectResponse(target, status_code=303)
     if on:
         resp.delete_cookie("seed_preview")
     else:
