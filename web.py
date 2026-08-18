@@ -78,6 +78,7 @@ async def home(request: Request):
 
     ctx["teams"] = [{
         "initials": views.initials(m["team"]),
+        "avatar": m["avatar"],
         "name": m["team"],
         "owner": "@" + m["owner"] + (" + " + ", ".join(m["co_owners"]) if m["co_owners"] else ""),
         "record": views.record_str(m["wins"], m["losses"], m["ties"]),
@@ -105,7 +106,7 @@ async def standings(request: Request):
     ctx = await _base_ctx(request, "standings")
     users, rosters = await get_users(LID), await get_rosters(LID)
     ctx["teams"] = [{
-        "rank": r["rank"], "name": r["team"], "owner": "@" + r["owner"],
+        "rank": r["rank"], "name": r["team"], "owner": "@" + r["owner"], "avatar": r["avatar"],
         "record": views.record_str(r["wins"], r["losses"], r["ties"]),
         "pct": views.win_pct(r["wins"], r["losses"], r["ties"]),
         "pf": _fmt(r["pf"]), "pa": _fmt(r["pa"]),
@@ -132,11 +133,11 @@ async def scoreboard(request: Request, week: int | None = None):
         sides = g["sides"]
         a = sides[0]
         b = sides[1] if len(sides) > 1 else None
-        entry_a = {"win": "true" if g["winner"] == 0 else "false",
+        entry_a = {"win": "true" if g["winner"] == 0 else "false", "avatar": a["avatar"],
                    "initials": views.initials(a["team"]), "name": a["team"], "score": _fmt(a["points"])}
-        entry_b = ({"win": "true" if g["winner"] == 1 else "false",
+        entry_b = ({"win": "true" if g["winner"] == 1 else "false", "avatar": b["avatar"],
                     "initials": views.initials(b["team"]), "name": b["team"], "score": _fmt(b["points"])}
-                   if b else {"win": "false", "initials": "—", "name": "Bye", "score": "—"})
+                   if b else {"win": "false", "avatar": None, "initials": "—", "name": "Bye", "score": "—"})
         matchups.append({"slot": f"Match {i + 1}", "status": "" if ctx["is_pre"] else "Final",
                          "a": entry_a, "b": entry_b})
 

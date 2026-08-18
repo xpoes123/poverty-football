@@ -10,7 +10,7 @@
   --gold-dim:#7a6035;
   --rule:rgba(243,238,227,.10);
   --rule-strong:rgba(243,238,227,.22);
-  --serif:"Bodoni Moda",Georgia,"Times New Roman",serif;
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
   --grot:"Archivo Narrow","Arial Narrow",Helvetica,sans-serif;
   --wrap:1080px;
 }
@@ -161,3 +161,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .empty__ledger b{color:var(--bone-dim);font-weight:600}
 
 .site-footer{border-top:1px solid var(--rule);padding:16px 0 30px;display:flex;justify-content:space-between;gap:10px 20px;flex-wrap:wrap;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+
+/* team logos (real Sleeper avatars, framed like a crest) */
+.crest-mark img,.mark img{width:100%;height:100%;object-fit:cover;display:block}
+.team-logo{display:inline-block;width:26px;height:26px;object-fit:cover;border:1px solid var(--gold-dim);vertical-align:middle;margin-right:9px}

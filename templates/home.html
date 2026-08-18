@@ -29,7 +29,7 @@
     <div class="mgr-grid">
       {% for team in teams %}
         <article class="mgr">
-          <p class="crest-mark" aria-hidden="true">{{ team.initials }}</p>
+          <p class="crest-mark" aria-hidden="true">{% if team.avatar %}<img src="{{ team.avatar }}" alt="" loading="lazy">{% else %}{{ team.initials }}{% endif %}</p>
           <div class="mgr__body">
             <h3 class="mgr__name">{{ team.name }}</h3>
             <p class="mgr__owner">{{ team.owner }}</p>

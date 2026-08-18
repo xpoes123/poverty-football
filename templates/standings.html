@@ -24,7 +24,7 @@
           {% for team in teams %}
             <tr>
               <td class="cell-rank">{{ team.rank }}</td>
-              <td class="cell-team"><span class="team-name">{{ team.name }}</span><span class="team-owner">{{ team.owner }}</span></td>
+              <td class="cell-team">{% if team.avatar %}<img class="team-logo" src="{{ team.avatar }}" alt="" loading="lazy">{% endif %}<span class="team-name">{{ team.name }}</span><span class="team-owner">{{ team.owner }}</span></td>
               <td data-label="W–L–T">{{ team.record }}</td>
               <td data-label="Pct">{{ team.pct }}</td>
               <td data-label="Points for">{{ team.pf }}</td>
