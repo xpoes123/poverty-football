@@ -23,6 +23,14 @@
         {% for item in nav_items %}
           <li><a class="nav__link" href="{{ item.href }}" {% if item.current %}aria-current="page"{% endif %}>{{ item.label }}</a></li>
         {% endfor %}
+        {% if oauth_enabled %}
+          {% if logged_in %}
+            {% if my_team_href %}<li><a class="nav__link nav__auth" href="{{ my_team_href }}">My Team</a></li>{% endif %}
+            <li><a class="nav__link nav__auth" href="/logout">Log out</a></li>
+          {% else %}
+            <li><a class="nav__link nav__auth" href="/login">Log in</a></li>
+          {% endif %}
+        {% endif %}
       </ul>
     </nav>
   </div>

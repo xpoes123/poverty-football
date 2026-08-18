@@ -16,5 +16,15 @@ class Config(BaseSettings):
     nag_start_date: date | None = date(2026, 8, 19)  # don't nag before this day
     timezone: str = "America/New_York"
 
+    # Discord OAuth (portal only). Empty → login is simply hidden.
+    discord_client_id: str = ""
+    discord_client_secret: str = ""
+    session_secret: str = "dev-insecure-change-me"
+    oauth_redirect: str = "https://nfl.djiang.xyz/auth/callback"
+
+    @property
+    def oauth_enabled(self) -> bool:
+        return bool(self.discord_client_id and self.discord_client_secret)
+
 
 cfg = Config()

@@ -40,7 +40,7 @@
       </thead>
       <tbody>
         {% for team in rows %}
-          <tr>
+          <tr{% if team.roster_id == me_roster_id %} class="me"{% endif %}>
             <td class="cell-rank">{{ team.rank }}</td>
             <td class="cell-team"><a class="team-link" href="{{ team.href }}"><img class="team-logo" src="{{ team.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ team.name }}</span></a></td>
             <td data-label="W–L–T">{{ team.record }}</td>

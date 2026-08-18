@@ -5,12 +5,17 @@ Thin FastAPI layer: each route gathers Sleeper data (cached) → shapes it via v
 """
 
 import datetime as dt
+import secrets
+import tomllib
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 import views
 from config import cfg
@@ -26,6 +31,7 @@ from sleeper import (
 )
 
 app = FastAPI(title="Poverty Franchises")
+app.add_middleware(SessionMiddleware, secret_key=cfg.session_secret, https_only=True, same_site="lax")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 TZ = ZoneInfo(cfg.timezone)
@@ -43,6 +49,32 @@ def _fmt(pts) -> str:
     return f"{(pts or 0):.1f}"
 
 
+def _discord_map() -> dict:
+    """discord_id -> Sleeper handle, straight from the bot's expected.toml (shared clone)."""
+    try:
+        with open("expected.toml", "rb") as f:
+            data = tomllib.load(f)
+    except FileNotFoundError:
+        return {}
+    return {m["discord_id"]: m["sleeper"] for m in data.get("member", []) if m.get("discord_id")}
+
+
+async def _me_roster_id(request: Request):
+    did = request.session.get("discord_id")
+    if not did:
+        return None
+    handle = _discord_map().get(int(did))
+    if not handle:
+        return None
+    uid = await resolve_user_id(handle)
+    if not uid:
+        return None
+    for r in await get_rosters(LID):
+        if r.get("owner_id") == uid or uid in (r.get("co_owners") or []):
+            return r["roster_id"]
+    return None
+
+
 async def _base_ctx(request: Request, active: str) -> dict:
     league = await get_league(LID)
     rosters = await get_rosters(LID)
@@ -54,8 +86,13 @@ async def _base_ctx(request: Request, active: str) -> dict:
     draft_line = f"{d:%b %-d}, {cfg.draft_time_label}" if d else "To be announced"
     target = dt.datetime.combine(d, dt.time(DRAFT_HOUR), tzinfo=TZ) if d else None
     upcoming = target and target > dt.datetime.now(TZ)
+    me = await _me_roster_id(request)
     return {
         "request": request,
+        "oauth_enabled": cfg.oauth_enabled,
+        "logged_in": bool(request.session.get("discord_id")),
+        "me_roster_id": me,
+        "my_team_href": f"/team/{me}" if me else None,
         "nav_items": [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV],
         "season_tag": f"{season} · {STATUS_LABEL.get(status, status)}",
         "footer_note": draft_line if is_pre else "Records live via Sleeper",
@@ -73,7 +110,7 @@ async def _base_ctx(request: Request, active: str) -> dict:
 
 def _standings_rows(users, rosters):
     return [{
-        "rank": r["rank"], "name": r["team"], "owner": "@" + r["owner"], "avatar": r["avatar"],
+        "rank": r["rank"], "name": r["team"], "avatar": r["avatar"], "roster_id": r["roster_id"],
         "href": f"/team/{r['roster_id']}",
         "record": views.record_str(r["wins"], r["losses"], r["ties"]),
         "pct": views.win_pct(r["wins"], r["losses"], r["ties"]),
@@ -99,6 +136,40 @@ async def _tx_feed(users, rosters):
 @app.get("/health")
 async def health():
     return {"ok": True}
+
+
+@app.get("/login")
+async def login(request: Request):
+    if not cfg.oauth_enabled:
+        return RedirectResponse("/")
+    state = secrets.token_urlsafe(16)
+    request.session["oauth_state"] = state
+    q = urlencode({"client_id": cfg.discord_client_id, "redirect_uri": cfg.oauth_redirect,
+                   "response_type": "code", "scope": "identify", "state": state})
+    return RedirectResponse(f"https://discord.com/oauth2/authorize?{q}")
+
+
+@app.get("/auth/callback")
+async def auth_callback(request: Request, code: str | None = None, state: str | None = None):
+    if not cfg.oauth_enabled or not code or state != request.session.get("oauth_state"):
+        return RedirectResponse("/")
+    async with httpx.AsyncClient(timeout=15) as c:
+        tok = await c.post("https://discord.com/api/oauth2/token", data={
+            "client_id": cfg.discord_client_id, "client_secret": cfg.discord_client_secret,
+            "grant_type": "authorization_code", "code": code, "redirect_uri": cfg.oauth_redirect})
+        tok.raise_for_status()
+        access = tok.json()["access_token"]
+        me = (await c.get("https://discord.com/api/users/@me",
+                          headers={"Authorization": f"Bearer {access}"})).json()
+    request.session["discord_id"] = me["id"]
+    request.session.pop("oauth_state", None)
+    return RedirectResponse("/")
+
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/")
 
 
 @app.get("/", response_class=HTMLResponse)
