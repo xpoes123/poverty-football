@@ -346,6 +346,21 @@ def player_line(pid: str, players: dict) -> dict:
 
 FANTASY_POS = {"QB", "RB", "WR", "TE", "K", "DEF"}
 
+# Sleeper team abbr -> full name, so the players search matches "chiefs"/"kansas city" too.
+NFL_TEAM_NAMES = {
+    "ARI": "Arizona Cardinals", "ATL": "Atlanta Falcons", "BAL": "Baltimore Ravens",
+    "BUF": "Buffalo Bills", "CAR": "Carolina Panthers", "CHI": "Chicago Bears",
+    "CIN": "Cincinnati Bengals", "CLE": "Cleveland Browns", "DAL": "Dallas Cowboys",
+    "DEN": "Denver Broncos", "DET": "Detroit Lions", "GB": "Green Bay Packers",
+    "HOU": "Houston Texans", "IND": "Indianapolis Colts", "JAX": "Jacksonville Jaguars",
+    "KC": "Kansas City Chiefs", "LV": "Las Vegas Raiders", "LAC": "Los Angeles Chargers",
+    "LAR": "Los Angeles Rams", "MIA": "Miami Dolphins", "MIN": "Minnesota Vikings",
+    "NE": "New England Patriots", "NO": "New Orleans Saints", "NYG": "New York Giants",
+    "NYJ": "New York Jets", "PHI": "Philadelphia Eagles", "PIT": "Pittsburgh Steelers",
+    "SEA": "Seattle Seahawks", "SF": "San Francisco 49ers", "TB": "Tampa Bay Buccaneers",
+    "TEN": "Tennessee Titans", "WAS": "Washington Commanders",
+}
+
 
 def player_image(pid: str, position: str, team: str | None) -> str | None:
     """Sleeper CDN: headshot by player id, or the team logo for a defense."""
@@ -383,8 +398,10 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
             continue
         ppg = round(pts / gp, 1) if (pts and gp) else None
         name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
+        team = p.get("team") or ""
         rows.append({
-            "pid": pid, "sr": sr, "name": name, "pos": position, "team": p.get("team") or "FA",
+            "pid": pid, "sr": sr, "name": name, "pos": position, "team": team or "FA",
+            "search": f"{name} {team} {NFL_TEAM_NAMES.get(team, '')}".lower(),
             "img": player_image(pid, position, p.get("team") or pid),
             "age": str(age) if age is not None else "—", "age_n": age if age is not None else -1,
             "gp": str(int(gp)) if gp else "—", "gp_n": int(gp) if gp else -1,
