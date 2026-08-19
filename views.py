@@ -404,7 +404,6 @@ def draft_board(players: dict, stats: dict, pos: str | None = None,
             "search": f"{name} {team} {NFL_TEAM_NAMES.get(team, '')}".lower(),
             "img": player_image(pid, position, p.get("team") or pid),
             "age": str(age) if age is not None else "—", "age_n": age if age is not None else -1,
-            "gp": str(int(gp)) if gp else "—", "gp_n": int(gp) if gp else -1,
             "pts": str(round(pts)) if pts else "—", "pts_n": round(pts) if pts else -1,
             "ppg": str(ppg) if ppg else "—", "ppg_n": ppg if ppg else -1,
         })
