@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% block title %}NFL Bets{% endblock %}
 {% macro odds(p) %}{{ '+%d'|format(p) if p > 0 else p }}{% endmacro %}
+{% macro betform(gid, side, price, team) %}
+<form class="bet-form game-card__bet" method="post" action="/h2h/propose">
+  <input type="hidden" name="game_id" value="{{ gid }}">
+  <input type="hidden" name="side" value="{{ side }}">
+  <input type="hidden" name="price" value="{{ price }}">
+  <div class="stake-btns" role="group" aria-label="Back {{ team }} for">
+    {% for s in [10, 25, 50, 100] %}<button class="stake-btn" type="submit" name="stake" value="{{ s }}">{{ s }}</button>{% endfor %}
+  </div>
+</form>
+{% endmacro %}
 {% block main %}
 <main class="page" data-page="h2h" id="main" data-screen-label="NFL Bets">
   <div class="wrap">
@@ -35,34 +45,12 @@
               <div class="game-card__side">
                 <span class="game-card__team">{{ g.away }}{% if g.favorite == g.away %} <span class="game-card__fav">FAV</span>{% endif %}</span>
                 <span class="game-card__price">{{ odds(g.away_price) }}</span>
-                {% if can_bet %}
-                  <form class="bet-form game-card__bet" method="post" action="/h2h/propose">
-                    <input type="hidden" name="game_id" value="{{ g.game_id }}">
-                    <input type="hidden" name="side" value="{{ g.away }}">
-                    <input type="hidden" name="price" value="{{ g.away_price }}">
-                    <div class="bet-form__row">
-                      <input class="bet-form__input" name="stake" type="number" min="1" step="1"
-                             inputmode="numeric" placeholder="Chips" aria-label="Chips on {{ g.away }}" required>
-                      <button class="btn" type="submit">Propose</button>
-                    </div>
-                  </form>
-                {% endif %}
+                {% if can_bet %}{{ betform(g.game_id, g.away, g.away_price, g.away) }}{% endif %}
               </div>
               <div class="game-card__side">
                 <span class="game-card__team">{{ g.home }}{% if g.favorite == g.home %} <span class="game-card__fav">FAV</span>{% endif %}</span>
                 <span class="game-card__price">{{ odds(g.home_price) }}</span>
-                {% if can_bet %}
-                  <form class="bet-form game-card__bet" method="post" action="/h2h/propose">
-                    <input type="hidden" name="game_id" value="{{ g.game_id }}">
-                    <input type="hidden" name="side" value="{{ g.home }}">
-                    <input type="hidden" name="price" value="{{ g.home_price }}">
-                    <div class="bet-form__row">
-                      <input class="bet-form__input" name="stake" type="number" min="1" step="1"
-                             inputmode="numeric" placeholder="Chips" aria-label="Chips on {{ g.home }}" required>
-                      <button class="btn" type="submit">Propose</button>
-                    </div>
-                  </form>
-                {% endif %}
+                {% if can_bet %}{{ betform(g.game_id, g.home, g.home_price, g.home) }}{% endif %}
               </div>
             </div>
           </div>

@@ -411,4 +411,7 @@ a.slot:hover .slot__name{color:var(--gold-bright)}
 .game-card__price{font-variant-numeric:tabular-nums;color:var(--gold-bright);font-size:15px}
 .game-card__side .game-card__price{display:block;margin-top:3px}
 .game-card__bet{border:0;padding:9px 0 0;margin:0;background:none}
+.stake-btns{display:flex;gap:5px}
+.stake-btn{flex:1;padding:8px 0;border:1px solid var(--rule-strong);background:var(--surface);color:var(--bone-dim);font:inherit;font-size:12.5px;letter-spacing:.04em;font-variant-numeric:tabular-nums;cursor:pointer;transition:color .15s ease,border-color .15s ease,background .15s ease}
+.stake-btn:hover{color:var(--gold-bright);border-color:var(--gold-dim);background:var(--surface-2)}
 .game-card--open .game-card__bet{padding-top:11px}

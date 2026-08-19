@@ -806,6 +806,38 @@ async def h2h_page(request: Request):
     return templates.TemplateResponse(request, "h2h.html", ctx)
 
 
+async def _post_bet_to_discord(game: dict, side: str, price: int, stake: int,
+                               proposer_team: str, wager_id: int) -> None:
+    """Post a proposed h2h bet to the bet channel with a Claim button. Best-effort —
+    a Discord failure must never break the propose flow. The bot handles the button."""
+    if not cfg.bet_channel_id:
+        return
+    other = game["home"] if side == game["away"] else game["away"]
+    other_price = game["home_price"] if side == game["away"] else game["away_price"]
+    embed = {
+        "title": f"{game['away']} @ {game['home']}",
+        "color": 0xC9A05E,
+        "fields": [
+            {"name": "Backing", "value": f"**{proposer_team}** takes **{side}** ({price:+d})", "inline": False},
+            {"name": "Stake", "value": f"{stake} chips", "inline": True},
+            {"name": "You'd get", "value": f"**{other}** ({other_price:+d})", "inline": True},
+        ],
+        "footer": {"text": "No-vig line · play money"},
+    }
+    payload = {
+        "content": "🎲 **Who wants to claim this?**",
+        "embeds": [embed],
+        "components": [{"type": 1, "components": [
+            {"type": 2, "style": 3, "label": f"Claim {other}", "custom_id": f"claim:{wager_id}"}]}],
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            await c.post(f"https://discord.com/api/v10/channels/{cfg.bet_channel_id}/messages",
+                         headers={"Authorization": f"Bot {cfg.discord_token}"}, json=payload)
+    except httpx.HTTPError:
+        pass
+
+
 @app.post("/h2h/propose")
 async def h2h_propose(request: Request):
     if not cfg.enable_h2h_betting:
@@ -819,14 +851,21 @@ async def h2h_propose(request: Request):
         price, stake = int(form["price"][0]), int(form["stake"][0])
     except (KeyError, IndexError, TypeError, ValueError):
         return RedirectResponse("/h2h", 303)
+    if stake not in (10, 25, 50, 100):  # only the offered sizes
+        return RedirectResponse("/h2h", 303)
     board = h2h.games(await odds.get_nfl_odds())
     game = next((g for g in board if g["game_id"] == game_id), None)
     if game is None or side not in (game["home"], game["away"]):
         return RedirectResponse("/h2h", 303)  # unknown game / side — reject cleanly
     try:
-        h2h.propose(me, game_id, side, price, stake)
+        wid = h2h.propose(me, game_id, side, price, stake)
     except ValueError:
-        pass  # invalid stake — fall through to a clean redirect
+        return RedirectResponse("/h2h", 303)  # invalid stake
+    users, rosters = await get_users(LID), await get_rosters(LID)
+    by_id = {u["user_id"]: u for u in users}
+    proposer_team = next((views.team_name(by_id.get(r.get("owner_id"))) for r in rosters
+                          if r["roster_id"] == me), "A manager")
+    await _post_bet_to_discord(game, side, price, stake, proposer_team, wid)
     return RedirectResponse("/h2h", 303)
 
 

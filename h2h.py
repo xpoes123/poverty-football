@@ -128,17 +128,18 @@ def _conn(path=None) -> sqlite3.Connection:
     return conn
 
 
-def propose(proposer: int, game_id: str, side: str, price: int, stake: int, path=None) -> None:
+def propose(proposer: int, game_id: str, side: str, price: int, stake: int, path=None) -> int:
     """Record an open handshake: proposer stakes `side` at `price`, acceptor NULL.
-    Rejects a non-positive/non-int stake (same guard as betting.place_bet)."""
+    Rejects a non-positive/non-int stake (same guard as betting.place_bet). Returns the new id."""
     if isinstance(stake, bool) or not isinstance(stake, int) or stake <= 0:
         raise ValueError("stake must be a positive integer")
     with _conn(path) as conn:
-        conn.execute(
+        cur = conn.execute(
             "INSERT INTO wagers (game_id, side, price, stake, proposer, acceptor, created) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (str(game_id), str(side), int(price), stake, int(proposer), None, time.time()),
         )
+        return cur.lastrowid
 
 
 def accept(wager_id: int, acceptor: int, path=None) -> None:

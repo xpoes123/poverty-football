@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import discord
 from discord.ext import tasks
 
+import h2h
 from config import cfg
 from shame import (
     Member,
@@ -16,7 +17,15 @@ from shame import (
     tier,
     tone_line,
 )
-from sleeper import get_claimed_team_count, get_joined_user_ids, get_league_meta, resolve_user_id
+from sleeper import (
+    get_claimed_team_count,
+    get_joined_user_ids,
+    get_league_meta,
+    get_rosters,
+    get_users,
+    resolve_user_id,
+)
+from views import team_name
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("nfl-bot")
@@ -28,6 +37,24 @@ def load_members() -> list[Member]:
     with open("expected.toml", "rb") as f:
         data = tomllib.load(f)
     return [Member(**m) for m in data["member"]]
+
+
+async def roster_and_team_for_discord(discord_id: int) -> tuple[int, str] | tuple[None, None]:
+    """Map a Discord user to their league roster_id + team name (owner or co-owner). None if unlinked."""
+    m = next((m for m in load_members() if m.discord_id == discord_id), None)
+    if m is None:
+        return None, None
+    uid = await resolve_user_id(m.sleeper)
+    if uid is None:
+        return None, None
+    users = await get_users(cfg.league_id)
+    rosters = await get_rosters(cfg.league_id)
+    r = next((r for r in rosters
+              if r.get("owner_id") == uid or uid in (r.get("co_owners") or [])), None)
+    if r is None:
+        return None, None
+    by_id = {u["user_id"]: u for u in users}
+    return r["roster_id"], team_name(by_id.get(r.get("owner_id")))
 
 
 async def compute_missing(members: list[Member]) -> list[Member]:
@@ -72,6 +99,32 @@ class NflBot(discord.Client):
         log.info("startup check: %d missing (%s)", len(missing), ", ".join(m.name for m in missing) or "none")
         if not self.daily_nag.is_running():
             self.daily_nag.start()
+
+    async def on_interaction(self, interaction: discord.Interaction):
+        """Handle the 'Claim' button on a proposed h2h bet (message posted by the web app)."""
+        if interaction.type != discord.InteractionType.component:
+            return
+        cid = (interaction.data or {}).get("custom_id", "")
+        if not cid.startswith("claim:"):
+            return
+        try:
+            wager_id = int(cid.split(":", 1)[1])
+        except ValueError:
+            return
+        rid, team = await roster_and_team_for_discord(interaction.user.id)
+        if rid is None:
+            await interaction.response.send_message(
+                "You're not linked to a league team, so you can't claim this.", ephemeral=True)
+            return
+        try:
+            h2h.accept(wager_id, rid)
+        except ValueError:
+            await interaction.response.send_message(
+                "That one's already claimed, or it's your own bet.", ephemeral=True)
+            return
+        embed = interaction.message.embeds[0] if interaction.message.embeds else None
+        await interaction.response.edit_message(content=f"🤝 Claimed by **{team}**", embed=embed, view=None)
+        log.info("h2h wager %d claimed by %s (roster %s)", wager_id, interaction.user, rid)
 
     @tasks.loop(time=dt.time(hour=cfg.check_hour, tzinfo=TZ))
     async def daily_nag(self):
