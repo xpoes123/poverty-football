@@ -8,6 +8,7 @@ from discord.ext import tasks
 
 import json
 import pathlib
+import re
 
 import h2h
 import results
@@ -69,19 +70,29 @@ async def latest_complete_week() -> int | None:
     return complete if complete >= 1 else None
 
 
+_MD_SPECIAL = re.compile(r"([*_`~|\\<>])")
+
+
+def _safe(text: object) -> str:
+    """Neutralize untrusted text (manager-set team names) for Discord markdown: escape
+    formatting chars, defang mentions and auto-links."""
+    s = _MD_SPECIAL.sub(r"\\\1", str(text))
+    return s.replace("@", "@​").replace("://", ":/​/")
+
+
 def build_results_embed(ann: dict) -> discord.Embed:
     # stacked, short lines that wrap cleanly on mobile — no monospace alignment
     blocks = []
     for r in ann["lines"]:
         if r.get("tie"):
-            blocks.append(f"🤝 **{r['a']}** {r['pa']:.1f}\n🤝 **{r['b']}** {r['pb']:.1f}")
+            blocks.append(f"🤝 **{_safe(r['a'])}** {r['pa']:.1f}\n🤝 **{_safe(r['b'])}** {r['pb']:.1f}")
         else:
-            blocks.append(f"🏆 **{r['winner']}** {r['ws']:.1f}\n　{r['loser']} {r['ls']:.1f}")
+            blocks.append(f"🏆 **{_safe(r['winner'])}** {r['ws']:.1f}\n　{_safe(r['loser'])} {r['ls']:.1f}")
     desc = "\n\n".join(blocks)
     ex = ann.get("extremes")
     if ex:
-        desc += (f"\n\n**High** {ex['high']:.1f} · {ex['high_team']}"
-                 f"\n**Low** {ex['low']:.1f} · {ex['low_team']}")
+        desc += (f"\n\n**High** {ex['high']:.1f} · {_safe(ex['high_team'])}"
+                 f"\n**Low** {ex['low']:.1f} · {_safe(ex['low_team'])}")
     e = discord.Embed(title=f"🏈 Week {ann['week']} Results", color=0xC9A05E,
                       description=desc, timestamp=dt.datetime.now(TZ))
     e.set_footer(text="Poverty Franchises")
