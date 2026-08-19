@@ -17,9 +17,32 @@ import time
 # --- pure logic -----------------------------------------------------------
 
 
+def _implied_prob(american: int) -> float:
+    """American odds -> implied win probability (includes the book's vig)."""
+    return 100 / (american + 100) if american > 0 else -american / (-american + 100)
+
+
+def _fair_american(p: float) -> int:
+    """Probability -> fair american odds (+underdog / -favorite; pick'em = +100)."""
+    if p <= 0 or p >= 1:
+        return 0
+    return round(100 * (1 - p) / p) if p <= 0.5 else -round(100 * p / (1 - p))
+
+
+def devig_two_way(home_price: int, away_price: int) -> tuple[int, int]:
+    """Strip the vig from a two-way moneyline: normalize the implied probabilities so
+    they sum to 1, then convert back to fair american odds."""
+    ph, pa = _implied_prob(home_price), _implied_prob(away_price)
+    total = ph + pa
+    if total <= 0:
+        return home_price, away_price
+    return _fair_american(ph / total), _fair_american(pa / total)
+
+
 def games(odds: list[dict]) -> list[dict]:
     """Flatten the-odds-api v4 objects to one row per game using the FIRST bookmaker
-    that carries an h2h market. Games with no h2h anywhere are skipped."""
+    that carries an h2h market. Moneylines are devigged to fair no-vig odds (play-money
+    h2h, no house edge). Games with no h2h anywhere are skipped."""
     out = []
     for o in odds:
         home, away = o.get("home_team"), o.get("away_team")
@@ -34,6 +57,7 @@ def games(odds: list[dict]) -> list[dict]:
         home_price, away_price = prices.get(home), prices.get(away)
         if home_price is None or away_price is None:
             continue
+        home_price, away_price = devig_two_way(home_price, away_price)
         favorite = home if home_price <= away_price else away  # more-negative price = favorite
         out.append({"game_id": o.get("id"), "home": home, "away": away,
                     "commence": o.get("commence_time"),

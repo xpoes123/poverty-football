@@ -5,6 +5,7 @@ from h2h import (
     accept,
     all_wagers,
     american_profit,
+    devig_two_way,
     games,
     matched_wagers,
     net_ledger,
@@ -34,13 +35,23 @@ ODDS = [
 ]
 
 
+def test_devig_two_way():
+    # -150/+130 has ~3.5% vig; devigged the two implied probs sum to 1 -> fair -138/+138
+    assert devig_two_way(-150, 130) == (-138, 138)
+    # symmetric pick'em stays a pick'em
+    assert devig_two_way(-110, -110) == (100, 100)
+    # favorite stays the favorite, underdog gets longer fair odds
+    fav, dog = devig_two_way(-200, 170)
+    assert fav < 0 < dog and fav > -200  # vig stripped -> less juice on the favorite
+
+
 def test_games_parses_and_skips_no_h2h():
     rows = games(ODDS)
     assert len(rows) == 2  # g3 skipped
     g1 = rows[0]
     assert g1["game_id"] == "g1" and g1["home"] == "Kansas City Chiefs"
     assert g1["away"] == "Buffalo Bills"
-    assert g1["home_price"] == -150 and g1["away_price"] == 130
+    assert g1["home_price"] == -138 and g1["away_price"] == 138  # devigged from -150/+130
     assert g1["favorite"] == "Kansas City Chiefs"  # more-negative price
     assert rows[1]["favorite"] == "Green Bay Packers"  # away is the favorite
 
