@@ -360,6 +360,13 @@ NFL_TEAM_NAMES = {
     "SEA": "Seattle Seahawks", "SF": "San Francisco 49ers", "TB": "Tampa Bay Buccaneers",
     "TEN": "Tennessee Titans", "WAS": "Washington Commanders",
 }
+_NAME_TO_ABBR = {name: abbr for abbr, name in NFL_TEAM_NAMES.items()}
+
+
+def team_logo_by_name(name: str | None) -> str | None:
+    """Full team name (as the odds API gives it) -> Sleeper team-logo URL, or None."""
+    abbr = _NAME_TO_ABBR.get(name or "")
+    return f"https://sleepercdn.com/images/team_logos/nfl/{abbr.lower()}.png" if abbr else None
 
 
 def player_image(pid: str, position: str, team: str | None) -> str | None:

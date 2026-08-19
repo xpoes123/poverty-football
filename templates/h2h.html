@@ -38,17 +38,28 @@
       <div class="game-cards">
         {% for g in games %}
           <div class="game-card">
-            <div class="game-card__head">
-              <span class="game-card__match">{{ g.away }} <span class="game-card__at">@</span> {{ g.home }}</span>
-            </div>
+            {% if g.eid %}<a class="gc-head gc-head--link" href="/game/{{ g.eid }}?week={{ g.week }}" title="View game details">{% else %}<div class="gc-head">{% endif %}
+              <span class="gc-team">
+                <img class="gc-logo" src="{{ g.away_logo or '/static/default-team.svg' }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
+                <span class="gc-name">{{ g.away }}</span>
+              </span>
+              <span class="gc-at">@</span>
+              <span class="gc-team">
+                <img class="gc-logo" src="{{ g.home_logo or '/static/default-team.svg' }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
+                <span class="gc-name">{{ g.home }}</span>
+              </span>
+            {% if g.eid %}</a>{% else %}</div>{% endif %}
+
             {% for market, sels in g.selections | groupby('market') %}
             <div class="betmarket">
               <p class="betmarket__label">{{ market }}</p>
-              <div class="game-card__sides">
+              <div class="betmarket__rows">
                 {% for s in sels %}
-                <div class="game-card__side">
-                  <span class="game-card__team">{{ s.label }}{% if market == 'Moneyline' and s.side == g.favorite %} <span class="game-card__fav">FAV</span>{% endif %}</span>
-                  <span class="game-card__price">{{ odds(s.price) }}</span>
+                <div class="betopt">
+                  <div class="betopt__head">
+                    <span class="betopt__name">{{ s.label }}{% if market == 'Moneyline' and s.side == g.favorite %} <span class="game-card__fav">FAV</span>{% endif %}</span>
+                    <span class="betopt__price">{{ odds(s.price) }}</span>
+                  </div>
                   {% if can_bet %}{{ betform(g.game_id, s.side, s.price, s.label) }}{% endif %}
                 </div>
                 {% endfor %}

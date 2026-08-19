@@ -1,23 +1,23 @@
 [
   {
-    "id": "a1f3c9d2e4b5a6c7d8e9f0a1b2c3d4e5",
-    "commence_time": "2025-10-12T17:00:00Z",
-    "home_team": "Kansas City Chiefs",
-    "away_team": "Buffalo Bills",
+    "id": "seed-401772940",
+    "commence_time": "2025-10-10T00:15Z",
+    "home_team": "New York Giants",
+    "away_team": "Philadelphia Eagles",
     "bookmakers": [
       {
-        "key": "draftkings",
-        "title": "DraftKings",
+        "key": "seed",
+        "title": "Seed",
         "markets": [
           {
             "key": "h2h",
             "outcomes": [
               {
-                "name": "Kansas City Chiefs",
+                "name": "New York Giants",
                 "price": -150
               },
               {
-                "name": "Buffalo Bills",
+                "name": "Philadelphia Eagles",
                 "price": 130
               }
             ]
@@ -26,12 +26,12 @@
             "key": "spreads",
             "outcomes": [
               {
-                "name": "Kansas City Chiefs",
+                "name": "New York Giants",
                 "price": -110,
                 "point": -2.5
               },
               {
-                "name": "Buffalo Bills",
+                "name": "Philadelphia Eagles",
                 "price": -110,
                 "point": 2.5
               }
@@ -43,12 +43,12 @@
               {
                 "name": "Over",
                 "price": -110,
-                "point": 48.5
+                "point": 44.5
               },
               {
                 "name": "Under",
                 "price": -108,
-                "point": 48.5
+                "point": 44.5
               }
             ]
           }
@@ -57,20 +57,305 @@
     ]
   },
   {
-    "id": "b2e4d0c3f5a6b7c8d9e0f1a2b3c4d5e6",
-    "commence_time": "2025-10-12T17:00:00Z",
-    "home_team": "Philadelphia Eagles",
-    "away_team": "Dallas Cowboys",
+    "id": "seed-401772634",
+    "commence_time": "2025-10-12T13:30Z",
+    "home_team": "New York Jets",
+    "away_team": "Denver Broncos",
     "bookmakers": [
       {
-        "key": "draftkings",
-        "title": "DraftKings",
+        "key": "seed",
+        "title": "Seed",
         "markets": [
           {
             "key": "h2h",
             "outcomes": [
               {
-                "name": "Philadelphia Eagles",
+                "name": "New York Jets",
+                "price": 102
+              },
+              {
+                "name": "Denver Broncos",
+                "price": -120
+              }
+            ]
+          },
+          {
+            "key": "spreads",
+            "outcomes": [
+              {
+                "name": "Denver Broncos",
+                "price": -110,
+                "point": -1.5
+              },
+              {
+                "name": "New York Jets",
+                "price": -110,
+                "point": 1.5
+              }
+            ]
+          },
+          {
+            "key": "totals",
+            "outcomes": [
+              {
+                "name": "Over",
+                "price": -110,
+                "point": 47.5
+              },
+              {
+                "name": "Under",
+                "price": -108,
+                "point": 47.5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "seed-401772856",
+    "commence_time": "2025-10-12T17:00Z",
+    "home_team": "Indianapolis Colts",
+    "away_team": "Arizona Cardinals",
+    "bookmakers": [
+      {
+        "key": "seed",
+        "title": "Seed",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {
+                "name": "Indianapolis Colts",
+                "price": -210
+              },
+              {
+                "name": "Arizona Cardinals",
+                "price": 175
+              }
+            ]
+          },
+          {
+            "key": "spreads",
+            "outcomes": [
+              {
+                "name": "Indianapolis Colts",
+                "price": -110,
+                "point": -6.5
+              },
+              {
+                "name": "Arizona Cardinals",
+                "price": -110,
+                "point": 6.5
+              }
+            ]
+          },
+          {
+            "key": "totals",
+            "outcomes": [
+              {
+                "name": "Over",
+                "price": -110,
+                "point": 41.5
+              },
+              {
+                "name": "Under",
+                "price": -108,
+                "point": 41.5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "seed-401772750",
+    "commence_time": "2025-10-12T17:00Z",
+    "home_team": "Miami Dolphins",
+    "away_team": "Los Angeles Chargers",
+    "bookmakers": [
+      {
+        "key": "seed",
+        "title": "Seed",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {
+                "name": "Miami Dolphins",
+                "price": -110
+              },
+              {
+                "name": "Los Angeles Chargers",
+                "price": -110
+              }
+            ]
+          },
+          {
+            "key": "spreads",
+            "outcomes": [
+              {
+                "name": "Los Angeles Chargers",
+                "price": -110,
+                "point": -1.5
+              },
+              {
+                "name": "Miami Dolphins",
+                "price": -110,
+                "point": 1.5
+              }
+            ]
+          },
+          {
+            "key": "totals",
+            "outcomes": [
+              {
+                "name": "Over",
+                "price": -110,
+                "point": 49.5
+              },
+              {
+                "name": "Under",
+                "price": -108,
+                "point": 49.5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "seed-401772751",
+    "commence_time": "2025-10-12T17:00Z",
+    "home_team": "New Orleans Saints",
+    "away_team": "New England Patriots",
+    "bookmakers": [
+      {
+        "key": "seed",
+        "title": "Seed",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {
+                "name": "New Orleans Saints",
+                "price": -265
+              },
+              {
+                "name": "New England Patriots",
+                "price": 220
+              }
+            ]
+          },
+          {
+            "key": "spreads",
+            "outcomes": [
+              {
+                "name": "New Orleans Saints",
+                "price": -110,
+                "point": -9.5
+              },
+              {
+                "name": "New England Patriots",
+                "price": -110,
+                "point": 9.5
+              }
+            ]
+          },
+          {
+            "key": "totals",
+            "outcomes": [
+              {
+                "name": "Over",
+                "price": -110,
+                "point": 45.5
+              },
+              {
+                "name": "Under",
+                "price": -108,
+                "point": 45.5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "seed-401772748",
+    "commence_time": "2025-10-12T17:00Z",
+    "home_team": "Pittsburgh Steelers",
+    "away_team": "Cleveland Browns",
+    "bookmakers": [
+      {
+        "key": "seed",
+        "title": "Seed",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {
+                "name": "Pittsburgh Steelers",
+                "price": 118
+              },
+              {
+                "name": "Cleveland Browns",
+                "price": -138
+              }
+            ]
+          },
+          {
+            "key": "spreads",
+            "outcomes": [
+              {
+                "name": "Cleveland Browns",
+                "price": -110,
+                "point": -2.5
+              },
+              {
+                "name": "Pittsburgh Steelers",
+                "price": -110,
+                "point": 2.5
+              }
+            ]
+          },
+          {
+            "key": "totals",
+            "outcomes": [
+              {
+                "name": "Over",
+                "price": -110,
+                "point": 51.5
+              },
+              {
+                "name": "Under",
+                "price": -108,
+                "point": 51.5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "seed-401772858",
+    "commence_time": "2025-10-12T17:00Z",
+    "home_team": "Carolina Panthers",
+    "away_team": "Dallas Cowboys",
+    "bookmakers": [
+      {
+        "key": "seed",
+        "title": "Seed",
+        "markets": [
+          {
+            "key": "h2h",
+            "outcomes": [
+              {
+                "name": "Carolina Panthers",
                 "price": -175
               },
               {
@@ -83,7 +368,7 @@
             "key": "spreads",
             "outcomes": [
               {
-                "name": "Philadelphia Eagles",
+                "name": "Carolina Panthers",
                 "price": -110,
                 "point": -3.5
               },
@@ -100,12 +385,12 @@
               {
                 "name": "Over",
                 "price": -110,
-                "point": 45.5
+                "point": 43.5
               },
               {
                 "name": "Under",
                 "price": -108,
-                "point": 45.5
+                "point": 43.5
               }
             ]
           }
@@ -114,25 +399,25 @@
     ]
   },
   {
-    "id": "c3f5e1d4a6b7c8d9e0f1a2b3c4d5e6f7",
-    "commence_time": "2025-10-12T20:25:00Z",
-    "home_team": "San Francisco 49ers",
+    "id": "seed-401772857",
+    "commence_time": "2025-10-12T17:00Z",
+    "home_team": "Jacksonville Jaguars",
     "away_team": "Seattle Seahawks",
     "bookmakers": [
       {
-        "key": "fanduel",
-        "title": "FanDuel",
+        "key": "seed",
+        "title": "Seed",
         "markets": [
           {
             "key": "h2h",
             "outcomes": [
               {
-                "name": "San Francisco 49ers",
-                "price": -220
+                "name": "Jacksonville Jaguars",
+                "price": -112
               },
               {
                 "name": "Seattle Seahawks",
-                "price": 184
+                "price": -108
               }
             ]
           },
@@ -140,69 +425,12 @@
             "key": "spreads",
             "outcomes": [
               {
-                "name": "San Francisco 49ers",
-                "price": -110,
-                "point": -6.5
-              },
-              {
                 "name": "Seattle Seahawks",
-                "price": -110,
-                "point": 6.5
-              }
-            ]
-          },
-          {
-            "key": "totals",
-            "outcomes": [
-              {
-                "name": "Over",
-                "price": -110,
-                "point": 51.5
-              },
-              {
-                "name": "Under",
-                "price": -108,
-                "point": 51.5
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "d4a6f2e5b7c8d9e0f1a2b3c4d5e6f7a8",
-    "commence_time": "2025-10-13T00:20:00Z",
-    "home_team": "Baltimore Ravens",
-    "away_team": "Detroit Lions",
-    "bookmakers": [
-      {
-        "key": "draftkings",
-        "title": "DraftKings",
-        "markets": [
-          {
-            "key": "h2h",
-            "outcomes": [
-              {
-                "name": "Baltimore Ravens",
-                "price": -118
-              },
-              {
-                "name": "Detroit Lions",
-                "price": -102
-              }
-            ]
-          },
-          {
-            "key": "spreads",
-            "outcomes": [
-              {
-                "name": "Baltimore Ravens",
                 "price": -110,
                 "point": -1.5
               },
               {
-                "name": "Detroit Lions",
+                "name": "Jacksonville Jaguars",
                 "price": -110,
                 "point": 1.5
               }
@@ -214,126 +442,12 @@
               {
                 "name": "Over",
                 "price": -110,
-                "point": 43.5
+                "point": 46.5
               },
               {
                 "name": "Under",
                 "price": -108,
-                "point": 43.5
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "e5b7a3f6c8d9e0f1a2b3c4d5e6f7a8b9",
-    "commence_time": "2025-10-13T17:00:00Z",
-    "home_team": "Miami Dolphins",
-    "away_team": "Green Bay Packers",
-    "bookmakers": [
-      {
-        "key": "fanduel",
-        "title": "FanDuel",
-        "markets": [
-          {
-            "key": "h2h",
-            "outcomes": [
-              {
-                "name": "Miami Dolphins",
-                "price": 112
-              },
-              {
-                "name": "Green Bay Packers",
-                "price": -132
-              }
-            ]
-          },
-          {
-            "key": "spreads",
-            "outcomes": [
-              {
-                "name": "Green Bay Packers",
-                "price": -110,
-                "point": -2.5
-              },
-              {
-                "name": "Miami Dolphins",
-                "price": -110,
-                "point": 2.5
-              }
-            ]
-          },
-          {
-            "key": "totals",
-            "outcomes": [
-              {
-                "name": "Over",
-                "price": -110,
-                "point": 47.5
-              },
-              {
-                "name": "Under",
-                "price": -108,
-                "point": 47.5
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "f6c8b4a7d9e0f1a2b3c4d5e6f7a8b9c0",
-    "commence_time": "2025-10-14T00:15:00Z",
-    "home_team": "Cincinnati Bengals",
-    "away_team": "Cleveland Browns",
-    "bookmakers": [
-      {
-        "key": "draftkings",
-        "title": "DraftKings",
-        "markets": [
-          {
-            "key": "h2h",
-            "outcomes": [
-              {
-                "name": "Cincinnati Bengals",
-                "price": -240
-              },
-              {
-                "name": "Cleveland Browns",
-                "price": 198
-              }
-            ]
-          },
-          {
-            "key": "spreads",
-            "outcomes": [
-              {
-                "name": "Cincinnati Bengals",
-                "price": -110,
-                "point": -6.5
-              },
-              {
-                "name": "Cleveland Browns",
-                "price": -110,
-                "point": 6.5
-              }
-            ]
-          },
-          {
-            "key": "totals",
-            "outcomes": [
-              {
-                "name": "Over",
-                "price": -110,
-                "point": 44.5
-              },
-              {
-                "name": "Under",
-                "price": -108,
-                "point": 44.5
+                "point": 46.5
               }
             ]
           }

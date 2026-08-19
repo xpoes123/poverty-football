@@ -780,8 +780,19 @@ async def h2h_page(request: Request):
     owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
 
     board = h2h.games(await odds.get_nfl_odds())
+    # team logos + match each game to its ESPN event id (by team name) so a card links to /game
+    current = (await get_nfl_state()).get("week") or 1
+    try:
+        espn_games = espn.games(await espn.scoreboard(year=2025, week=current))["games"]
+    except Exception:
+        espn_games = []
+    eid_by_teams = {(g["home"]["name"], g["away"]["name"]): g["id"] for g in espn_games}
+    for g in board:
+        g["home_logo"] = views.team_logo_by_name(g["home"])
+        g["away_logo"] = views.team_logo_by_name(g["away"])
+        g["eid"] = eid_by_teams.get((g["home"], g["away"]))
+        g["week"] = current
     ctx["games"] = board
-    game_teams = {g["game_id"]: (g["home"], g["away"]) for g in board}
 
     def team_name(rid):
         return views.team_name(owner_of.get(rid)) if rid is not None else None

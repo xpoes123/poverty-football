@@ -402,17 +402,28 @@ a.slot:hover .slot__name{color:var(--gold-bright)}
 .game-card{background:var(--surface);padding:14px 16px 16px}
 .game-card__head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .game-card__match{font-family:var(--serif);font-size:16px;color:var(--bone)}
-.game-card__at{color:var(--muted);font-style:italic;padding:0 2px}
-.betmarket{margin-top:14px}
-.betmarket__label{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
-.betmarket .game-card__sides{margin-top:7px}
-.game-card__sides{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:12px;grid-template-columns:1fr}
-@media (min-width:560px){.game-card__sides{grid-template-columns:1fr 1fr}}
-.game-card__side{background:var(--surface-2);padding:11px 13px 13px}
-.game-card__team{display:block;font-size:13.5px;color:var(--bone-dim)}
+/* clickable game header with logos */
+.gc-head{display:flex;align-items:center;justify-content:center;gap:12px;padding:2px 0 14px;color:inherit}
+a.gc-head--link{cursor:pointer;transition:color .15s ease}
+a.gc-head--link:hover .gc-name{color:var(--gold-bright)}
+a.gc-head--link:hover .gc-at{color:var(--gold-dim)}
+.gc-team{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.gc-logo{width:26px;height:26px;object-fit:contain;flex:none}
+.gc-name{font-family:var(--serif);font-size:15px;color:var(--bone);white-space:nowrap}
+.gc-at{color:var(--muted);font-style:italic;font-size:13px}
+@media (max-width:520px){.gc-name{font-size:13px}.gc-logo{width:22px;height:22px}.gc-head{gap:8px}}
+/* market blocks — each clearly bounded and labelled */
+.betmarket{border:1px solid var(--rule-strong);margin-top:11px}
+.betmarket__label{padding:6px 12px;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);background:var(--espresso);border-bottom:1px solid var(--rule)}
+.betmarket__rows{display:grid;grid-template-columns:1fr 1fr}
+.betopt{padding:10px 12px 12px;background:var(--surface-2)}
+.betopt + .betopt{border-left:1px solid var(--rule)}
+.betopt__head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.betopt__name{font-size:13px;color:var(--bone-dim)}
+.betopt__price{font-variant-numeric:tabular-nums;color:var(--gold-bright);font-size:15px}
+@media (max-width:520px){.betmarket__rows{grid-template-columns:1fr}.betopt + .betopt{border-left:0;border-top:1px solid var(--rule)}}
 .game-card__fav{font-size:9px;letter-spacing:.16em;color:var(--gold);border:1px solid var(--gold-dim);padding:1px 4px;vertical-align:middle}
 .game-card__price{font-variant-numeric:tabular-nums;color:var(--gold-bright);font-size:15px}
-.game-card__side .game-card__price{display:block;margin-top:3px}
 .game-card__bet{border:0;padding:9px 0 0;margin:0;background:none}
 .stake-btns{display:flex;gap:5px}
 .stake-btn{flex:1;padding:8px 0;border:1px solid var(--rule-strong);background:var(--surface);color:var(--bone-dim);font:inherit;font-size:12.5px;letter-spacing:.04em;font-variant-numeric:tabular-nums;cursor:pointer;transition:color .15s ease,border-color .15s ease,background .15s ease}
