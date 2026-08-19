@@ -818,25 +818,34 @@ async def h2h_page(request: Request):
 
 
 async def _post_bet_to_discord(game: dict, match: dict, pair: dict | None, stake: int,
-                               proposer_team: str, wager_id: int) -> None:
-    """Post a proposed bet to the bet channel with a Claim button. `match` is the proposer's
-    selection, `pair` the opposite side of the same market. Best-effort — a Discord failure
-    must never break the propose flow. The bot handles the button."""
+                               proposer_discord_id: str | None, wager_id: int) -> None:
+    """Post a proposed bet to the bet channel: pings the proposer, shows both team logos, and
+    leads with the pick so the side is obvious. `match` is the proposer's selection, `pair` the
+    other side. Best-effort — a Discord failure must never break the propose flow."""
     if not cfg.bet_channel_id:
         return
     taker_stake = h2h.american_profit(stake, match["price"])  # taker risks the proposer's profit
-    fields = [{"name": f"{proposer_team} backs {match['label']} ({match['price']:+d})",
-               "value": f"Risks **{stake}** to win **{taker_stake}**", "inline": False}]
+    away_logo, home_logo = views.team_logo_by_name(game["away"]), views.team_logo_by_name(game["home"])
+    desc = [f"**{match['market']}** — risk **{stake}** to win **{taker_stake}**"]
     if pair:
-        fields.append({"name": f"Claim the other side — {pair['label']} ({pair['price']:+d})",
-                       "value": f"Risk **{taker_stake}** to win **{stake}**", "inline": False})
-    label = (f"Claim {pair['label']}" if pair else "Claim it")[:80]
+        desc.append(f"Take the other side — **{pair['label']}** ({pair['price']:+d}): "
+                    f"risk **{taker_stake}** to win **{stake}**")
+    embed = {
+        "author": {"name": f"{game['away']} @ {game['home']}", **({"icon_url": away_logo} if away_logo else {})},
+        "title": f"Taking {match['label']}  ({match['price']:+d})",
+        "description": "\n\n".join(desc),
+        "color": 0xC9A05E,
+        "footer": {"text": "No-vig line · play money"},
+    }
+    if home_logo:
+        embed["thumbnail"] = {"url": home_logo}
+    who = f"<@{proposer_discord_id}>" if proposer_discord_id else "Someone"
     payload = {
-        "content": f"**{proposer_team}** is looking for action — {match['market']}.",
-        "embeds": [{"title": f"{game['away']} @ {game['home']}", "color": 0xC9A05E,
-                    "fields": fields, "footer": {"text": "No-vig line · play money"}}],
+        "content": f"{who} is looking for action",
+        "embeds": [embed],
         "components": [{"type": 1, "components": [
-            {"type": 2, "style": 3, "label": label, "custom_id": f"claim:{wager_id}"}]}],
+            {"type": 2, "style": 3, "label": (f"Claim {pair['label']}" if pair else "Claim it")[:80],
+             "custom_id": f"claim:{wager_id}"}]}],
     }
     try:
         async with httpx.AsyncClient(timeout=15) as c:
@@ -874,11 +883,7 @@ async def h2h_propose(request: Request):
         wid = h2h.propose(me, game_id, side, price, stake)
     except ValueError:
         return RedirectResponse("/h2h", 303)  # invalid stake
-    users, rosters = await get_users(LID), await get_rosters(LID)
-    by_id = {u["user_id"]: u for u in users}
-    proposer_team = next((views.team_name(by_id.get(r.get("owner_id"))) for r in rosters
-                          if r["roster_id"] == me), "A manager")
-    await _post_bet_to_discord(game, match, pair, stake, proposer_team, wid)
+    await _post_bet_to_discord(game, match, pair, stake, request.session.get("discord_id"), wid)
     return RedirectResponse("/h2h", 303)
 
 
