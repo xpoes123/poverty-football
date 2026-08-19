@@ -362,11 +362,27 @@ NFL_TEAM_NAMES = {
 }
 _NAME_TO_ABBR = {name: abbr for abbr, name in NFL_TEAM_NAMES.items()}
 
+# Discord custom-emoji name per team (== the uploaded filenames), keyed by abbr.
+NFL_TEAM_NICK = {
+    "ARI": "cardinals", "ATL": "falcons", "BAL": "ravens", "BUF": "bills", "CAR": "panthers",
+    "CHI": "bears", "CIN": "bengals", "CLE": "browns", "DAL": "cowboys", "DEN": "broncos",
+    "DET": "lions", "GB": "packers", "HOU": "texans", "IND": "colts", "JAX": "jaguars",
+    "KC": "chiefs", "LV": "raiders", "LAC": "chargers", "LAR": "rams", "MIA": "dolphins",
+    "MIN": "vikings", "NE": "patriots", "NO": "saints", "NYG": "giants", "NYJ": "jets",
+    "PHI": "eagles", "PIT": "steelers", "SEA": "seahawks", "SF": "niners", "TB": "buccaneers",
+    "TEN": "titans", "WAS": "commanders",
+}
+
 
 def team_logo_by_name(name: str | None) -> str | None:
     """Full team name (as the odds API gives it) -> Sleeper team-logo URL, or None."""
     abbr = _NAME_TO_ABBR.get(name or "")
     return f"https://sleepercdn.com/images/team_logos/nfl/{abbr.lower()}.png" if abbr else None
+
+
+def team_nick(name: str | None) -> str | None:
+    """Full team name -> Discord emoji name (e.g. 'Philadelphia Eagles' -> 'eagles'), or None."""
+    return NFL_TEAM_NICK.get(_NAME_TO_ABBR.get(name or "", ""))
 
 
 def player_image(pid: str, position: str, team: str | None) -> str | None:

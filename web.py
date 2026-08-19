@@ -817,28 +817,53 @@ async def h2h_page(request: Request):
     return templates.TemplateResponse(request, "h2h.html", ctx)
 
 
+_emoji_markup: dict[str, str] = {}  # emoji name -> "<:name:id>", fetched once per process
+
+
+async def _guild_emojis() -> dict:
+    """Custom-emoji markup for the bet channel's server, keyed by name. Cached; best-effort."""
+    if _emoji_markup or not cfg.bet_channel_id:
+        return _emoji_markup
+    headers = {"Authorization": f"Bot {cfg.discord_token}"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            gid = (await c.get(f"https://discord.com/api/v10/channels/{cfg.bet_channel_id}",
+                               headers=headers)).json().get("guild_id")
+            if not gid:
+                return _emoji_markup
+            emojis = (await c.get(f"https://discord.com/api/v10/guilds/{gid}/emojis",
+                                  headers=headers)).json()
+        for e in emojis:
+            if e.get("name") and e.get("id"):
+                _emoji_markup[e["name"]] = f"<:{e['name']}:{e['id']}>"
+    except (httpx.HTTPError, ValueError, KeyError):
+        pass
+    return _emoji_markup
+
+
 async def _post_bet_to_discord(game: dict, match: dict, pair: dict | None, stake: int,
                                proposer_discord_id: str | None, wager_id: int) -> None:
-    """Post a proposed bet to the bet channel: pings the proposer, shows both team logos, and
-    leads with the pick so the side is obvious. `match` is the proposer's selection, `pair` the
-    other side. Best-effort — a Discord failure must never break the propose flow."""
+    """Post a proposed bet to the bet channel: pings the proposer, uses team emojis, and leads
+    with the pick so the side is obvious. Best-effort — a Discord failure never breaks propose."""
     if not cfg.bet_channel_id:
         return
     taker_stake = h2h.american_profit(stake, match["price"])  # taker risks the proposer's profit
-    away_logo, home_logo = views.team_logo_by_name(game["away"]), views.team_logo_by_name(game["home"])
-    desc = [f"**{match['market']}** — risk **{stake}** to win **{taker_stake}**"]
+    em = await _guild_emojis()
+    def emoji(team):  # team full name -> "<:nick:id> " or ""
+        m = em.get(views.team_nick(team) or "")
+        return f"{m} " if m else ""
+    pick_team = next((t for t in (game["home"], game["away"]) if match["side"].startswith(t)), None)
+    desc = [f"**Taking {emoji(pick_team)}{match['label']}  ({match['price']:+d})**",
+            f"Risk **{stake}** to win **{taker_stake}**  ·  {match['market']}"]
     if pair:
-        desc.append(f"Take the other side — **{pair['label']}** ({pair['price']:+d}): "
+        desc.append(f"\nClaim the other side — **{pair['label']}** ({pair['price']:+d}): "
                     f"risk **{taker_stake}** to win **{stake}**")
     embed = {
-        "author": {"name": f"{game['away']} @ {game['home']}", **({"icon_url": away_logo} if away_logo else {})},
-        "title": f"Taking {match['label']}  ({match['price']:+d})",
-        "description": "\n\n".join(desc),
+        "title": f"{emoji(game['away'])}{game['away']}   @   {emoji(game['home'])}{game['home']}",
+        "description": "\n".join(desc),
         "color": 0xC9A05E,
         "footer": {"text": "No-vig line · play money"},
     }
-    if home_logo:
-        embed["thumbnail"] = {"url": home_logo}
     who = f"<@{proposer_discord_id}>" if proposer_discord_id else "Someone"
     payload = {
         "content": f"{who} is looking for action",
