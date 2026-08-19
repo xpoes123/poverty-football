@@ -10,6 +10,7 @@ class Member:
     name: str
     sleeper: str
     discord_id: int | None = None  # None → shamed by name instead of a real @ping
+    paid: bool = False  # dues paid? unpaid joiners get payment-shamed
     user_id: str | None = None  # filled by resolving `sleeper`; None = unresolved
 
 
@@ -17,6 +18,11 @@ def find_missing(members: list[Member], joined_ids: set[str]) -> list[Member]:
     """Anyone whose resolved user_id isn't in the joined set. Unresolved (None) counts
     as missing — a typo'd handle or someone who hasn't signed up at all."""
     return [m for m in members if m.user_id not in joined_ids]
+
+
+def unpaid(members: list[Member], joined_ids: set[str]) -> list[Member]:
+    """Members who've joined but haven't paid dues (you can't owe until you're in)."""
+    return [m for m in members if m.user_id in joined_ids and not m.paid]
 
 
 def days_until_draft(draft_date: date | None, today: date) -> int | None:

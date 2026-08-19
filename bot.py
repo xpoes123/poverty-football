@@ -23,6 +23,7 @@ from shame import (
     missing_block,
     tier,
     tone_line,
+    unpaid,
 )
 from sleeper import (
     get_claimed_team_count,
@@ -162,7 +163,7 @@ async def compute_missing(members: list[Member]) -> list[Member]:
     return find_missing(members, joined)
 
 
-async def build_embed(missing: list[Member]) -> discord.Embed:
+async def build_embed(missing: list[Member], owed: list[Member]) -> discord.Embed:
     name, total, status = await get_league_meta(cfg.league_id)
     teams = await get_claimed_team_count(cfg.league_id)
     days = days_until_draft(cfg.draft_date, dt.datetime.now(TZ).date())
@@ -170,14 +171,17 @@ async def build_embed(missing: list[Member]) -> discord.Embed:
     e = discord.Embed(
         title=f"🏈 {name} — {t['title']}",
         url=cfg.join_url,  # makes the title clickable → the invite link
-        description=f"{tone_line(days)}\n\n**[→ Join the league]({cfg.join_url})**",
+        description=f"{tone_line(days)}\n\n**[Join the league]({cfg.join_url})**",
         color=t["color"],
         timestamp=dt.datetime.now(TZ),
     )
     draft_val = countdown_line(days)
     if cfg.draft_date:
         draft_val += f"\n{cfg.draft_date:%b %-d}, {cfg.draft_time_label}"
-    e.add_field(name=f"🚫 Still not in ({len(missing)})", value=missing_block(missing), inline=False)
+    if missing:
+        e.add_field(name=f"🚫 Still not in ({len(missing)})", value=missing_block(missing), inline=False)
+    if owed:
+        e.add_field(name=f"💸 Haven't paid ({len(owed)})", value=missing_block(owed), inline=False)
     e.add_field(name="✅ Teams in", value=f"**{teams}** / {total}", inline=True)
     e.add_field(name="⏱️ Draft", value=draft_val, inline=True)
     e.set_footer(text="Poverty Franchises")
@@ -231,18 +235,21 @@ class NflBot(discord.Client):
         if cfg.nag_start_date and dt.datetime.now(TZ).date() < cfg.nag_start_date:
             log.info("before nag_start_date (%s) — skipping", cfg.nag_start_date)
             return
-        missing = await compute_missing(load_members())
-        if not missing:
-            log.info("everyone's in — staying quiet")
+        members = load_members()
+        missing = await compute_missing(members)  # resolves user_ids as a side effect
+        owed = unpaid(members, await get_joined_user_ids(cfg.league_id))
+        if not missing and not owed:
+            log.info("everyone's in and paid up — staying quiet")
             return
         channel = self.get_channel(cfg.shame_channel_id)
         if channel is None:
             log.error("shame channel %s not found", cfg.shame_channel_id)
             return
-        embed = await build_embed(missing)
+        embed = await build_embed(missing, owed)
         # content carries the pings so people get notified; embed is the pretty part
-        await channel.send(content=" ".join(f"<@{m.discord_id}>" for m in missing if m.discord_id), embed=embed)
-        log.info("shamed %d: %s", len(missing), ", ".join(m.name for m in missing))
+        pings = " ".join(f"<@{m.discord_id}>" for m in (missing + owed) if m.discord_id)
+        await channel.send(content=pings, embed=embed)
+        log.info("shamed — missing %d, unpaid %d", len(missing), len(owed))
 
     @tasks.loop(time=dt.time(hour=10, tzinfo=TZ))
     async def results_announcer(self):

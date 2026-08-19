@@ -10,6 +10,7 @@ from shame import (
     missing_block,
     tier,
     tone_line,
+    unpaid,
 )
 
 
@@ -21,6 +22,16 @@ def test_find_missing():
     ]
     missing = find_missing(ms, joined_ids={"100"})
     assert [m.name for m in missing] == ["Bo", "Cy"]  # Bo not joined, Cy unresolved
+
+
+def test_unpaid_only_joined_and_not_paid():
+    ms = [
+        Member("Paid", "p", user_id="100", paid=True),      # joined + paid -> excluded
+        Member("Owes", "o", user_id="200"),                 # joined, not paid -> shamed
+        Member("NotIn", "n", user_id="300"),                # not joined -> can't owe yet
+    ]
+    owed = unpaid(ms, joined_ids={"100", "200"})
+    assert [m.name for m in owed] == ["Owes"]
 
 
 def test_days_until_draft():

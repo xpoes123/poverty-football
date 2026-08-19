@@ -12,3 +12,10 @@ discord_id = 000000000000000000
 name = "Rik"
 sleeper = "RikShah"
 discord_id = 000000000000000000
+
+# paid = true excludes a member from the "haven't paid" shame (dues tracking).
+[[member]]
+name = "Someone"
+sleeper = "their_handle"
+discord_id = 000000000000000000
+paid = true
