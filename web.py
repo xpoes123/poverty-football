@@ -814,18 +814,20 @@ async def _post_bet_to_discord(game: dict, side: str, price: int, stake: int,
         return
     other = game["home"] if side == game["away"] else game["away"]
     other_price = game["home_price"] if side == game["away"] else game["away_price"]
+    taker_stake = h2h.american_profit(stake, price)  # taker risks the proposer's potential profit
     embed = {
         "title": f"{game['away']} @ {game['home']}",
         "color": 0xC9A05E,
         "fields": [
-            {"name": "Backing", "value": f"**{proposer_team}** takes **{side}** ({price:+d})", "inline": False},
-            {"name": "Stake", "value": f"{stake} chips", "inline": True},
-            {"name": "You'd get", "value": f"**{other}** ({other_price:+d})", "inline": True},
+            {"name": f"{proposer_team} backs {side} ({price:+d})",
+             "value": f"Risks **{stake}** to win **{taker_stake}**", "inline": False},
+            {"name": f"Claim the other side — {other} ({other_price:+d})",
+             "value": f"Risk **{taker_stake}** to win **{stake}**", "inline": False},
         ],
         "footer": {"text": "No-vig line · play money"},
     }
     payload = {
-        "content": "🎲 **Who wants to claim this?**",
+        "content": f"**{proposer_team}** is looking for action.",
         "embeds": [embed],
         "components": [{"type": 1, "components": [
             {"type": 2, "style": 3, "label": f"Claim {other}", "custom_id": f"claim:{wager_id}"}]}],
