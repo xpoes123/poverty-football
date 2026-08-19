@@ -28,7 +28,9 @@ class Config(BaseSettings):
     enable_betting: bool = False      # bet on your own matchups
     enable_h2h_betting: bool = False  # bet against each other on NFL games (needs odds_api_key)
     enable_analysis: bool = False     # deeper stats / luck analysis
-    odds_api_key: str = ""            # the-odds-api.com
+    odds_api_key: str = ""            # legacy; NFL odds now come from SharpLab, not directly
+    # Reuse SharpLab's odds pipeline instead of hitting the-odds-api ourselves (one quota, one poller).
+    sharplab_slate_url: str = "https://sharplab.djiang.xyz/api/v1/dashboard/slate"
     dev_seed: bool = False            # serve seeded fixtures instead of live Sleeper (off-season dev)
 
     @property
