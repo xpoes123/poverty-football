@@ -70,19 +70,18 @@ async def latest_complete_week() -> int | None:
 
 
 def build_results_embed(ann: dict) -> discord.Embed:
-    e = discord.Embed(title=f"🏈 Week {ann['week']} Results", color=0xC9A05E,
-                      timestamp=dt.datetime.now(TZ))
-    body = []
-    for r in ann["lines"]:
-        if r.get("tie"):
-            body.append(f"**{r['a']}** tied **{r['b']}** · {r['pa']:.1f}–{r['pb']:.1f}")
-        else:
-            body.append(f"**{r['winner']}** def. {r['loser']} · {r['ws']:.1f}–{r['ls']:.1f}")
-    e.description = "\n".join(body)
+    # rows: (winner-or-teamA, ws, ls, loser-or-teamB), winner shown left
+    rows = [(r["a"], r["pa"], r["pb"], r["b"]) if r.get("tie")
+            else (r["winner"], r["ws"], r["ls"], r["loser"]) for r in ann["lines"]]
+    w_col = max(len(w) for w, *_ in rows)  # winner-name column width for alignment
+    s_col = max(len(f"{s:.1f}") for _, ws, ls, _ in rows for s in (ws, ls))  # score width
+    body = "\n".join(f"{w:<{w_col}}  {ws:>{s_col}.1f}  {ls:>{s_col}.1f}  {lz}" for w, ws, ls, lz in rows)
+    desc = f"```\n{body}\n```"
     ex = ann.get("extremes")
     if ex:
-        e.add_field(name="⬆️ High", value=f"{ex['high_team']} · {ex['high']:.1f}", inline=True)
-        e.add_field(name="⬇️ Low", value=f"{ex['low_team']} · {ex['low']:.1f}", inline=True)
+        desc += f"\n**High** {ex['high']:.1f} {ex['high_team']}  ·  **Low** {ex['low']:.1f} {ex['low_team']}"
+    e = discord.Embed(title=f"🏈 Week {ann['week']} Results", color=0xC9A05E,
+                      description=desc, timestamp=dt.datetime.now(TZ))
     e.set_footer(text="Poverty Franchises")
     return e
 
