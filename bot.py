@@ -6,7 +6,11 @@ from zoneinfo import ZoneInfo
 import discord
 from discord.ext import tasks
 
+import json
+import pathlib
+
 import h2h
+import results
 from config import cfg
 from shame import (
     Member,
@@ -21,11 +25,13 @@ from sleeper import (
     get_claimed_team_count,
     get_joined_user_ids,
     get_league_meta,
+    get_matchups,
+    get_nfl_state,
     get_rosters,
     get_users,
     resolve_user_id,
 )
-from views import team_name
+from views import scoreboard, team_name
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("nfl-bot")
@@ -37,6 +43,48 @@ def load_members() -> list[Member]:
     with open("expected.toml", "rb") as f:
         data = tomllib.load(f)
     return [Member(**m) for m in data["member"]]
+
+
+_RESULTS_STATE = pathlib.Path(__file__).parent / "data" / "results_state.json"
+
+
+def _last_announced_week() -> int:
+    try:
+        return json.loads(_RESULTS_STATE.read_text()).get("week", 0)
+    except (FileNotFoundError, ValueError):
+        return 0
+
+
+def _mark_announced(week: int) -> None:
+    _RESULTS_STATE.parent.mkdir(parents=True, exist_ok=True)
+    _RESULTS_STATE.write_text(json.dumps({"week": week}))
+
+
+async def latest_complete_week() -> int | None:
+    """The most-recently-finished regular-season week (during week N, N-1 is final)."""
+    state = await get_nfl_state()
+    if state.get("season_type") != "regular":
+        return None
+    complete = (state.get("week") or 1) - 1
+    return complete if complete >= 1 else None
+
+
+def build_results_embed(ann: dict) -> discord.Embed:
+    e = discord.Embed(title=f"🏈 Week {ann['week']} Results", color=0xC9A05E,
+                      timestamp=dt.datetime.now(TZ))
+    body = []
+    for r in ann["lines"]:
+        if r.get("tie"):
+            body.append(f"**{r['a']}** tied **{r['b']}** · {r['pa']:.1f}–{r['pb']:.1f}")
+        else:
+            body.append(f"**{r['winner']}** def. {r['loser']} · {r['ws']:.1f}–{r['ls']:.1f}")
+    e.description = "\n".join(body)
+    ex = ann.get("extremes")
+    if ex:
+        e.add_field(name="⬆️ High", value=f"{ex['high_team']} · {ex['high']:.1f}", inline=True)
+        e.add_field(name="⬇️ Low", value=f"{ex['low_team']} · {ex['low']:.1f}", inline=True)
+    e.set_footer(text="Poverty Franchises")
+    return e
 
 
 async def roster_and_team_for_discord(discord_id: int) -> tuple[int, str] | tuple[None, None]:
@@ -99,6 +147,8 @@ class NflBot(discord.Client):
         log.info("startup check: %d missing (%s)", len(missing), ", ".join(m.name for m in missing) or "none")
         if not self.daily_nag.is_running():
             self.daily_nag.start()
+        if not self.results_announcer.is_running():
+            self.results_announcer.start()
 
     async def on_interaction(self, interaction: discord.Interaction):
         """Handle the 'Claim' button on a proposed h2h bet (message posted by the web app)."""
@@ -144,8 +194,34 @@ class NflBot(discord.Client):
         await channel.send(content=" ".join(f"<@{m.discord_id}>" for m in missing if m.discord_id), embed=embed)
         log.info("shamed %d: %s", len(missing), ", ".join(m.name for m in missing))
 
+    @tasks.loop(time=dt.time(hour=10, tzinfo=TZ))
+    async def results_announcer(self):
+        """Once a week's matchups are final, post the results — once."""
+        week = await latest_complete_week()
+        if week is None or week <= _last_announced_week():
+            return
+        matchups = await get_matchups(cfg.league_id, week)
+        if not matchups:
+            return
+        users, rosters = await get_users(cfg.league_id), await get_rosters(cfg.league_id)
+        ann = results.announcement(scoreboard(matchups, rosters, users), week)
+        if ann is None:
+            return  # nothing decided yet
+        cid = cfg.results_channel_id or cfg.shame_channel_id
+        channel = self.get_channel(cid)
+        if channel is None:
+            log.error("results channel %s not found", cid)
+            return
+        await channel.send(embed=build_results_embed(ann))
+        _mark_announced(week)
+        log.info("announced week %d results (%d matchups)", week, len(ann["lines"]))
+
     @daily_nag.before_loop
     async def _before(self):
+        await self.wait_until_ready()
+
+    @results_announcer.before_loop
+    async def _before_results(self):
         await self.wait_until_ready()
 
 

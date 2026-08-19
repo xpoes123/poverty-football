@@ -9,6 +9,7 @@ class Config(BaseSettings):
     discord_token: str
     shame_channel_id: int
     bet_channel_id: int | None = None  # where proposed h2h bets post for claiming; None = don't post
+    results_channel_id: int | None = None  # weekly fantasy-results announcer; None = use shame channel
     league_id: str = "1393861542625169408"  # Poverty Franchises
     draft_date: date | None = date(2026, 9, 5)  # escalation ramps as this nears; env-overridable
     draft_time_label: str = "8 PM ET"  # shown next to the draft date
