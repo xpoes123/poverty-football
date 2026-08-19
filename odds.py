@@ -39,7 +39,7 @@ async def get_nfl_odds() -> list[dict]:
         async with httpx.AsyncClient(timeout=20) as c:
             r = await c.get(ODDS_URL, params={
                 "apiKey": cfg.odds_api_key, "regions": "us",
-                "markets": "h2h", "oddsFormat": "american"})
+                "markets": "h2h,spreads,totals", "oddsFormat": "american"})
             r.raise_for_status()
             data = r.json()
     except (httpx.HTTPStatusError, httpx.HTTPError):

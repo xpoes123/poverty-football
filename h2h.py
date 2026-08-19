@@ -39,29 +39,61 @@ def devig_two_way(home_price: int, away_price: int) -> tuple[int, int]:
     return _fair_american(ph / total), _fair_american(pa / total)
 
 
+def _market(o: dict, key: str) -> dict | None:
+    """First bookmaker's market with this key (h2h / spreads / totals)."""
+    for bk in o.get("bookmakers") or []:
+        m = next((m for m in bk.get("markets") or [] if m.get("key") == key), None)
+        if m:
+            return m
+    return None
+
+
 def games(odds: list[dict]) -> list[dict]:
-    """Flatten the-odds-api v4 objects to one row per game using the FIRST bookmaker
-    that carries an h2h market. Moneylines are devigged to fair no-vig odds (play-money
-    h2h, no house edge). Games with no h2h anywhere are skipped."""
+    """One row per game with moneyline, spread, and total selections, each devigged to fair
+    no-vig odds (play-money, no house edge). `selections` is a flat list of bettable options
+    ({market, label, side, price}); the `side` string is what a wager stores. Games with no
+    usable market are skipped."""
     out = []
     for o in odds:
         home, away = o.get("home_team"), o.get("away_team")
-        market = None
-        for bk in o.get("bookmakers") or []:
-            market = next((m for m in bk.get("markets") or [] if m.get("key") == "h2h"), None)
-            if market:
-                break
-        if not market:
+        if not home or not away:
             continue
-        prices = {oc.get("name"): oc.get("price") for oc in market.get("outcomes") or []}
-        home_price, away_price = prices.get(home), prices.get(away)
-        if home_price is None or away_price is None:
+        sel: list[dict] = []
+        favorite = None
+
+        ml = _market(o, "h2h")
+        if ml:
+            px = {oc.get("name"): oc.get("price") for oc in ml.get("outcomes") or []}
+            if px.get(home) is not None and px.get(away) is not None:
+                hp, ap = devig_two_way(px[home], px[away])
+                favorite = home if hp <= ap else away
+                sel += [{"market": "Moneyline", "label": away, "side": away, "price": ap},
+                        {"market": "Moneyline", "label": home, "side": home, "price": hp}]
+
+        sp = _market(o, "spreads")
+        if sp:
+            oc = {x.get("name"): x for x in sp.get("outcomes") or []}
+            h, a = oc.get(home), oc.get(away)
+            if h and a and h.get("price") is not None and a.get("price") is not None and h.get("point") is not None:
+                hp, ap = devig_two_way(h["price"], a["price"])
+                al, hl = f"{away} {a['point']:+g}", f"{home} {h['point']:+g}"
+                sel += [{"market": "Spread", "label": al, "side": al, "price": ap},
+                        {"market": "Spread", "label": hl, "side": hl, "price": hp}]
+
+        to = _market(o, "totals")
+        if to:
+            oc = {x.get("name"): x for x in to.get("outcomes") or []}
+            over, under = oc.get("Over"), oc.get("Under")
+            if over and under and over.get("price") is not None and under.get("price") is not None and over.get("point") is not None:
+                op, up = devig_two_way(over["price"], under["price"])
+                pt = f"{over['point']:g}"
+                sel += [{"market": "Total", "label": f"Over {pt}", "side": f"Over {pt}", "price": op},
+                        {"market": "Total", "label": f"Under {pt}", "side": f"Under {pt}", "price": up}]
+
+        if not sel:
             continue
-        home_price, away_price = devig_two_way(home_price, away_price)
-        favorite = home if home_price <= away_price else away  # more-negative price = favorite
         out.append({"game_id": o.get("id"), "home": home, "away": away,
-                    "commence": o.get("commence_time"),
-                    "home_price": home_price, "away_price": away_price, "favorite": favorite})
+                    "commence": o.get("commence_time"), "favorite": favorite, "selections": sel})
     return out
 
 

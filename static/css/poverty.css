@@ -403,6 +403,9 @@ a.slot:hover .slot__name{color:var(--gold-bright)}
 .game-card__head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .game-card__match{font-family:var(--serif);font-size:16px;color:var(--bone)}
 .game-card__at{color:var(--muted);font-style:italic;padding:0 2px}
+.betmarket{margin-top:14px}
+.betmarket__label{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.betmarket .game-card__sides{margin-top:7px}
 .game-card__sides{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:12px;grid-template-columns:1fr}
 @media (min-width:560px){.game-card__sides{grid-template-columns:1fr 1fr}}
 .game-card__side{background:var(--surface-2);padding:11px 13px 13px}

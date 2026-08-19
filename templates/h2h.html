@@ -22,7 +22,7 @@
 
     <div class="section-head">
       <h2>This Week's NFL Games</h2>
-      <p>No-vig moneyline · handshake bets</p>
+      <p>No-vig lines · handshake bets</p>
     </div>
 
     {% if not logged_in %}
@@ -41,25 +41,27 @@
             <div class="game-card__head">
               <span class="game-card__match">{{ g.away }} <span class="game-card__at">@</span> {{ g.home }}</span>
             </div>
-            <div class="game-card__sides">
-              <div class="game-card__side">
-                <span class="game-card__team">{{ g.away }}{% if g.favorite == g.away %} <span class="game-card__fav">FAV</span>{% endif %}</span>
-                <span class="game-card__price">{{ odds(g.away_price) }}</span>
-                {% if can_bet %}{{ betform(g.game_id, g.away, g.away_price, g.away) }}{% endif %}
-              </div>
-              <div class="game-card__side">
-                <span class="game-card__team">{{ g.home }}{% if g.favorite == g.home %} <span class="game-card__fav">FAV</span>{% endif %}</span>
-                <span class="game-card__price">{{ odds(g.home_price) }}</span>
-                {% if can_bet %}{{ betform(g.game_id, g.home, g.home_price, g.home) }}{% endif %}
+            {% for market, sels in g.selections | groupby('market') %}
+            <div class="betmarket">
+              <p class="betmarket__label">{{ market }}</p>
+              <div class="game-card__sides">
+                {% for s in sels %}
+                <div class="game-card__side">
+                  <span class="game-card__team">{{ s.label }}{% if market == 'Moneyline' and s.side == g.favorite %} <span class="game-card__fav">FAV</span>{% endif %}</span>
+                  <span class="game-card__price">{{ odds(s.price) }}</span>
+                  {% if can_bet %}{{ betform(g.game_id, s.side, s.price, s.label) }}{% endif %}
+                </div>
+                {% endfor %}
               </div>
             </div>
+            {% endfor %}
           </div>
         {% endfor %}
       </div>
     {% else %}
       <div class="empty">
         <h3>No NFL games on the board this week.</h3>
-        <p>Games and moneylines appear here during the NFL season.</p>
+        <p>Games and betting lines appear here during the NFL season.</p>
       </div>
     {% endif %}
 

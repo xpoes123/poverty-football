@@ -21,7 +21,13 @@ ODDS = [
      "bookmakers": [{"key": "dk", "title": "DK", "markets": [
          {"key": "h2h", "outcomes": [
              {"name": "Kansas City Chiefs", "price": -150},
-             {"name": "Buffalo Bills", "price": 130}]}]}]},
+             {"name": "Buffalo Bills", "price": 130}]},
+         {"key": "spreads", "outcomes": [
+             {"name": "Kansas City Chiefs", "price": -110, "point": -3.5},
+             {"name": "Buffalo Bills", "price": -110, "point": 3.5}]},
+         {"key": "totals", "outcomes": [
+             {"name": "Over", "price": -110, "point": 47.5},
+             {"name": "Under", "price": -110, "point": 47.5}]}]}]},
     {"id": "g2", "commence_time": "2025-10-12T20:25:00Z",
      "home_team": "Miami Dolphins", "away_team": "Green Bay Packers",
      "bookmakers": [{"key": "fd", "title": "FD", "markets": [
@@ -45,15 +51,19 @@ def test_devig_two_way():
     assert fav < 0 < dog and fav > -200  # vig stripped -> less juice on the favorite
 
 
-def test_games_parses_and_skips_no_h2h():
+def test_games_parses_markets_and_skips_no_h2h():
     rows = games(ODDS)
     assert len(rows) == 2  # g3 skipped
     g1 = rows[0]
-    assert g1["game_id"] == "g1" and g1["home"] == "Kansas City Chiefs"
-    assert g1["away"] == "Buffalo Bills"
-    assert g1["home_price"] == -138 and g1["away_price"] == 138  # devigged from -150/+130
-    assert g1["favorite"] == "Kansas City Chiefs"  # more-negative price
-    assert rows[1]["favorite"] == "Green Bay Packers"  # away is the favorite
+    assert g1["game_id"] == "g1" and g1["home"] == "Kansas City Chiefs" and g1["away"] == "Buffalo Bills"
+    assert g1["favorite"] == "Kansas City Chiefs"
+    sels = {(s["market"], s["side"]): s["price"] for s in g1["selections"]}
+    assert sels[("Moneyline", "Kansas City Chiefs")] == -138  # devigged from -150/+130
+    assert sels[("Moneyline", "Buffalo Bills")] == 138
+    assert sels[("Spread", "Kansas City Chiefs -3.5")] == 100  # -110/-110 -> fair even money
+    assert sels[("Spread", "Buffalo Bills +3.5")] == 100
+    assert ("Total", "Over 47.5") in sels and ("Total", "Under 47.5") in sels
+    assert rows[1]["favorite"] == "Green Bay Packers"  # g2 has only h2h -> moneyline-only
 
 
 def test_american_profit_rounding():
