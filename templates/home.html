@@ -75,6 +75,22 @@
     </table>
     {% if has_season %}<p class="cutline-note">Top {{ playoff_teams }} make the playoffs</p>{% endif %}
 
+    {% if dues %}
+    <div class="section-head"><h2>Dues</h2><p>{{ dues_paid }} / {{ dues|length }} paid</p></div>
+    <ul class="dues">
+      {% for d in dues %}
+        <li class="dues__row{{ ' dues__row--paid' if d.paid }}">
+          {% if d.href %}<a class="dues__who" href="{{ d.href }}">{% else %}<span class="dues__who">{% endif %}
+            <img class="dues__avatar" src="{{ d.avatar or '/static/default-team.svg' }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">
+            <span class="dues__name">{{ d.name }}</span>
+            {% if not d.joined %}<span class="dues__tag">not joined</span>{% endif %}
+          {% if d.href %}</a>{% else %}</span>{% endif %}
+          <span class="dues__status">{{ 'Paid' if d.paid else 'Unpaid' }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
     {% if tx_feed %}
     <div class="section-head"><h2>Transactions</h2><p>{{ tx_feed|length }} moves</p></div>
     <ul class="feed">

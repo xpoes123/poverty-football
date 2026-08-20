@@ -67,6 +67,19 @@ button{font:inherit;color:inherit;background:none;border:0}
 /* playoff cut line — divider under the last playoff seed (in-season only) */
 .cutline-note{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:10px}
 
+/* dues / payment list */
+.dues{list-style:none;padding:0;margin:0;border:1px solid var(--rule)}
+.dues__row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;background:var(--surface);border-top:1px solid var(--rule)}
+.dues__row:first-child{border-top:0}
+.dues__who{display:inline-flex;align-items:center;gap:10px;min-width:0;color:inherit}
+a.dues__who:hover .dues__name{color:var(--gold-bright)}
+.dues__avatar{width:28px;height:28px;object-fit:cover;border:1px solid var(--rule);border-radius:2px;flex:none}
+.dues__name{font-family:var(--serif);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dues__tag{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border:1px solid var(--rule-strong);padding:1px 5px;flex:none}
+.dues__status{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:none}
+.dues__row--paid .dues__status{color:#8fbf7a}
+.dues__row--paid .dues__status::before{content:"✓ "}
+
 .page{padding:24px 0 60px;animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
 @keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.page{animation:none}}

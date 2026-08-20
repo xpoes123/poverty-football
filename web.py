@@ -104,6 +104,31 @@ def _discord_map() -> dict:
     return {m["discord_id"]: m["sleeper"] for m in data.get("member", []) if m.get("discord_id")}
 
 
+async def _dues(users, rosters) -> list[dict]:
+    """Per-member dues status from the bot's expected.toml, enriched with franchise avatar +
+    team link when the member has joined. Empty if the file isn't present (seed/preview)."""
+    try:
+        with open("expected.toml", "rb") as f:
+            members = tomllib.load(f).get("member", [])
+    except FileNotFoundError:
+        return []
+    by_uid = {u["user_id"]: u for u in users}
+    roster_of = {r.get("owner_id"): r for r in rosters if r.get("owner_id")}
+    rows = []
+    for m in members:
+        uid = await resolve_user_id(m["sleeper"])
+        user, roster = by_uid.get(uid), roster_of.get(uid)
+        rows.append({
+            "name": m.get("name", m["sleeper"]),  # the person, as David tracks them
+            "paid": bool(m.get("paid")),
+            "joined": user is not None,
+            "avatar": views.avatar_url(user),
+            "href": f"/team/{roster['roster_id']}" if roster else None,
+        })
+    rows.sort(key=lambda r: (r["paid"], r["name"].lower()))  # unpaid first, then alphabetical
+    return rows
+
+
 async def _me_roster_id(request: Request):
     did = request.session.get("discord_id")
     if not did:
@@ -295,6 +320,8 @@ async def home(request: Request):
     ]
     ctx["rows"] = _standings_rows(users, rosters)
     ctx["tx_feed"] = await _tx_feed(users, rosters) if ctx["has_season"] else []
+    ctx["dues"] = [] if ctx["seed_on"] else await _dues(users, rosters)  # real data only
+    ctx["dues_paid"] = sum(1 for d in ctx["dues"] if d["paid"])
     countdown = None
     if ctx["is_pre"]:
         ctx["table_title"] = "Franchises"
