@@ -18,6 +18,8 @@ class Config(BaseSettings):
     nag_start_date: date | None = date(2026, 8, 19)  # don't nag before this day
     timezone: str = "America/New_York"
 
+    # Only this Discord user can see the private /analytics page (David / xpoes).
+    admin_discord_id: str = "240608458888445953"
     # Discord OAuth (portal only). Empty → login is simply hidden.
     discord_client_id: str = ""
     discord_client_secret: str = ""

@@ -363,6 +363,7 @@ a.slot:hover .slot__name{color:var(--gold-bright)}
 .search-panel input{width:100%;background:var(--espresso);border:1px solid var(--rule-strong);color:var(--bone);padding:10px 12px;font:inherit}
 .search-panel input:focus,.search-panel input:focus-visible,.sort-select select:focus,.sort-select select:focus-visible{outline:none;border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-dim)}
 .empty-note{padding:20px 4px;color:var(--muted);font-size:13px;letter-spacing:.04em}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;letter-spacing:0}
 .nav__link:focus-visible,.chip:focus-visible,.btn:focus-visible,a.team-link:focus-visible,.bet-link:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .search-results{list-style:none;margin:8px 0 0;padding:0}
 .search-results li a{display:flex;justify-content:space-between;gap:12px;padding:9px 6px;border-bottom:1px solid var(--rule);color:var(--bone)}

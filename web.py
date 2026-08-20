@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+import analytics
 import betting
 import h2h
 import odds
@@ -104,6 +105,16 @@ def _discord_map() -> dict:
     return {m["discord_id"]: m["sleeper"] for m in data.get("member", []) if m.get("discord_id")}
 
 
+def _discord_names() -> dict:
+    """string discord_id -> member name, from expected.toml (for labelling analytics visitors)."""
+    try:
+        with open("expected.toml", "rb") as f:
+            members = tomllib.load(f).get("member", [])
+    except FileNotFoundError:
+        return {}
+    return {str(m["discord_id"]): m.get("name", m["sleeper"]) for m in members if m.get("discord_id")}
+
+
 async def _dues(users, rosters) -> list[dict]:
     """Per-member dues status from the bot's expected.toml, enriched with franchise avatar +
     team link when the member has joined. Empty if the file isn't present (seed/preview)."""
@@ -159,12 +170,19 @@ async def _base_ctx(request: Request, active: str) -> dict:
     # preview pretends the season is underway, so a real draft countdown would contradict it
     upcoming = target and target > dt.datetime.now(TZ) and not seed_on
     me = await _me_roster_id(request)
+    did = request.session.get("discord_id")
+    is_admin = str(did) == cfg.admin_discord_id
+    # record the page view (never let analytics break a render); skip the admin's own analytics page
+    if request.url.path != "/analytics":
+        analytics.record(request.url.path, did)
     nav_items = [{"href": h, "label": lbl, "current": k == active} for k, h, lbl in NAV]
     if cfg.enable_analysis:  # Insights tab only exists when the analysis flag is on
         nav_items.append({"href": "/insights", "label": "Insights", "current": active == "insights"})
     if cfg.enable_betting or cfg.enable_h2h_betting:  # single Gamble tab for both betting features
         nav_items.append({"href": "/bets" if cfg.enable_betting else "/h2h",
                           "label": "Gamble", "current": active == "gamble"})
+    if is_admin:  # private analytics tab, admin only
+        nav_items.append({"href": "/analytics", "label": "Analytics", "current": active == "analytics"})
     return {
         "request": request,
         "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
@@ -346,6 +364,25 @@ async def home(request: Request):
                          "done": "Kicking off"}
     ctx["countdown"] = countdown
     return templates.TemplateResponse(request, "home.html", ctx)
+
+
+@app.get("/analytics", response_class=HTMLResponse)
+async def analytics_page(request: Request):
+    if str(request.session.get("discord_id")) != cfg.admin_discord_id:
+        return RedirectResponse("/")  # admin only
+    ctx = await _base_ctx(request, "analytics")
+    stats = analytics.summary(_discord_names())
+
+    def fmt(ts):
+        return dt.datetime.fromtimestamp(ts, TZ).strftime("%b %-d, %-I:%M %p") if ts else "—"
+
+    for v in stats["visitors"]:
+        v["last_str"] = fmt(v["last"])
+    for r in stats["recent"]:
+        r["when"] = fmt(r["ts"])
+    ctx["stats"] = stats
+    ctx["since_str"] = fmt(stats["since"])
+    return templates.TemplateResponse(request, "analytics.html", ctx)
 
 
 async def _board(request: Request, active: str, heading: str, base_href: str,

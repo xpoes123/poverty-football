@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block main %}
+<main class="page" data-page="analytics" id="main" data-screen-label="Analytics">
+  <div class="wrap">
+    <div class="section-head"><h2>Analytics</h2><p>Since {{ since_str }}</p></div>
+
+    <div class="stats">
+      <div class="stat"><p class="stat__label">Page views</p><p class="stat__value">{{ stats.total }}</p><p class="stat__note">{{ stats.anon }} anonymous</p></div>
+      <div class="stat"><p class="stat__label">Signed-in visitors</p><p class="stat__value">{{ stats.unique }}</p><p class="stat__note">unique logins</p></div>
+    </div>
+
+    <div class="section-head"><h2>Top Pages</h2></div>
+    {% if stats.pages %}
+    <table class="ledger">
+      <thead><tr><th scope="col">Rk</th><th scope="col">Page</th><th scope="col" data-type="num">Views</th></tr></thead>
+      <tbody>
+        {% for p in stats.pages %}
+        <tr>
+          <td class="cell-rank">{{ loop.index }}</td>
+          <td class="cell-team"><span class="team-name mono">{{ p.path }}</span></td>
+          <td data-label="Views">{{ p.views }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty"><h3>No views recorded yet</h3></div>{% endif %}
+
+    <div class="section-head"><h2>Visitors</h2><p>signed-in only</p></div>
+    {% if stats.visitors %}
+    <table class="ledger">
+      <thead><tr><th scope="col">Rk</th><th scope="col">Person</th><th scope="col" data-type="num">Views</th><th scope="col">Last seen</th></tr></thead>
+      <tbody>
+        {% for v in stats.visitors %}
+        <tr>
+          <td class="cell-rank">{{ loop.index }}</td>
+          <td class="cell-team"><span class="team-name">{{ v.name }}</span></td>
+          <td data-label="Views">{{ v.views }}</td>
+          <td data-label="Last seen">{{ v.last_str }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty"><h3>No signed-in visitors yet</h3></div>{% endif %}
+
+    <div class="section-head"><h2>Recent Activity</h2></div>
+    <ul class="feed">
+      {% for r in stats.recent %}
+      <li class="entry">
+        <p class="entry__date">{{ r.when }}</p>
+        <p class="entry__body"><strong>{{ r.who }}</strong> <span class="mono">{{ r.path }}</span></p>
+      </li>
+      {% else %}
+      <li class="entry"><p class="entry__body">No activity yet.</p></li>
+      {% endfor %}
+    </ul>
+  </div>
+</main>
+{% endblock %}
