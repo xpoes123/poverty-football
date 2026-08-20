@@ -443,3 +443,13 @@ a.gc-head--link:hover .gc-at{color:var(--gold-dim)}
 .stake-btn{flex:1;padding:8px 0;border:1px solid var(--rule-strong);background:var(--surface);color:var(--bone-dim);font:inherit;font-size:12.5px;letter-spacing:.04em;font-variant-numeric:tabular-nums;cursor:pointer;transition:color .15s ease,border-color .15s ease,background .15s ease}
 .stake-btn:hover{color:var(--gold-bright);border-color:var(--gold-dim);background:var(--surface-2)}
 .game-card--open .game-card__bet{padding-top:11px}
+
+/* admin members editor */
+.admin-table th,.admin-table td{text-align:left}  /* override .ledger's right-aligned numeric cols */
+.admin-input{width:100%;min-width:0;background:var(--espresso);border:1px solid var(--rule-strong);color:var(--bone);padding:8px 10px;font:inherit;font-size:13px}
+.admin-input:focus,.admin-input:focus-visible{outline:none;border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-dim)}
+.admin-table input[type=checkbox]{width:17px;height:17px;accent-color:var(--gold)}
+.admin-tag{display:inline-block;padding:3px 9px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--rule-strong);color:var(--muted)}
+.admin-tag.is-yes{color:var(--gold-bright);border-color:var(--gold-dim)}
+.admin-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:16px}
+.admin-note{font-size:12px;line-height:1.6;color:var(--muted);max-width:60ch;margin:0}

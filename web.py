@@ -20,6 +20,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import analytics
 import betting
 import h2h
+import members
 import odds
 import espn
 import views
@@ -181,7 +182,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
     if cfg.enable_betting or cfg.enable_h2h_betting:  # single Gamble tab for both betting features
         nav_items.append({"href": "/bets" if cfg.enable_betting else "/h2h",
                           "label": "Gamble", "current": active == "gamble"})
-    if is_admin:  # private analytics tab, admin only
+    if is_admin:  # private admin tabs, admin only
+        nav_items.append({"href": "/admin", "label": "Admin", "current": active == "admin"})
         nav_items.append({"href": "/analytics", "label": "Analytics", "current": active == "analytics"})
     return {
         "request": request,
@@ -364,6 +366,44 @@ async def home(request: Request):
                          "done": "Kicking off"}
     ctx["countdown"] = countdown
     return templates.TemplateResponse(request, "home.html", ctx)
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request):
+    if str(request.session.get("discord_id")) != cfg.admin_discord_id:
+        return RedirectResponse("/")  # admin only
+    ctx = await _base_ctx(request, "admin")
+    joined = {u["user_id"] for u in await get_users(LID)}  # who's actually in the Sleeper league
+    rows = []
+    for i, m in enumerate(members.load()):
+        uid = await resolve_user_id(m["sleeper"])
+        rows.append({"i": i, "name": m.get("name", ""), "sleeper": m.get("sleeper", ""),
+                     "discord_id": m.get("discord_id") or "", "paid": bool(m.get("paid")),
+                     "joined": bool(uid) and uid in joined})
+    ctx["members"] = rows
+    ctx["blank_idxs"] = list(range(len(rows), len(rows) + 3))  # spare rows for adding members
+    return templates.TemplateResponse(request, "admin.html", ctx)
+
+
+@app.post("/admin")
+async def admin_save(request: Request):
+    if str(request.session.get("discord_id")) != cfg.admin_discord_id:
+        return RedirectResponse("/")
+    # keep_blank_values keeps the parallel arrays aligned; paid/remove are keyed by row index.
+    form = parse_qs((await request.body()).decode(), keep_blank_values=True)
+    names, sleepers, dids = form.get("name", []), form.get("sleeper", []), form.get("discord_id", [])
+    paid, remove = set(form.get("paid", [])), set(form.get("remove", []))
+    out = []
+    for i, (name, sleeper, did) in enumerate(zip(names, sleepers, dids)):
+        sleeper, did = sleeper.strip(), did.strip()
+        if not sleeper or str(i) in remove:  # blank sleeper or removed row -> dropped
+            continue
+        m = {"name": name.strip() or sleeper, "sleeper": sleeper, "paid": str(i) in paid}
+        if did.isdigit():
+            m["discord_id"] = int(did)
+        out.append(m)
+    members.save(out)
+    return RedirectResponse("/admin", 303)
 
 
 @app.get("/analytics", response_class=HTMLResponse)

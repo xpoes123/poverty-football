@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block main %}
+<main class="page" data-page="admin" id="main" data-screen-label="Admin">
+  <div class="wrap">
+    <div class="section-head"><h2>Members</h2><p>edits expected.toml · bot + site read it live</p></div>
+
+    <form method="post" action="/admin" class="admin-form">
+      <table class="ledger admin-table">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Sleeper handle</th>
+            <th scope="col">Discord ID</th>
+            <th scope="col">Joined</th>
+            <th scope="col">Paid</th>
+            <th scope="col">Remove</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in members %}
+          <tr>
+            <td data-label="Name"><input class="admin-input" name="name" value="{{ m.name }}"></td>
+            <td data-label="Sleeper"><input class="admin-input" name="sleeper" value="{{ m.sleeper }}"></td>
+            <td data-label="Discord ID"><input class="admin-input mono" name="discord_id" value="{{ m.discord_id }}" inputmode="numeric"></td>
+            <td data-label="Joined"><span class="admin-tag {{ 'is-yes' if m.joined else 'is-no' }}">{{ 'Yes' if m.joined else 'No' }}</span></td>
+            <td data-label="Paid"><input type="checkbox" name="paid" value="{{ m.i }}" {{ 'checked' if m.paid }}></td>
+            <td data-label="Remove"><input type="checkbox" name="remove" value="{{ m.i }}"></td>
+          </tr>
+          {% endfor %}
+          {% for i in blank_idxs %}
+          <tr>
+            <td data-label="Name"><input class="admin-input" name="name" placeholder="new member"></td>
+            <td data-label="Sleeper"><input class="admin-input" name="sleeper" placeholder="sleeper handle"></td>
+            <td data-label="Discord ID"><input class="admin-input mono" name="discord_id" placeholder="optional" inputmode="numeric"></td>
+            <td data-label="Joined"><span class="admin-tag is-no">—</span></td>
+            <td data-label="Paid"><input type="checkbox" name="paid" value="{{ i }}"></td>
+            <td data-label="Remove" aria-hidden="true"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="admin-actions">
+        <button type="submit" class="btn">Save</button>
+        <p class="admin-note">Blank sleeper rows are dropped. Joined comes from Sleeper — add a handle to track someone, tick Paid once they've paid dues.</p>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}
