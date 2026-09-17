@@ -37,7 +37,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .league-picker{border:1px solid var(--rule-strong);border-radius:6px;background:var(--espresso);color:var(--bone-dim);font-family:var(--sans);font-size:11px;letter-spacing:.04em;padding:5px 26px 5px 9px;max-width:200px;cursor:pointer;
   -webkit-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23a89a86' stroke-width='1.5'><path d='M1 1l5 5 5-5'/></svg>");
-  background-repeat:no-repeat;background-position:right 9px center}
+  background-repeat:no-repeat;background-position:right 9px center;background-size:10px 7px}
 .league-picker:hover{border-color:var(--gold-dim);color:var(--bone)}
 .league-picker:focus-visible{outline:2px solid var(--gold-dim);outline-offset:1px}
 @media (max-width:520px){.seed-switch__label{display:none}}
