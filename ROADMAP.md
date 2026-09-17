@@ -22,8 +22,8 @@ All four requested features are BUILT and merged to main, each behind a flag (de
 - **Insights** (luck / expected-wins / all-play, `/insights`): `ENABLE_ANALYSIS=true`
 - **Bet on your matchups** (`/bets`, SQLite in `data/`): `ENABLE_BETTING=true` (needs Discord login working)
 - **H2H NFL-game betting** (`/h2h`, odds via OddsAPI): `ENABLE_H2H_BETTING=true` (`ODDS_API_KEY` already set)
-- **Dev-seed** (fixture in-season data for off-season dev): `DEV_SEED=true` — LOCAL/dev only, never on prod.
-Modules: `betting.py`+`test_betting.py`, `h2h.py`+`odds.py`+`test_h2h.py`, `views.luck_table`, `seed/` fixtures.
+- **Dev-seed** — REMOVED 2026-09-17 once the season started; the portal is live-only now.
+Modules: `betting.py`+`test_betting.py`, `h2h.py`+`odds.py`+`test_h2h.py`, `views.luck_table`.
 Deployed polish (live now): countdown, standings cutline, player profiles + compare, headshot fallbacks,
 mobile-nav fix, WCAG-AA contrast, skip-link, focus rings, signed credit/debit colors, table-wrap scroll.
 
@@ -31,7 +31,7 @@ mobile-nav fix, WCAG-AA contrast, skip-link, focus rings, signed credit/debit co
 1. **Bet on your own matchups** (`enable_betting`) — each week, log a wager on your own game; track outcomes/standings of bets. Play-money ledger; needs a small store (SQLite) + logged-in identity.
 2. **H2H NFL game betting** (`enable_h2h_betting`) — members bet against each other on that week's NFL games. Odds from the-odds-api.com (`cfg.odds_api_key`); a handshake/escrow ledger to track who owes whom. Cache odds; do NOT hammer the API.
 3. **Deeper analysis** (`enable_analysis`) — luck/expected-wins (all-play record), power rankings, points distribution, "were you unlucky this week". Pure computation on Sleeper data.
-4. **Dev-seed build** (`dev_seed`) — serve seeded fixtures (drafted rosters, weekly matchups, stats) so the season UI can be developed off-season. A `seed/` fixture set + a switch in `sleeper.py` that reads fixtures instead of the network when `cfg.dev_seed`.
+4. ~~**Dev-seed build**~~ — removed 2026-09-17. Served seeded fixtures so the season UI could be built off-season; the season is live now, so the portal reads only real Sleeper data.
 
 ## Red-team focus (every round)
 - **Design critic**: cohesion, hierarchy, spacing, typography, color, alignment, mobile. Flag anything that reads as generic/AI or inconsistent with the almanac aesthetic.

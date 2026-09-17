@@ -6,8 +6,6 @@ only if request volume ever makes the race matter, which for a 12-person league 
 """
 
 import contextvars
-import json
-import pathlib
 import time
 
 import httpx
@@ -15,60 +13,16 @@ import httpx
 from config import cfg
 
 BASE = "https://api.sleeper.app/v1"
-SEED_DIR = pathlib.Path(__file__).parent / "seed"
 
-# Per-request override so a visitor can preview seeded season data via a cookie,
-# independent of the global cfg.dev_seed env flag. Set by web.py middleware.
-# Tri-state: None = defer to cfg.dev_seed; True/False = force seed/real (so _real() wins
-# even when cfg.dev_seed is on, e.g. local DEV_SEED=1 runs).
-seed_preview: contextvars.ContextVar[bool | None] = contextvars.ContextVar("seed_preview", default=None)
+# The league the current web request is viewing (set by web.py middleware from the
+# `league` cookie). Defaults to the bot's league so the bot and any non-request code
+# just work. web.py reads it via lid().
+active_league: contextvars.ContextVar[str] = contextvars.ContextVar("active_league", default=cfg.league_id)
 
 _cache: dict[str, tuple[float, object]] = {}
 
 
-def _seed(url: str):
-    """Map a Sleeper URL to a local fixture (dev_seed mode). Missing files fall
-    back to a shape-correct empty value so absent weeks/users never crash."""
-    parts = url[len(BASE):].strip("/").split("/")
-
-    def load(fname: str, fallback):
-        p = SEED_DIR / fname
-        return json.loads(p.read_text()) if p.exists() else fallback
-
-    if parts[0] == "league":
-        if len(parts) == 2:
-            return load("league.json", {})
-        sub = parts[2]
-        if sub == "users":
-            return load("users.json", [])
-        if sub == "rosters":
-            return load("rosters.json", [])
-        if sub == "matchups":
-            return load(f"matchups_{parts[3]}.json", [])
-        if sub == "transactions":
-            return load(f"transactions_{parts[3]}.json", [])
-        if sub == "drafts":
-            return load("drafts.json", [])
-    elif parts[0] == "draft":  # draft/{id}/picks
-        return load("draft_picks.json", [])
-    elif parts[0] == "state":
-        return load("nfl_state.json", {})
-    elif parts[0] == "players":
-        return load("players.json", {})
-    elif parts[0] == "stats":  # stats/nfl/regular/{season}[/{week}]
-        return load("week_stats.json", {}) if len(parts) >= 5 else load(f"stats_{parts[3]}.json", {})
-    elif parts[0] == "user":  # resolve handle -> user dict, or None
-        name = parts[1]
-        return next((u for u in load("users.json", []) if u.get("display_name") == name), None)
-    return None
-
-
 async def _get(url: str, ttl: float):
-    use_seed = seed_preview.get()  # tri-state: None defers to cfg.dev_seed
-    if use_seed is None:
-        use_seed = cfg.dev_seed
-    if use_seed:
-        return _seed(url)
     now = time.monotonic()
     hit = _cache.get(url)
     if hit and hit[0] > now:

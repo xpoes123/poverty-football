@@ -10,7 +10,7 @@ class Config(BaseSettings):
     shame_channel_id: int
     bet_channel_id: int | None = None  # where proposed h2h bets post for claiming; None = don't post
     results_channel_id: int | None = None  # weekly fantasy-results announcer; None = use shame channel
-    league_id: str = "1393861542625169408"  # Poverty Franchises
+    league_id: str = "1393861542625169408"  # Poverty Franchises — the bot's league + web default
     draft_date: date | None = date(2026, 9, 5)  # escalation ramps as this nears; env-overridable
     draft_time_label: str = "8 PM ET"  # shown next to the draft date
     join_url: str = "https://sleeper.com/i/LVlN2Jaz9Owb3"
@@ -33,7 +33,6 @@ class Config(BaseSettings):
     odds_api_key: str = ""            # legacy; NFL odds now come from SharpLab, not directly
     # Reuse SharpLab's odds pipeline instead of hitting the-odds-api ourselves (one quota, one poller).
     sharplab_slate_url: str = "https://sharplab.djiang.xyz/api/v1/dashboard/slate"
-    dev_seed: bool = False            # serve seeded fixtures instead of live Sleeper (off-season dev)
 
     @property
     def oauth_enabled(self) -> bool:
@@ -41,3 +40,14 @@ class Config(BaseSettings):
 
 
 cfg = Config()
+
+# The leagues David is in — powers the web portal's league dropdown. First is the default.
+# ponytail: hardcoded list (David's personal set); add a league by pasting one line.
+LEAGUES = [
+    {"id": "1393861542625169408", "name": "Poverty Franchises"},
+    {"id": "1401917797335879680", "name": "🪓 Touchdowns and Transactions"},
+    {"id": "1395399704828723200", "name": "Touchdowns and Transactions"},
+    {"id": "1395587120424316928", "name": "Fantasy Deployed Engineering"},
+    {"id": "1400294771536171008", "name": "SharpLabers"},
+]
+LEAGUE_IDS = {lg["id"] for lg in LEAGUES}

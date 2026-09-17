@@ -17,10 +17,11 @@
     <div class="site-header__bar">
       <p class="wordmark">Poverty <em>Franchises</em></p>
       <div class="bar-right">
-        <a class="seed-switch {{ 'on' if seed_on }}" href="/toggle-seed" role="switch" aria-checked="{{ 'true' if seed_on else 'false' }}" title="Preview seeded sample season data">
-          <span class="seed-switch__track"><span class="seed-switch__knob"></span></span>
-          <span class="seed-switch__label">Preview data</span>
-        </a>
+        <select class="league-picker" aria-label="Choose league" onchange="location.href='/switch-league/'+this.value">
+          {% for lg in leagues %}
+            <option value="{{ lg.id }}" {% if lg.id == current_league_id %}selected{% endif %}>{{ lg.name }}</option>
+          {% endfor %}
+        </select>
         <p class="season-tag">{{ season_tag }}</p>
       </div>
     </div>
@@ -42,10 +43,6 @@
     </nav>
   </div>
 </header>
-{% if seed_on %}
-<div class="preview-strip">Previewing sample season data — not real. <a href="/toggle-seed">Exit preview</a></div>
-{% endif %}
-
 {% block main %}{% endblock %}
 
 <footer class="site-footer">
