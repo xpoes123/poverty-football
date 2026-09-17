@@ -763,9 +763,11 @@ async def insights(request: Request):
     state = await get_nfl_state()
     current = state.get("week") or 1
     weeks = []
-    for wk in range(1, current + 1):
+    # Only completed weeks: the current NFL week is in progress (0 points → every
+    # matchup would read as a 0–0 tie), so stop at current-1 like the results announcer.
+    for wk in range(1, current):
         m = await get_matchups(lid(), wk)
-        if m:  # only weeks that actually have matchup data (played)
+        if m and any((e.get("points") or 0) > 0 for e in m):  # scored → actually played
             weeks.append(m)
     rows = views.luck_table(weeks, users, rosters)
     ctx["insights"] = rows
