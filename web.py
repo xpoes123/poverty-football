@@ -527,8 +527,16 @@ async def team_page(request: Request, roster_id: int, view: str = "roster"):
             scoring = league.get("scoring_settings") or {}
             _, stats = await _stats_season(get_player_stats)
             pos_ranks = views.positional_ranks(players, stats, scoring)
-            ctx["roster"] = views.roster_view(roster, players, stats, scoring,
-                                               league.get("roster_positions", []), pos_ranks)
+            positions = league.get("roster_positions", [])
+            ctx["roster"] = views.roster_view(roster, players, stats, scoring, positions, pos_ranks)
+            # Next-week lineup breakdown — only on your OWN team (needs Discord login).
+            if ctx.get("me_roster_id") == roster_id:
+                week = (await get_nfl_state()).get("week") or 1
+                season = league.get("season") or await _season()
+                proj_pts = {pid: views.fantasy_points(st, scoring)
+                            for pid, st in (await get_projections(season, week)).items()}
+                ctx["breakdown"] = views.next_week_breakdown(
+                    roster, rosters, players, proj_pts, positions, week)
     return templates.TemplateResponse(request, "team.html", ctx)
 
 

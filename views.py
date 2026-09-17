@@ -528,6 +528,118 @@ def roster_view(roster: dict, players: dict, stats: dict, scoring: dict,
     return {"starters": starters, "bench": bench}
 
 
+_FLEX_SLOTS = {
+    "FLEX": {"RB", "WR", "TE"},
+    "WRRB_FLEX": {"RB", "WR"},
+    "REC_FLEX": {"WR", "TE"},
+    "WRRB_WRT": {"RB", "WR", "TE"},
+    "SUPER_FLEX": {"QB", "RB", "WR", "TE"},
+}
+_OUT_STATUSES = {"Out", "IR", "Doubtful", "Sus", "PUP", "COV", "NA"}
+
+
+def _slot_elig(slot: str) -> set:
+    return _FLEX_SLOTS.get(slot, {slot})
+
+
+def _optimal_lineup(pool: list[str], pos_of: dict, proj: dict, slots: list[str]) -> list[tuple]:
+    """Best legal (slot, pid) assignment maximizing projected points. Fills the most
+    restrictive slots first, best-available each — optimal for the usual fixed+FLEX configs.
+    ponytail: greedy, not a full assignment solver; revisit only for exotic multi-flex slots."""
+    remaining = set(pool)
+    picks = []
+    for slot in sorted(slots, key=lambda s: len(_slot_elig(s))):
+        elig = _slot_elig(slot)
+        cand = [p for p in remaining if pos_of.get(p) in elig]
+        best = max(cand, key=lambda p: proj.get(p, 0.0), default=None)
+        picks.append((slot, best))
+        if best:
+            remaining.discard(best)
+    return picks
+
+
+def next_week_breakdown(roster: dict, all_rosters: list[dict], players: dict,
+                        proj: dict, roster_positions: list[str], week: int) -> dict:
+    """Projected lineup vs the optimal lineup, plus weaknesses, for the upcoming week.
+    `proj` is pid -> projected fantasy points (already scored). Pure, no I/O."""
+    import statistics
+    slots = [p for p in roster_positions if p != "BN"]
+    all_ids = [pid for pid in (roster.get("players") or []) if pid and pid != "0"]
+    starter_ids = [pid for pid in (roster.get("starters") or []) if pid and pid != "0"]
+    started = set(starter_ids)
+    bench_ids = [p for p in all_ids if p not in started]
+    pos_of = {pid: (players.get(pid) or {}).get("position") for pid in all_ids}
+
+    def pj(pid) -> float:
+        return round(proj.get(pid, 0.0), 1)
+
+    def line(pid, slot=None) -> dict:
+        pl = player_line(pid, players)
+        return {"slot": slot, "pid": pid, "n": pl["name"], "pos": pl["pos"],
+                "team": pl["team"] or "FA", "img": player_image(pid, pl["pos"], pl["team"]),
+                "proj": pj(pid), "status": (players.get(pid) or {}).get("injury_status") or ""}
+
+    def empty(slot) -> dict:
+        return {"slot": slot, "pid": None, "n": "—", "pos": "", "team": "", "img": None, "proj": 0.0, "status": ""}
+
+    current = [line(pid, slots[i] if i < len(slots) else "FLEX") for i, pid in enumerate(starter_ids)]
+    current_total = round(sum(pj(p) for p in starter_ids), 1)
+
+    opt = _optimal_lineup(all_ids, pos_of, proj, slots)
+    optimal = [line(pid, slot) if pid else empty(slot) for slot, pid in opt]
+    opt_ids = [pid for _, pid in opt if pid]
+    optimal_total = round(sum(pj(p) for p in opt_ids), 1)
+
+    weak = []
+
+    # 1) suboptimal starts — bench players who out-project a current starter
+    to_add = sorted((p for p in opt_ids if p not in started), key=pj, reverse=True)
+    to_drop = sorted((p for p in starter_ids if p not in set(opt_ids)), key=pj)
+    swaps = [{"start": player_line(a, players)["name"], "start_proj": pj(a),
+              "bench": player_line(d, players)["name"], "bench_proj": pj(d),
+              "delta": round(pj(a) - pj(d), 1)}
+             for a, d in zip(to_add, to_drop) if pj(a) - pj(d) > 0]
+    gain = round(optimal_total - current_total, 1)
+    if swaps and gain > 0.5:
+        weak.append({"kind": "suboptimal", "gain": gain, "swaps": swaps})
+
+    # 2) soft slots — a starter well below the league median at their position
+    league_by_pos: dict = {}
+    for r in all_rosters:
+        for pid in (r.get("starters") or []):
+            if pid and pid != "0" and (ps := (players.get(pid) or {}).get("position")) in FANTASY_POS:
+                league_by_pos.setdefault(ps, []).append(round(proj.get(pid, 0.0), 1))
+    med = {ps: statistics.median(v) for ps, v in league_by_pos.items() if v}
+    soft = [{"name": player_line(pid, players)["name"], "pos": ps, "proj": pj(pid),
+             "median": round(med[ps], 1)}
+            for pid in starter_ids
+            if (ps := pos_of.get(pid)) in med and pj(pid) < med[ps] - 3 and pj(pid) < med[ps] * 0.8]
+    if soft:
+        weak.append({"kind": "soft", "slots": soft})
+
+    # 3) inactive / bye / out among starters (no projection catches byes)
+    inactive = []
+    for pid in starter_ids:
+        st = (players.get(pid) or {}).get("injury_status") or ""
+        reason = st if st in _OUT_STATUSES else ("Bye / no projection" if pj(pid) <= 0 else None)
+        if reason:
+            inactive.append({"name": player_line(pid, players)["name"],
+                             "pos": pos_of.get(pid) or "", "reason": reason})
+    if inactive:
+        weak.append({"kind": "inactive", "players": inactive})
+
+    # 4) thin depth — a started position with no bench player to cover it
+    bench_pos = {ps for pid in bench_ids if (ps := pos_of.get(pid)) in FANTASY_POS}
+    started_pos = {ps for pid in starter_ids if (ps := pos_of.get(pid)) in ("QB", "RB", "WR", "TE")}
+    thin = sorted(started_pos - bench_pos)
+    if thin:
+        weak.append({"kind": "thin", "positions": thin})
+
+    return {"week": week, "current": current, "current_total": current_total,
+            "optimal": optimal, "optimal_total": optimal_total,
+            "points_left": round(optimal_total - current_total, 1), "weaknesses": weak}
+
+
 def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], users: list[dict]) -> list[dict]:
     """The franchise's week-by-week matchups: opponent, score, result — most recent first."""
     by_uid = {u["user_id"]: u for u in users}
