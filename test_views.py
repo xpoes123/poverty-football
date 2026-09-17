@@ -1,5 +1,33 @@
-from views import (draft_board, initials, luck_table, positional_ranks, record_str,
-                   roster_view, scoreboard, standings, team_name, team_schedule, win_pct)
+from views import (draft_board, initials, luck_table, next_week_breakdown, positional_ranks,
+                   record_str, roster_view, scoreboard, standings, team_name, team_schedule, win_pct)
+
+
+def test_next_week_breakdown_optimal_and_weaknesses():
+    players = {
+        "qb": {"full_name": "QB One", "position": "QB", "team": "KC"},
+        "rb1": {"full_name": "RB One", "position": "RB", "team": "SF"},
+        "rb2": {"full_name": "RB Two", "position": "RB", "team": "DAL"},  # benched but better
+        "wr1": {"full_name": "WR One", "position": "WR", "team": "CIN"},
+        "wrx": {"full_name": "WR Out", "position": "WR", "team": "BUF", "injury_status": "Out"},
+        "te1": {"full_name": "TE One", "position": "TE", "team": "GB"},
+    }
+    # slots: QB, RB, WR, FLEX, TE (+ bench). Manager starts the weaker RB and an Out WR.
+    positions = ["QB", "RB", "WR", "FLEX", "TE", "BN"]
+    roster = {"roster_id": 1, "starters": ["qb", "rb1", "wrx", "rb2", "te1"],
+              "players": ["qb", "rb1", "rb2", "wr1", "wrx", "te1"]}
+    proj = {"qb": 20.0, "rb1": 8.0, "rb2": 14.0, "wr1": 12.0, "wrx": 0.0, "te1": 6.0}
+    # a second roster so the league median exists
+    other = {"roster_id": 2, "starters": ["wr1"], "players": ["wr1"]}
+    b = next_week_breakdown(roster, [roster, other], players, proj, positions, week=3)
+
+    # current = qb20 + rb1 8 + wrx 0 + rb2 14 + te1 6 = 48; optimal swaps in wr1(12) for wrx(0)
+    assert b["current_total"] == 48.0
+    assert b["optimal_total"] == 60.0
+    assert b["points_left"] == 12.0
+    kinds = {w["kind"] for w in b["weaknesses"]}
+    assert "suboptimal" in kinds        # wr1 should start over wrx
+    assert "inactive" in kinds          # wrx is Out
+    assert "thin" in kinds              # no bench QB/TE backup
 
 
 def test_draft_board_orders_by_search_rank_and_filters():

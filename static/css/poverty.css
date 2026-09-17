@@ -172,6 +172,19 @@ a.slot:hover .slot__name{color:var(--gold-bright)}
 .slot__avg.loss{color:#c9776b}
 .slot__rank{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .slot--bench{background:rgba(243,238,227,.015)}
+/* my-team next-week outlook */
+.outlook{margin:0 0 26px}
+.outlook__totals{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:16px}
+.outlook__stat{background:var(--surface);padding:13px 15px 15px;text-align:center}
+.slot--empty{opacity:.5}
+.slot--empty .slot__name{font-family:var(--serif);color:var(--muted)}
+.weak{margin-top:16px}
+.weak__card{background:var(--surface);border:1px solid var(--rule);border-left:2px solid var(--gold-dim);padding:12px 15px 13px;margin-bottom:8px}
+.weak__title{font-family:var(--serif);font-size:14px;color:var(--bone)}
+.weak__list{list-style:none;margin:7px 0 0;padding:0;display:flex;flex-direction:column;gap:5px}
+.weak__list li{font-size:12.5px;line-height:1.35;color:var(--bone-dim)}
+.weak__body{font-size:12.5px;color:var(--bone-dim);margin-top:5px}
+.outlook .loss,.weak .loss{color:#c9776b}
 .slot--bench .slot__pos{color:var(--muted)}
 .slot--bench .slot__name{color:var(--bone-dim);font-size:14.5px}
 

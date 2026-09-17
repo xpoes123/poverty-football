@@ -39,6 +39,56 @@
           <div class="empty"><h3>No games played yet</h3><p>This franchise's weekly results appear here once the season is underway.</p></div>
         {% endif %}
       {% else %}
+        {% if breakdown %}
+          <section class="outlook">
+            <div class="outlook__totals">
+              <div class="outlook__stat"><p class="stat__label">Your projected</p><p class="stat__value">{{ breakdown.current_total }}</p></div>
+              <div class="outlook__stat"><p class="stat__label">Optimal</p><p class="stat__value">{{ breakdown.optimal_total }}</p></div>
+              <div class="outlook__stat"><p class="stat__label">On your bench</p><p class="stat__value {{ 'loss' if breakdown.points_left > 0 }}">{% if breakdown.points_left > 0 %}+{% endif %}{{ breakdown.points_left }}</p></div>
+            </div>
+
+            <div class="lineup">
+              <p class="group-label"><span>Week {{ breakdown.week }} · Optimal lineup</span><span>Proj</span></p>
+              {% for pl in breakdown.optimal %}
+                {% if pl.pid %}
+                  <a class="slot" href="/player/{{ pl.pid }}">
+                    <span class="slot__pos">{{ pl.slot }}</span>
+                    <span class="slot__player">{% if pl.img %}<img class="slot-face" src="{{ pl.img }}" onerror="this.onerror=null;this.src='/static/default-team.svg'" alt="" loading="lazy">{% endif %}<span class="slot__text"><span class="slot__name">{{ pl.n }}</span><span class="slot__meta">{{ pl.pos }} · {{ pl.team }}{% if pl.status %} · {{ pl.status }}{% endif %}</span></span></span>
+                    <span class="slot__stats"><span class="slot__avg">{{ pl.proj }}</span></span>
+                  </a>
+                {% else %}
+                  <div class="slot slot--empty"><span class="slot__pos">{{ pl.slot }}</span><span class="slot__player"><span class="slot__name">— no eligible player —</span></span><span class="slot__stats"><span class="slot__avg">0.0</span></span></div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            {% if breakdown.weaknesses %}
+              <div class="weak">
+                <p class="group-label"><span>Lineup weaknesses</span></p>
+                {% for w in breakdown.weaknesses %}
+                  {% if w.kind == 'suboptimal' %}
+                    <div class="weak__card"><p class="weak__title">Leaving <b>+{{ w.gain }}</b> on your bench</p>
+                      <ul class="weak__list">{% for s in w.swaps %}<li>Start <b>{{ s.start }}</b> ({{ s.start_proj }}) over {{ s.bench }} ({{ s.bench_proj }}) — <span class="loss">+{{ s.delta }}</span></li>{% endfor %}</ul>
+                    </div>
+                  {% elif w.kind == 'soft' %}
+                    <div class="weak__card"><p class="weak__title">Below the league median at their spot</p>
+                      <ul class="weak__list">{% for s in w.slots %}<li><b>{{ s.name }}</b> ({{ s.pos }}) projects {{ s.proj }} · league median {{ s.median }}</li>{% endfor %}</ul>
+                    </div>
+                  {% elif w.kind == 'inactive' %}
+                    <div class="weak__card"><p class="weak__title">Starters who may not play</p>
+                      <ul class="weak__list">{% for p in w.players %}<li><b>{{ p.name }}</b> ({{ p.pos }}) — {{ p.reason }}</li>{% endfor %}</ul>
+                    </div>
+                  {% elif w.kind == 'thin' %}
+                    <div class="weak__card"><p class="weak__title">No bench depth</p>
+                      <p class="weak__body">No backup on your bench at: <b>{{ w.positions|join(', ') }}</b></p>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </section>
+        {% endif %}
+
         <div class="lineup">
           <p class="group-label"><span>Starters</span><span>Avg · Rank</span></p>
           {% for pl in roster.starters %}
