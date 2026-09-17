@@ -7,7 +7,7 @@ Thin FastAPI layer: each route gathers Sleeper data (cached) → shapes it via v
 import datetime as dt
 import secrets
 import tomllib
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -24,8 +24,9 @@ import members
 import odds
 import espn
 import views
-from config import cfg
+from config import LEAGUES, LEAGUE_IDS, cfg
 from sleeper import (
+    active_league,
     get_draft_picks,
     get_drafts,
     get_league,
@@ -39,35 +40,57 @@ from sleeper import (
     get_transactions,
     get_users,
     resolve_user_id,
-    seed_preview,
 )
 
 app = FastAPI(title="Poverty Franchises")
 
 
-class SeedPreviewMiddleware:
-    """Lets a visitor preview seeded season data via a `seed_preview` cookie — per-session,
-    no restart, independent of the global cfg.dev_seed flag. Sets the request-scoped contextvar."""
+class ActiveLeagueMiddleware:
+    """Sets the request-scoped active league from the `league` cookie (validated against
+    the known list; unknown/absent → the default). Every Sleeper fetch reads it via lid()."""
 
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or cfg.dev_seed:
+        if scope["type"] != "http":
             return await self.app(scope, receive, send)
-        token = seed_preview.set(Request(scope).cookies.get("seed_preview") == "1")
+        cookie = Request(scope).cookies.get("league")
+        token = active_league.set(cookie if cookie in LEAGUE_IDS else cfg.league_id)
         try:
             await self.app(scope, receive, send)
         finally:
-            seed_preview.reset(token)
+            active_league.reset(token)
 
 
-app.add_middleware(SeedPreviewMiddleware)
+app.add_middleware(ActiveLeagueMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=cfg.session_secret, https_only=True, same_site="lax")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 TZ = ZoneInfo(cfg.timezone)
-LID = cfg.league_id
+
+
+def lid() -> str:
+    """The league the current request is viewing (see ActiveLeagueMiddleware)."""
+    return active_league.get()
+
+
+async def _season() -> str:
+    """Current NFL season year (e.g. '2026'), from Sleeper state."""
+    return (await get_nfl_state()).get("season") or str(dt.datetime.now(TZ).year)
+
+
+async def _stats_season(fetch):
+    """(season, stats) for the current season, falling back to last season when the
+    current one has no data yet (early weeks). `fetch` is get_player_stats-like."""
+    season = await _season()
+    stats = await fetch(season)
+    if not stats:
+        season = str(int(season) - 1)
+        stats = await fetch(season)
+    return season, stats
+
+
 DRAFT_HOUR = 20  # 8 PM ET, matches cfg.draft_time_label
 
 NAV = [("home", "/", "League"), ("players", "/draftboard", "Players"),
@@ -151,25 +174,23 @@ async def _me_roster_id(request: Request):
     uid = await resolve_user_id(handle)
     if not uid:
         return None
-    for r in await get_rosters(LID):
+    for r in await get_rosters(lid()):
         if r.get("owner_id") == uid or uid in (r.get("co_owners") or []):
             return r["roster_id"]
     return None
 
 
 async def _base_ctx(request: Request, active: str) -> dict:
-    league = await get_league(LID)
-    rosters = await get_rosters(LID)
+    league = await get_league(lid())
+    rosters = await get_rosters(lid())
     status, season = league["status"], league["season"]
     is_pre = status in ("pre_draft", "drafting")
     teams_in = sum(1 for r in rosters if r.get("owner_id"))
     total = league["total_rosters"]
-    seed_on = cfg.dev_seed or request.cookies.get("seed_preview") == "1"
     d = cfg.draft_date
     draft_line = f"{d:%b %-d}, {cfg.draft_time_label}" if d else "To be announced"
     target = dt.datetime.combine(d, dt.time(DRAFT_HOUR), tzinfo=TZ) if d else None
-    # preview pretends the season is underway, so a real draft countdown would contradict it
-    upcoming = target and target > dt.datetime.now(TZ) and not seed_on
+    upcoming = target and target > dt.datetime.now(TZ)
     me = await _me_roster_id(request)
     did = request.session.get("discord_id")
     is_admin = str(did) == cfg.admin_discord_id
@@ -190,7 +211,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "features": {"betting": cfg.enable_betting, "h2h": cfg.enable_h2h_betting,
                      "analysis": cfg.enable_analysis},
         "oauth_enabled": cfg.oauth_enabled,
-        "seed_on": seed_on,
+        "leagues": LEAGUES,
+        "current_league_id": lid(),
         "logged_in": bool(request.session.get("discord_id")),
         "me_roster_id": me,
         "my_team_href": f"/team/{me}" if me else None,
@@ -223,7 +245,7 @@ async def _tx_feed(users, rosters):
     state = await get_nfl_state()
     raw = []
     for wk in range(1, (state.get("week") or 1) + 1):
-        raw += await get_transactions(LID, wk)
+        raw += await get_transactions(lid(), wk)
     players = await get_players() if raw else {}
     feed = []
     for e in views.transactions(raw, rosters, users, players):
@@ -239,20 +261,13 @@ async def health():
     return {"ok": True}
 
 
-@app.get("/toggle-seed")
-async def toggle_seed(request: Request):
-    on = request.cookies.get("seed_preview") == "1"
-    # Redirect back to the referring page, but only its local path — never an
-    # attacker-supplied host (open-redirect guard; also proxy-safe behind Caddy).
-    ref = urlparse(request.headers.get("referer") or "/")
-    target = ref.path if ref.path.startswith("/") else "/"
-    if ref.query:
-        target += "?" + ref.query
-    resp = RedirectResponse(target, status_code=303)
-    if on:
-        resp.delete_cookie("seed_preview")
-    else:
-        resp.set_cookie("seed_preview", "1", max_age=86400, samesite="lax")
+@app.get("/switch-league/{league_id}")
+async def switch_league(league_id: str):
+    # Redirect home (not back): pages are league-scoped, so a deep link may not exist
+    # in the newly-selected league. Ignore unknown ids rather than trust the input.
+    resp = RedirectResponse("/", status_code=303)
+    if league_id in LEAGUE_IDS:
+        resp.set_cookie("league", league_id, max_age=31536000, samesite="lax")
     return resp
 
 
@@ -306,7 +321,7 @@ async def _next_kickoff(current: int) -> str | None:
         if not (1 <= wk <= 18):
             return []
         try:
-            data = espn.games(await espn.scoreboard(year=2025, week=wk))
+            data = espn.games(await espn.scoreboard(year=int(await _season()), week=wk))
         except Exception:
             return []
         return sorted(d for g in data["games"] if (d := _parse_iso(g.get("date"))))
@@ -330,17 +345,18 @@ async def _next_kickoff(current: int) -> str | None:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     ctx = await _base_ctx(request, "home")
-    users, rosters = await get_users(LID), await get_rosters(LID)
-    league = await get_league(LID)
+    users, rosters = await get_users(lid()), await get_rosters(lid())
+    league = await get_league(lid())
     ctx["playoff_teams"] = (league.get("settings") or {}).get("playoff_teams", 6)
 
     ctx["links"] = [
         {"label": "Join the League", "href": cfg.join_url, "external": True},
-        {"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{LID}", "external": True},
+        {"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{lid()}", "external": True},
     ]
     ctx["rows"] = _standings_rows(users, rosters)
     ctx["tx_feed"] = await _tx_feed(users, rosters) if ctx["has_season"] else []
-    ctx["dues"] = [] if ctx["seed_on"] else await _dues(users, rosters)  # real data only
+    # Dues come from the bot's expected.toml — Poverty Franchises only; blank for other leagues.
+    ctx["dues"] = await _dues(users, rosters) if lid() == cfg.league_id else []
     ctx["dues_paid"] = sum(1 for d in ctx["dues"] if d["paid"])
     countdown = None
     if ctx["is_pre"]:
@@ -354,7 +370,7 @@ async def home(request: Request):
         ctx["table_title"] = "Standings"
         ctx["through_label"] = f"Through Week {current}"
         # live scores of this week's matchups
-        scores = views.scoreboard(await get_matchups(LID, current), rosters, users)
+        scores = views.scoreboard(await get_matchups(lid(), current), rosters, users)
         ctx["week_scores"] = [{"a": g["sides"][0], "b": g["sides"][1] if len(g["sides"]) > 1 else None,
                                "winner": g["winner"],
                                "href": f"/matchup/{current}/{g['mid']}" if g.get("mid") is not None else None}
@@ -373,7 +389,7 @@ async def admin_page(request: Request):
     if str(request.session.get("discord_id")) != cfg.admin_discord_id:
         return RedirectResponse("/")  # admin only
     ctx = await _base_ctx(request, "admin")
-    joined = {u["user_id"] for u in await get_users(LID)}  # who's actually in the Sleeper league
+    joined = {u["user_id"] for u in await get_users(lid())}  # who's actually in the Sleeper league
     rows = []
     for i, m in enumerate(members.load()):
         uid = await resolve_user_id(m["sleeper"])
@@ -429,11 +445,7 @@ async def _board(request: Request, active: str, heading: str, base_href: str,
                  pos: str | None, exclude: set | None, subtab: str | None = None):
     ctx = await _base_ctx(request, active)
     players = await get_players()
-    season = "2025"
-    stats = await get_player_stats(season)
-    if not stats:
-        season = "2024"
-        stats = await get_player_stats(season)
+    season, stats = await _stats_season(get_player_stats)
     pos = pos if pos in views.FANTASY_POS else None
     rows = views.draft_board(players, stats, pos, exclude=exclude)
     ctx["players"] = rows
@@ -456,15 +468,15 @@ async def draftboard(request: Request, pos: str | None = None):
 @app.get("/draft", response_class=HTMLResponse)
 async def draft(request: Request):
     ctx = await _base_ctx(request, "players")
-    league = await get_league(LID)
+    league = await get_league(lid())
     picks = []
-    drafts = await get_drafts(LID)
+    drafts = await get_drafts(lid())
     did = (drafts[0].get("draft_id") if drafts else None) or league.get("draft_id")
     if did:
         picks = await get_draft_picks(did)
     ctx["rounds"] = []
     if picks:
-        users, rosters, players = await get_users(LID), await get_rosters(LID), await get_players()
+        users, rosters, players = await get_users(lid()), await get_rosters(lid()), await get_players()
         ctx["rounds"] = views.draft_results(picks, users, rosters, players)
     ctx["subtabs"] = _player_subtabs("draft")
     return templates.TemplateResponse(request, "draft.html", ctx)
@@ -472,14 +484,14 @@ async def draft(request: Request):
 
 @app.get("/freeagents", response_class=HTMLResponse)
 async def freeagents(request: Request, pos: str | None = None):
-    rosters = await get_rosters(LID)
+    rosters = await get_rosters(lid())
     rostered = {pid for r in rosters for pid in (r.get("players") or []) if pid}
     return await _board(request, "players", "Free Agents", "/freeagents", pos, exclude=rostered, subtab="freeagents")
 
 
 @app.get("/team/{roster_id}", response_class=HTMLResponse)
 async def team_page(request: Request, roster_id: int, view: str = "roster"):
-    users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
+    users, rosters, league = await get_users(lid()), await get_rosters(lid()), await get_league(lid())
     roster = next((r for r in rosters if r["roster_id"] == roster_id and r.get("owner_id")), None)
     if roster is None:
         return RedirectResponse("/")
@@ -509,11 +521,11 @@ async def team_page(request: Request, roster_id: int, view: str = "roster"):
         players = await get_players()
         if view == "schedule":
             current = (await get_nfl_state()).get("week") or 1
-            by_week = {wk: m for wk in range(1, current + 1) if (m := await get_matchups(LID, wk))}
+            by_week = {wk: m for wk in range(1, current + 1) if (m := await get_matchups(lid(), wk))}
             ctx["schedule"] = views.team_schedule(by_week, roster_id, rosters, users)
         else:
             scoring = league.get("scoring_settings") or {}
-            stats = await get_player_stats("2025")
+            _, stats = await _stats_season(get_player_stats)
             pos_ranks = views.positional_ranks(players, stats, scoring)
             ctx["roster"] = views.roster_view(roster, players, stats, scoring,
                                                league.get("roster_positions", []), pos_ranks)
@@ -523,20 +535,12 @@ async def team_page(request: Request, roster_id: int, view: str = "roster"):
 @app.get("/player/{pid}", response_class=HTMLResponse)
 async def player_profile(request: Request, pid: str):
     players = await get_players()
-    real = False
-    if pid not in players:  # e.g. a real NFL player linked from Games while in preview mode
-        players = await _real(get_players)
-        real = True
     p = players.get(pid)
     if p is None:
         return RedirectResponse("/draftboard")
     ctx = await _base_ctx(request, "")
-    season = "2025"
-    fetch_stats = (lambda s: _real(get_player_stats, s)) if real else get_player_stats
-    st = (await fetch_stats(season)).get(pid, {})
-    if not st:
-        season = "2024"
-        st = (await fetch_stats(season)).get(pid, {})
+    season, stats = await _stats_season(get_player_stats)
+    st = stats.get(pid, {})
     position = p.get("position") or ""
     name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
     espn_id = p.get("espn_id") or await espn.resolve_athlete(name, p.get("team"))
@@ -559,7 +563,7 @@ async def player_profile(request: Request, pid: str):
     if espn_id:
         try:
             gl = await espn.gamelog(espn_id)
-            scoring = (await get_league(LID)).get("scoring_settings") or {}
+            scoring = (await get_league(lid())).get("scoring_settings") or {}
             ctx["game_table"] = espn.game_table(gl, scoring, position)
         except Exception:
             pass
@@ -598,11 +602,7 @@ async def compare(request: Request, a: str, b: str | None = None):
     players = await get_players()
     if a not in players:
         return RedirectResponse("/draftboard")
-    season = "2025"
-    stats = await get_player_stats(season)
-    if not stats:
-        season = "2024"
-        stats = await get_player_stats(season)
+    season, stats = await _stats_season(get_player_stats)
     ctx = await _base_ctx(request, "")
     ctx["season_stat"] = season
     ctx["a"] = _profile(a, players, stats.get(a, {}), season)
@@ -616,8 +616,8 @@ async def schedule(request: Request, week: int | None = None):
     state = await get_nfl_state()
     current = state.get("week") or 1
     week = week or current
-    users, rosters = await get_users(LID), await get_rosters(LID)
-    games = views.scoreboard(await get_matchups(LID, week), rosters, users)
+    users, rosters = await get_users(lid()), await get_rosters(lid())
+    games = views.scoreboard(await get_matchups(lid(), week), rosters, users)
     upcoming = not ctx["is_pre"] and week > current  # fixtures exist but no results yet
 
     matchups = []
@@ -655,17 +655,15 @@ async def schedule(request: Request, week: int | None = None):
 @app.get("/games", response_class=HTMLResponse)
 async def games_page(request: Request, week: int | None = None):
     ctx = await _base_ctx(request, "games")
-    # In preview we simulate being at the seed's current week, so later weeks read as unplayed —
-    # matching the fantasy Schedule instead of showing the whole 2025 season as final.
-    current = (await get_nfl_state()).get("week") if ctx["seed_on"] else None
-    wk = week if week and 1 <= week <= 18 else (current or 1)
+    current = (await get_nfl_state()).get("week") or 1
+    wk = week if week and 1 <= week <= 18 else current
     try:
-        data = espn.games(await espn.scoreboard(year=2025, week=wk))
+        data = espn.games(await espn.scoreboard(year=int(await _season()), week=wk))
     except Exception:
         data = {"games": [], "week": wk}
     games = data["games"]
-    upcoming = bool(current) and wk > current
-    if upcoming:  # strip results — these games "haven't happened yet" in the preview
+    upcoming = wk > current
+    if upcoming:  # future week — games haven't happened yet; show as scheduled
         for g in games:
             g["away"]["score"] = g["home"]["score"] = None
             g["away"]["winner"] = g["home"]["winner"] = False
@@ -674,17 +672,8 @@ async def games_page(request: Request, week: int | None = None):
     ctx["upcoming"] = upcoming
     ctx["nfl_week"] = data["week"] or wk
     ctx["weeks"] = [{"href": f"/games?week={w}", "label": str(w), "current": w == wk,
-                     "done": bool(current) and w <= current} for w in range(1, 19)]
+                     "done": w <= current} for w in range(1, 19)]
     return templates.TemplateResponse(request, "games.html", ctx)
-
-
-async def _real(fn, *args):
-    """Run a Sleeper fetch with the preview-seed override forced off (real data)."""
-    token = seed_preview.set(False)
-    try:
-        return await fn(*args)
-    finally:
-        seed_preview.reset(token)
 
 
 @app.get("/game/{eid}", response_class=HTMLResponse)
@@ -697,19 +686,19 @@ async def game_page(request: Request, eid: str, week: int | None = None, pos: st
     if detail is None:
         return RedirectResponse("/games")
     wk = week if week and 1 <= week <= 18 else 1
-    users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
+    users, rosters, league = await get_users(lid()), await get_rosters(lid()), await get_league(lid())
     scoring = league.get("scoring_settings") or {}
-    real_players = await _real(get_players)  # real NFL players; franchise ownership stays seed-aware
-    # In preview, a game past the current week hasn't happened yet -> show projections, not results.
-    current = (await get_nfl_state()).get("week") if ctx["seed_on"] else None
-    preview = bool(current) and wk > current
+    real_players = await get_players()
+    season = league.get("season") or await _season()
+    current = (await get_nfl_state()).get("week") or 1
+    preview = wk > current  # future week — no results yet, show projections
     if preview:
-        stats = await get_projections(league.get("season", "2025"), wk)
+        stats = await get_projections(season, wk)
         detail["away"]["score"] = detail["home"]["score"] = None
         detail["away"]["winner"] = detail["home"]["winner"] = False
         detail["status"] = views.kick_label(detail.get("date"), full=True) or "Scheduled"
     else:
-        stats = await _real(get_week_stats, "2025", wk)
+        stats = await get_week_stats(season, wk)
     groups = views.game_players(detail["away"]["abbr"], detail["home"]["abbr"], stats,
                                 real_players, rosters, users, scoring)
     ctx["g"] = detail
@@ -733,11 +722,11 @@ async def game_page(request: Request, eid: str, week: int | None = None, pos: st
 
 @app.get("/matchup/{week}/{mid}", response_class=HTMLResponse)
 async def matchup(request: Request, week: int, mid: int):
-    users, rosters, league = await get_users(LID), await get_rosters(LID), await get_league(LID)
+    users, rosters, league = await get_users(lid()), await get_rosters(lid()), await get_league(lid())
     players = await get_players()
     positions = league.get("roster_positions", [])
-    season = league.get("season", "2025")
-    matchups = await get_matchups(LID, week)
+    season = league.get("season") or await _season()
+    matchups = await get_matchups(lid(), week)
     current = (await get_nfl_state()).get("week") or 1
     ctx = await _base_ctx(request, "schedule")
     ctx.update(week=week, back=f"/schedule?week={week}")
@@ -770,12 +759,12 @@ async def insights(request: Request):
     if not cfg.enable_analysis:
         return RedirectResponse("/")
     ctx = await _base_ctx(request, "insights")
-    users, rosters = await get_users(LID), await get_rosters(LID)
+    users, rosters = await get_users(lid()), await get_rosters(lid())
     state = await get_nfl_state()
     current = state.get("week") or 1
     weeks = []
     for wk in range(1, current + 1):
-        m = await get_matchups(LID, wk)
+        m = await get_matchups(lid(), wk)
         if m:  # only weeks that actually have matchup data (played)
             weeks.append(m)
     rows = views.luck_table(weeks, users, rosters)
@@ -792,7 +781,7 @@ async def bets(request: Request):
         return RedirectResponse("/")
     ctx = await _base_ctx(request, "gamble")
     ctx["subtabs"] = _gamble_subtabs("bets")
-    users, rosters = await get_users(LID), await get_rosters(LID)
+    users, rosters = await get_users(lid()), await get_rosters(lid())
     by_id = {u["user_id"]: u for u in users}
     owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
     state = await get_nfl_state()
@@ -801,7 +790,7 @@ async def bets(request: Request):
     # Settled results across every played week (matchup_result is None until a game is decided).
     results, cur_week = {}, []
     for wk in range(1, current + 1):
-        m = await get_matchups(LID, wk)
+        m = await get_matchups(lid(), wk)
         if wk == current:
             cur_week = m
         for rid in owner_of:
@@ -864,7 +853,7 @@ async def place_bet(request: Request):
     current = state.get("week") or 1
     if stake <= 0 or week != current:
         return RedirectResponse("/bets", 303)
-    if betting.matchup_result(await get_matchups(LID, current), me) is not None:
+    if betting.matchup_result(await get_matchups(lid(), current), me) is not None:
         return RedirectResponse("/bets", 303)  # week already decided — no wagering
     try:
         betting.place_bet(me, current, stake)
@@ -879,7 +868,7 @@ async def h2h_page(request: Request):
         return RedirectResponse("/")
     ctx = await _base_ctx(request, "gamble")
     ctx["subtabs"] = _gamble_subtabs("h2h")
-    users, rosters = await get_users(LID), await get_rosters(LID)
+    users, rosters = await get_users(lid()), await get_rosters(lid())
     by_id = {u["user_id"]: u for u in users}
     owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
 
@@ -887,7 +876,7 @@ async def h2h_page(request: Request):
     # team logos + match each game to its ESPN event id (by team name) so a card links to /game
     current = (await get_nfl_state()).get("week") or 1
     try:
-        espn_games = espn.games(await espn.scoreboard(year=2025, week=current))["games"]
+        espn_games = espn.games(await espn.scoreboard(year=int(await _season()), week=current))["games"]
     except Exception:
         espn_games = []
     eid_by_teams = {(g["home"]["name"], g["away"]["name"]): g["id"] for g in espn_games}

@@ -1,20 +1,16 @@
 """NFL game odds read layer (flag: cfg.enable_h2h_betting).
 
 Odds are recycled from SharpLab's pipeline (it already ingests the-odds-api with central
-quota management) via its slate endpoint — we don't hit the-odds-api ourselves. cfg.dev_seed
-swaps the network for a local fixture so the in-season UI can be built off-season. Any error
+quota management) via its slate endpoint — we don't hit the-odds-api ourselves. Any error
 degrades to the last good board (or empty) — never a crash. Call only from the route.
 """
 
-import json
-import pathlib
 import time
 
 import httpx
 
 from config import cfg
 
-SEED_DIR = pathlib.Path(__file__).parent / "seed"
 _cache: dict[str, tuple[float, object]] = {}
 _BOOK_PREF = ("draftkings", "fanduel", "betmgm", "caesars")  # which book's line to show
 
@@ -55,11 +51,7 @@ def _to_oddsapi_shape(slate_games: list[dict]) -> list[dict]:
 async def get_nfl_odds() -> list[dict]:
     """This week's NFL games with odds, the-odds-api v4 shape (h2h.games() consumes it).
 
-    dev_seed → local fixture; else SharpLab's slate feed, cached. Errors degrade to the
-    last good board (or empty)."""
-    if cfg.dev_seed:
-        p = SEED_DIR / "nfl_odds.json"
-        return json.loads(p.read_text()) if p.exists() else []
+    SharpLab's slate feed, cached. Errors degrade to the last good board (or empty)."""
     url = cfg.sharplab_slate_url
     now = time.monotonic()
     hit = _cache.get(url)
