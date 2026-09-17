@@ -45,7 +45,6 @@ cfg = Config()
 # ponytail: hardcoded list (David's personal set); add a league by pasting one line.
 LEAGUES = [
     {"id": "1393861542625169408", "name": "Poverty Franchises"},
-    {"id": "1401917797335879680", "name": "🪓 Touchdowns and Transactions"},
     {"id": "1395399704828723200", "name": "Touchdowns and Transactions"},
     {"id": "1395587120424316928", "name": "Fantasy Deployed Engineering"},
     {"id": "1400294771536171008", "name": "SharpLabers"},
