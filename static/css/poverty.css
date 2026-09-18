@@ -187,6 +187,13 @@ a.dues__who:hover .dues__name{color:var(--gold-bright)}
 .trade-player__name{font-family:var(--serif);font-size:14px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .trade-player__meta{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .trade-player__proj{font-family:var(--serif);color:var(--gold-bright);font-variant-numeric:tabular-nums}
+/* recaps */
+.recap{margin-bottom:16px}
+.recap__games{border:1px solid var(--rule);border-top:none}
+.recap__line{padding:8px 14px;background:var(--surface);border-top:1px solid var(--rule);font-size:13px;color:var(--bone-dim)}
+.recap__line b{color:var(--bone)}
+.recap__def{color:var(--muted);font-size:11px}
+.recap__margin{color:var(--gold);font-variant-numeric:tabular-nums;float:right}
 .side[data-winner="true"]{border-left-color:var(--gold)}
 .side[data-winner="true"] .side__name{color:var(--bone)}
 .side[data-winner="true"] .side__score{color:var(--gold-bright)}

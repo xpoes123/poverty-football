@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Recaps{% endblock %}
+{% block main %}
+<main class="page" data-page="recaps" id="main" data-screen-label="Recaps">
+  <div class="wrap">
+    {% if subtabs %}<nav class="subtabs" aria-label="Insights views">{% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}</nav>{% endif %}
+    <div class="section-head"><h2>Weekly Recaps</h2><p>results archive</p></div>
+
+    {% if has_games %}
+      {% for r in recaps %}
+      <div class="recap">
+        <p class="group-label"><span>Week {{ r.week }}</span>{% if r.extremes %}<span>High {{ '%.1f'|format(r.extremes.high) }} · Low {{ '%.1f'|format(r.extremes.low) }}</span>{% endif %}</p>
+        <div class="recap__games">
+          {% for g in r.lines %}
+            {% if g.tie %}
+            <p class="recap__line">🤝 <b>{{ g.a }}</b> {{ '%.1f'|format(g.pa) }} · <b>{{ g.b }}</b> {{ '%.1f'|format(g.pb) }}</p>
+            {% else %}
+            <p class="recap__line">🏆 <b>{{ g.winner }}</b> {{ '%.1f'|format(g.ws) }} <span class="recap__def">def.</span> {{ g.loser }} {{ '%.1f'|format(g.ls) }} <span class="recap__margin">+{{ '%.1f'|format(g.margin) }}</span></p>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="empty"><h3>No games yet</h3><p>Weekly recaps appear once games are played.</p></div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

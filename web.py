@@ -22,6 +22,7 @@ import h2h
 import members
 import odds
 import espn
+import results
 import views
 from config import LEAGUES, LEAGUE_IDS, cfg, league_cfg
 from sleeper import (
@@ -117,7 +118,9 @@ def _insights_subtabs(active: str):
     return [{"label": "Luck", "href": "/insights", "current": active == "luck"},
             {"label": "Playoff Odds", "href": "/playoffs", "current": active == "playoffs"},
             {"label": "Power", "href": "/power", "current": active == "power"},
-            {"label": "Records", "href": "/records", "current": active == "records"}]
+            {"label": "Records", "href": "/records", "current": active == "records"},
+            {"label": "Recaps", "href": "/recaps", "current": active == "recaps"},
+            {"label": "Rivalry", "href": "/rivalry", "current": active == "rivalry"}]
 
 
 async def _played_weeks() -> list[tuple]:
@@ -375,7 +378,8 @@ async def home(request: Request):
     league = await get_league(lid())
     ctx["playoff_teams"] = (league.get("settings") or {}).get("playoff_teams", 6)
 
-    ctx["links"] = [{"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{lid()}", "external": True}]
+    ctx["links"] = [{"label": "League Rules", "href": "/rules", "external": False},
+                    {"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{lid()}", "external": True}]
     if ctx.get("join_url"):  # only leagues with a known invite link
         ctx["links"].insert(0, {"label": "Join the League", "href": ctx["join_url"], "external": True})
     ctx["rows"] = _standings_rows(users, rosters)
@@ -938,6 +942,51 @@ async def records(request: Request):
         ctx["awards"] = views.weekly_awards(wk, ms, users, rosters, players)
         ctx["awards_week"] = wk
     return templates.TemplateResponse(request, "records.html", ctx)
+
+
+@app.get("/recaps", response_class=HTMLResponse)
+async def recaps(request: Request):
+    if not cfg.enable_analysis:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "insights")
+    users, rosters = await get_users(lid()), await get_rosters(lid())
+    ctx["subtabs"] = _insights_subtabs("recaps")
+    recap = []
+    for wk, ms in reversed(await _played_weeks()):  # newest week first
+        ann = results.announcement(views.scoreboard(ms, rosters, users), wk)
+        if ann:
+            recap.append(ann)
+    ctx["recaps"] = recap
+    ctx["has_games"] = bool(recap)
+    return templates.TemplateResponse(request, "recaps.html", ctx)
+
+
+@app.get("/rivalry", response_class=HTMLResponse)
+async def rivalry(request: Request, a: int | None = None, b: int | None = None):
+    if not cfg.enable_analysis:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "insights")
+    ctx["subtabs"] = _insights_subtabs("rivalry")
+    users, rosters = await get_users(lid()), await get_rosters(lid())
+    owned = [r for r in rosters if r.get("owner_id")]
+    by_uid = {u["user_id"]: u for u in users}
+    picker = sorted(({"roster_id": r["roster_id"], "name": views.team_name(by_uid.get(r["owner_id"]))}
+                     for r in owned), key=lambda x: x["name"].lower())
+    ctx["teams"] = picker
+    if len(picker) >= 2:
+        ids = {p["roster_id"] for p in picker}
+        a = a if a in ids else (ctx.get("me_roster_id") if ctx.get("me_roster_id") in ids else picker[0]["roster_id"])
+        b = b if b in ids else next((p["roster_id"] for p in picker if p["roster_id"] != a), a)
+        ctx["a_id"], ctx["b_id"] = a, b
+        ctx["rivalry"] = views.rivalry(await _played_weeks(), a, b, users, rosters)
+    return templates.TemplateResponse(request, "rivalry.html", ctx)
+
+
+@app.get("/rules", response_class=HTMLResponse)
+async def rules(request: Request):
+    ctx = await _base_ctx(request, "home")
+    ctx["rules"] = views.league_rules(await get_league(lid()))
+    return templates.TemplateResponse(request, "rules.html", ctx)
 
 
 @app.get("/playoffs", response_class=HTMLResponse)

@@ -3,6 +3,26 @@ from views import (draft_board, initials, luck_table, next_week_breakdown, playo
                    scoreboard, standings, team_name, team_schedule, weekly_awards, win_pct)
 
 
+def test_rivalry_and_league_rules():
+    from views import league_rules, rivalry
+    users = [{"user_id": "u1", "display_name": "A"}, {"user_id": "u2", "display_name": "B"}]
+    rosters = [{"roster_id": 1, "owner_id": "u1"}, {"roster_id": 2, "owner_id": "u2"}]
+    wk1 = [{"roster_id": 1, "matchup_id": 1, "points": 110.0}, {"roster_id": 2, "matchup_id": 1, "points": 100.0}]
+    wk2 = [{"roster_id": 1, "matchup_id": 1, "points": 80.0}, {"roster_id": 2, "matchup_id": 1, "points": 130.0}]
+    riv = rivalry([(1, wk1), (2, wk2)], 1, 2, users, rosters)
+    assert riv["a_wins"] == 1 and riv["b_wins"] == 1 and riv["ties"] == 0
+    assert riv["avg_margin"] == 30.0 and len(riv["meetings"]) == 2  # margins 10 and 50 → avg 30
+
+    rules = league_rules({"scoring_settings": {"rec": 1, "pass_td": 4, "ignored_key": 9},
+                          "roster_positions": ["QB", "RB", "RB", "FLEX", "BN", "BN"],
+                          "settings": {"playoff_teams": 6, "playoff_week_start": 15, "waiver_type": 2}})
+    assert rules["ppr"] == 1 and rules["bench"] == 2 and rules["playoff_teams"] == 6
+    assert rules["waiver_type"] == "FAAB"
+    labels = [lbl for lbl, _ in rules["scoring"]]
+    assert "Reception (PPR)" in labels and "Passing TD" in labels and "ignored_key" not in labels
+    assert any("2× RB" in s for s in rules["roster"])
+
+
 def test_trade_side_projections_and_starter_total():
     from views import trade_side
     players = {"a": {"full_name": "Stud", "position": "RB", "team": "SF"},
