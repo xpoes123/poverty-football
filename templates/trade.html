@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Trade Analyzer{% endblock %}
+{% block main %}
+<main class="page" data-page="trade" id="main" data-screen-label="Trade Analyzer">
+  <div class="wrap">
+    <div class="section-head"><h2>Trade Analyzer</h2><p>next-week projections</p></div>
+    {% if subtabs %}<nav class="subtabs" aria-label="Players views">{% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}</nav>{% endif %}
+
+    {% if teams %}
+    <form class="trade-pick" method="get" action="/trade">
+      <label>Team A
+        <select name="a" onchange="this.form.submit()">
+          {% for t in teams %}<option value="{{ t.roster_id }}" {{ 'selected' if t.roster_id == a_id }}>{{ t.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Team B
+        <select name="b" onchange="this.form.submit()">
+          {% for t in teams %}<option value="{{ t.roster_id }}" {{ 'selected' if t.roster_id == b_id }}>{{ t.name }}</option>{% endfor %}
+        </select>
+      </label>
+    </form>
+
+    <p class="trade-swing" id="swing">Select players on each side to see the projected swing.</p>
+
+    <div class="trade-grid">
+      {% for side, name, key in [(side_a, a_name, 'a'), (side_b, b_name, 'b')] %}
+      <div class="trade-col" data-side="{{ key }}">
+        <p class="group-label"><span>{{ name }}</span><span>Proj</span></p>
+        {% for p in side.players %}
+        <label class="trade-player{{ ' is-starter' if p.starter }}">
+          <input type="checkbox" class="trade-cb" data-side="{{ key }}" data-proj="{{ p.proj }}">
+          <span class="trade-player__text"><span class="trade-player__name">{{ p.n }}</span><span class="trade-player__meta">{{ p.pos }} · {{ p.team }}{{ ' · starter' if p.starter }}</span></span>
+          <span class="trade-player__proj">{{ p.proj }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty"><h3>No teams yet</h3><p>The trade analyzer needs drafted rosters.</p></div>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+(() => {
+  const swing = document.getElementById('swing');
+  if (!swing) return;
+  const sum = side => [...document.querySelectorAll('.trade-cb[data-side="' + side + '"]:checked')]
+    .reduce((t, c) => t + parseFloat(c.dataset.proj || 0), 0);
+  const update = () => {
+    const a = sum('a'), b = sum('b');
+    if (!a && !b) { swing.textContent = 'Select players on each side to see the projected swing.'; swing.className = 'trade-swing'; return; }
+    const net = a - b;  // what A gives up minus what A gets back
+    const gains = net < 0 ? 'A' : net > 0 ? 'B' : null;
+    swing.textContent = 'A sends ' + a.toFixed(1) + ' proj · B sends ' + b.toFixed(1) + ' proj · '
+      + (gains ? 'Team ' + gains + ' gains ' + Math.abs(net).toFixed(1) : 'even trade');
+    swing.className = 'trade-swing' + (gains ? ' active' : '');
+  };
+  document.querySelectorAll('.trade-cb').forEach(c => c.addEventListener('change', update));
+})();
+</script>
+{% endblock %}

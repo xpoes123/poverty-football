@@ -3,6 +3,19 @@ from views import (draft_board, initials, luck_table, next_week_breakdown, playo
                    scoreboard, standings, team_name, team_schedule, weekly_awards, win_pct)
 
 
+def test_trade_side_projections_and_starter_total():
+    from views import trade_side
+    players = {"a": {"full_name": "Stud", "position": "RB", "team": "SF"},
+               "b": {"full_name": "Flex", "position": "WR", "team": "KC"},
+               "c": {"full_name": "Benchie", "position": "TE", "team": "GB"}}
+    roster = {"starters": ["a", "b"], "players": ["a", "b", "c"]}
+    proj = {"a": 18.0, "b": 11.0, "c": 4.0}
+    side = trade_side(roster, players, proj)
+    assert [p["n"] for p in side["players"]] == ["Stud", "Flex", "Benchie"]  # sorted by proj
+    assert side["players"][0]["starter"] and not side["players"][2]["starter"]
+    assert side["starter_total"] == 29.0  # 18 + 11, bench excluded
+
+
 def test_win_pct_and_scoring_model():
     import pytest
     from views import matchup_win_pct, scoring_model

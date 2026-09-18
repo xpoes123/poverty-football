@@ -14,6 +14,20 @@
     </nav>
     {% endif %}
 
+    {% if trending %}
+    <div class="trending">
+      <p class="trending__label">Trending adds</p>
+      <div class="trending__row">
+        {% for t in trending %}
+        <a class="trending__pill" href="/player/{{ t.pid }}">
+          <span class="trending__name">{{ t.name }}</span>
+          <span class="trending__meta">{{ t.pos }} · {{ t.team }} · {{ t.proj }} proj · +{{ t.adds }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <div class="search-panel board-search">
       <input type="search" id="playersearch" placeholder="Search by player or team…"
              autocomplete="off" aria-label="Search players by name or team">
