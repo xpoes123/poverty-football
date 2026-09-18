@@ -37,6 +37,7 @@ from sleeper import (
     get_week_stats,
     get_rosters,
     get_transactions,
+    get_trending_adds,
     get_users,
     resolve_user_id,
 )
@@ -99,7 +100,8 @@ NAV = [("home", "/", "League"), ("players", "/draftboard", "Players"),
 def _player_subtabs(active: str):
     return [{"label": "Rankings", "href": "/draftboard", "current": active == "rankings"},
             {"label": "Draft", "href": "/draft", "current": active == "draft"},
-            {"label": "Free Agents", "href": "/freeagents", "current": active == "freeagents"}]
+            {"label": "Free Agents", "href": "/freeagents", "current": active == "freeagents"},
+            {"label": "Trade", "href": "/trade", "current": active == "trade"}]
 
 
 def _gamble_subtabs(active: str):
@@ -482,7 +484,8 @@ async def analytics_page(request: Request):
 
 
 async def _board(request: Request, active: str, heading: str, base_href: str,
-                 pos: str | None, exclude: set | None, subtab: str | None = None):
+                 pos: str | None, exclude: set | None, subtab: str | None = None,
+                 extra: dict | None = None):
     ctx = await _base_ctx(request, active)
     players = await get_players()
     season, stats = await _stats_season(get_player_stats)
@@ -497,7 +500,18 @@ async def _board(request: Request, active: str, heading: str, base_href: str,
         for p in ("QB", "RB", "WR", "TE", "K", "DEF")]
     if subtab:
         ctx["subtabs"] = _player_subtabs(subtab)
+    if extra:
+        ctx.update(extra)
     return templates.TemplateResponse(request, "board.html", ctx)
+
+
+async def _next_week_proj() -> dict:
+    """pid -> projected fantasy points for the active league's current NFL week (its scoring)."""
+    week = (await get_nfl_state()).get("week") or 1
+    league = await get_league(lid())
+    season = league.get("season") or await _season()
+    scoring = league.get("scoring_settings") or {}
+    return {pid: views.fantasy_points(st, scoring) for pid, st in (await get_projections(season, week)).items()}
 
 
 @app.get("/draftboard", response_class=HTMLResponse)
@@ -526,7 +540,49 @@ async def draft(request: Request):
 async def freeagents(request: Request, pos: str | None = None):
     rosters = await get_rosters(lid())
     rostered = {pid for r in rosters for pid in (r.get("players") or []) if pid}
-    return await _board(request, "players", "Free Agents", "/freeagents", pos, exclude=rostered, subtab="freeagents")
+    players = await get_players()
+    proj = await _next_week_proj()
+    trending = []
+    for t in await get_trending_adds(40):
+        pid = str(t.get("player_id"))
+        p = players.get(pid)
+        if pid in rostered or not p or p.get("position") not in views.FANTASY_POS:
+            continue
+        pl = views.player_line(pid, players)
+        trending.append({"pid": pid, "name": pl["name"], "pos": pl["pos"], "team": pl["team"] or "FA",
+                         "proj": round(proj.get(pid, 0.0), 1), "adds": t.get("count", 0)})
+        if len(trending) >= 8:
+            break
+    return await _board(request, "players", "Free Agents", "/freeagents", pos,
+                        exclude=rostered, subtab="freeagents", extra={"trending": trending})
+
+
+@app.get("/trade", response_class=HTMLResponse)
+async def trade(request: Request, a: int | None = None, b: int | None = None):
+    ctx = await _base_ctx(request, "players")
+    ctx["subtabs"] = _player_subtabs("trade")
+    users, rosters = await get_users(lid()), await get_rosters(lid())
+    owned = [r for r in rosters if r.get("owner_id")]
+    if not owned:
+        ctx["teams"] = []
+        return templates.TemplateResponse(request, "trade.html", ctx)
+    by_uid = {u["user_id"]: u for u in users}
+    picker = sorted(({"roster_id": r["roster_id"], "name": views.team_name(by_uid.get(r["owner_id"]))}
+                     for r in owned), key=lambda x: x["name"].lower())
+    ids = {r["roster_id"] for r in owned}
+    a = a if a in ids else (ctx.get("me_roster_id") if ctx.get("me_roster_id") in ids else picker[0]["roster_id"])
+    b = b if b in ids else next((p["roster_id"] for p in picker if p["roster_id"] != a), a)
+    players = await get_players()
+    proj = await _next_week_proj()
+    ra = next(r for r in owned if r["roster_id"] == a)
+    rb = next(r for r in owned if r["roster_id"] == b)
+    ctx["teams"] = picker
+    ctx["a_id"], ctx["b_id"] = a, b
+    ctx["a_name"] = views.team_name(by_uid.get(ra["owner_id"]))
+    ctx["b_name"] = views.team_name(by_uid.get(rb["owner_id"]))
+    ctx["side_a"] = views.trade_side(ra, players, proj)
+    ctx["side_b"] = views.trade_side(rb, players, proj)
+    return templates.TemplateResponse(request, "trade.html", ctx)
 
 
 @app.get("/team/{roster_id}", response_class=HTMLResponse)

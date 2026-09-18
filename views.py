@@ -663,6 +663,22 @@ def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], u
     return out
 
 
+def trade_side(roster: dict, players: dict, proj: dict) -> dict:
+    """A franchise's roster for the trade analyzer: players with next-week projection + starter
+    flag, plus the current projected starter total. `proj` is pid -> projected points."""
+    starters = set(pid for pid in (roster.get("starters") or []) if pid and pid != "0")
+    rows = []
+    for pid in (roster.get("players") or []):
+        if not pid or pid == "0":
+            continue
+        pl = player_line(pid, players)
+        rows.append({"pid": pid, "n": pl["name"], "pos": pl["pos"], "team": pl["team"] or "FA",
+                     "proj": round(proj.get(pid, 0.0), 1), "starter": pid in starters})
+    rows.sort(key=lambda r: r["proj"], reverse=True)
+    starter_total = round(sum(r["proj"] for r in rows if r["starter"]), 1)
+    return {"players": rows, "starter_total": starter_total}
+
+
 def scoring_model(scores_by_team: dict, ids) -> dict:
     """roster_id -> (mean, std) of weekly scores; league averages fill in thin/empty histories."""
     import statistics

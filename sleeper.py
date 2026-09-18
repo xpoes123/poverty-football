@@ -87,6 +87,14 @@ async def get_nfl_state() -> dict:
     return await _get(f"{BASE}/state/nfl", ttl=300)
 
 
+async def get_trending_adds(limit: int = 25) -> list[dict]:
+    """Most-added players league-wide (Sleeper trending) -> [{player_id, count}]. Empty on error."""
+    try:
+        return await _get(f"{BASE}/players/nfl/trending/add?limit={limit}", ttl=1800) or []
+    except httpx.HTTPStatusError:
+        return []
+
+
 _PROJ = "https://api.sleeper.app/projections/nfl"
 _POS_Q = "".join(f"&position[]={p}" for p in ("QB", "RB", "WR", "TE", "K", "DEF"))
 
