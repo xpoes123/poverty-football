@@ -163,6 +163,7 @@ a.dues__who:hover .dues__name{color:var(--gold-bright)}
 .side + .side{border-top:1px solid var(--rule)}
 .side__name{font-family:var(--serif);font-size:15.5px;line-height:1.2;flex:1;min-width:0;color:var(--bone-dim)}
 .side__score{font-family:var(--serif);font-size:19px;color:var(--bone-dim);font-variant-numeric:tabular-nums}
+.side__prob{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .side[data-winner="true"]{border-left-color:var(--gold)}
 .side[data-winner="true"] .side__name{color:var(--bone)}
 .side[data-winner="true"] .side__score{color:var(--gold-bright)}
