@@ -3,6 +3,18 @@ from views import (draft_board, initials, luck_table, next_week_breakdown, playo
                    scoreboard, standings, team_name, team_schedule, weekly_awards, win_pct)
 
 
+def test_win_pct_and_scoring_model():
+    import pytest
+    from views import matchup_win_pct, scoring_model
+    scores = {1: [120.0, 130.0, 125.0], 2: [90.0, 95.0, 92.0]}
+    model = scoring_model(scores, {1, 2, 3})
+    assert 120 < model[1][0] < 130            # team 1 mean from its history
+    assert model[3][0] > 0                     # team 3 has no history → league-average fallback
+    p = matchup_win_pct(model[1], model[2])    # strong team vs weak team
+    assert p > 50 and matchup_win_pct(model[2], model[1]) == pytest.approx(100 - p, abs=0.2)
+    assert matchup_win_pct((100, 20), (100, 20)) == 50.0  # equal teams → coin flip
+
+
 def test_records_book_and_weekly_awards():
     users = [{"user_id": "u1", "display_name": "A"}, {"user_id": "u2", "display_name": "B"}]
     rosters = [{"roster_id": 1, "owner_id": "u1"}, {"roster_id": 2, "owner_id": "u2"}]

@@ -89,7 +89,8 @@ def scoreboard(matchups: list[dict], rosters: list[dict], users: list[dict]) -> 
 
     def side(entry: dict) -> dict:
         u = owner_of.get(entry["roster_id"])
-        return {"team": team_name(u), "avatar": avatar_url(u), "points": round(entry.get("points") or 0, 1)}
+        return {"team": team_name(u), "avatar": avatar_url(u), "roster_id": entry["roster_id"],
+                "points": round(entry.get("points") or 0, 1)}
 
     groups: dict = {}
     for m in matchups:
@@ -660,6 +661,30 @@ def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], u
                     "mid": mine.get("matchup_id")})
     out.sort(key=lambda x: x["week"], reverse=True)
     return out
+
+
+def scoring_model(scores_by_team: dict, ids) -> dict:
+    """roster_id -> (mean, std) of weekly scores; league averages fill in thin/empty histories."""
+    import statistics
+    flat = [s for v in scores_by_team.values() for s in v]
+    lg_mean = statistics.mean(flat) if flat else 100.0
+    lg_std = statistics.pstdev(flat) if len(flat) > 1 else 20.0
+    out = {}
+    for rid in ids:
+        sc = scores_by_team.get(rid, [])
+        out[rid] = (statistics.mean(sc) if sc else lg_mean,
+                    statistics.pstdev(sc) if len(sc) > 1 else lg_std)
+    return out
+
+
+def matchup_win_pct(model_a: tuple, model_b: tuple) -> float:
+    """P(A beats B) as a %, from two (mean, std) scoring models (normal-difference)."""
+    import math
+    import statistics
+    ma, sa = model_a
+    mb, sb = model_b
+    denom = math.hypot(sa, sb) or 1.0
+    return round(100 * statistics.NormalDist().cdf((ma - mb) / denom), 1)
 
 
 def records_book(weeks: list[tuple], users: list[dict], rosters: list[dict]) -> dict:

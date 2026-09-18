@@ -668,20 +668,31 @@ async def schedule(request: Request, week: int | None = None):
     games = views.scoreboard(await get_matchups(lid(), week), rosters, users)
     upcoming = not ctx["is_pre"] and week > current  # fixtures exist but no results yet
 
+    # Win probabilities for the current/future week (not for already-final weeks).
+    model = {}
+    if not ctx["is_pre"] and week >= current:
+        scores, _ = await _season_frame()
+        model = views.scoring_model(scores, {r["roster_id"] for r in rosters if r.get("owner_id")})
+
     matchups = []
     for i, g in enumerate(games):
         sides = g["sides"]
         a = sides[0]
         b = sides[1] if len(sides) > 1 else None
+        pa = pb = None
+        if model and b:
+            pa = views.matchup_win_pct(model[a["roster_id"]], model[b["roster_id"]])
+            pb = round(100 - pa, 1)
 
-        def entry(s, is_winner):
+        def entry(s, is_winner, prob):
             return {"win": "true" if (is_winner and not upcoming) else "false", "avatar": s["avatar"],
                     "initials": views.initials(s["team"]), "name": s["team"],
-                    "score": "—" if upcoming else _fmt(s["points"])}
+                    "score": "—" if upcoming else _fmt(s["points"]),
+                    "prob": prob}
 
-        entry_a = entry(a, g["winner"] == 0)
-        entry_b = (entry(b, g["winner"] == 1) if b else
-                   {"win": "false", "avatar": None, "initials": "—", "name": "Bye", "score": "—"})
+        entry_a = entry(a, g["winner"] == 0, pa)
+        entry_b = (entry(b, g["winner"] == 1, pb) if b else
+                   {"win": "false", "avatar": None, "initials": "—", "name": "Bye", "score": "—", "prob": None})
         status = "Upcoming" if upcoming else ("" if ctx["is_pre"] else "Final")
         href = f"/matchup/{week}/{g['mid']}" if g.get("mid") is not None else None
         matchups.append({"slot": f"Match {i + 1}", "status": status,
