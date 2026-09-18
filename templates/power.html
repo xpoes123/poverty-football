@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Power Rankings{% endblock %}
+{% block main %}
+<main class="page" data-page="power" id="main" data-screen-label="Power Rankings">
+  <div class="wrap">
+    {% if subtabs %}<nav class="subtabs" aria-label="Insights views">{% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}</nav>{% endif %}
+    <div class="section-head">
+      <h2>Power Rankings</h2>
+      <p>{{ through_label }}</p>
+    </div>
+
+    {% if has_games %}
+    <div class="table-wrap">
+    <table class="ledger">
+      <caption>A blend of all-play win %, season scoring, and recent form. Movement is vs. last week.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Rk</th>
+          <th scope="col">Franchise</th>
+          <th scope="col">Movement</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rankings %}
+          <tr class="{{ 'me' if row.roster_id == me_roster_id }}">
+            <td class="cell-rank">{{ row.rank }}</td>
+            <td class="cell-team"><a class="team-link" href="/team/{{ row.roster_id }}"><img class="team-logo" src="{{ row.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ row.team }}</span></a></td>
+            <td data-label="Movement" class="{{ 'pos' if row.move > 0 else 'neg' if row.move < 0 else '' }}">{% if row.move > 0 %}up {{ row.move }}{% elif row.move < 0 %}down {{ -row.move }}{% else %}—{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty">
+      <h3>No games yet</h3>
+      <p>Power rankings appear once games are played.</p>
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

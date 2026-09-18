@@ -1,6 +1,45 @@
 from views import (draft_board, initials, luck_table, next_week_breakdown, playoff_odds,
-                   positional_ranks, record_str, roster_view, scoreboard, standings, team_name,
-                   team_schedule, win_pct)
+                   positional_ranks, power_rankings, record_str, records_book, roster_view,
+                   scoreboard, standings, team_name, team_schedule, weekly_awards, win_pct)
+
+
+def test_records_book_and_weekly_awards():
+    users = [{"user_id": "u1", "display_name": "A"}, {"user_id": "u2", "display_name": "B"}]
+    rosters = [{"roster_id": 1, "owner_id": "u1"}, {"roster_id": 2, "owner_id": "u2"}]
+    wk1 = [{"roster_id": 1, "matchup_id": 1, "points": 130.0}, {"roster_id": 2, "matchup_id": 1, "points": 70.0}]
+    wk2 = [{"roster_id": 1, "matchup_id": 1, "points": 95.0}, {"roster_id": 2, "matchup_id": 1, "points": 96.0}]
+    rec = records_book([(1, wk1), (2, wk2)], users, rosters)
+    assert rec["top_score"]["value"] == 130.0 and rec["top_score"]["week"] == 1
+    assert rec["low_score"]["value"] == 70.0
+    assert rec["blowout"]["margin"] == 60.0 and rec["blowout"]["winner"] == "A"
+    assert rec["nailbiter"]["margin"] == 1.0 and rec["nailbiter"]["week"] == 2
+    assert rec["streak"]["team"] == "A" and rec["streak"]["len"] == 1  # A won wk1, lost wk2
+
+    players = {"p9": {"full_name": "Bench Beast", "position": "RB", "team": "SF"}}
+    aw = weekly_awards(1, [
+        {"roster_id": 1, "matchup_id": 1, "points": 130.0, "starters": ["s1"], "players_points": {"s1": 130.0, "p9": 40.0}},
+        {"roster_id": 2, "matchup_id": 1, "points": 70.0, "starters": ["s2"], "players_points": {"s2": 70.0}},
+    ], users, rosters, players)
+    kinds = {a["award"]: a for a in aw}
+    assert kinds["Team of the Week"]["team"] == "A"
+    assert kinds["Cupcake"]["team"] == "B"
+    assert "Bench Beast" in kinds["Bench Blunder"]["detail"]  # p9 benched, outscored nobody's starter but flagged
+
+
+def test_power_rankings_orders_by_blend_and_tracks_movement():
+    users = [{"user_id": "u1", "display_name": "A"}, {"user_id": "u2", "display_name": "B"},
+             {"user_id": "u3", "display_name": "C"}]
+    rosters = [{"roster_id": 1, "owner_id": "u1"}, {"roster_id": 2, "owner_id": "u2"},
+               {"roster_id": 3, "owner_id": "u3"}]
+    # week1: 1 crushes everyone; week2: 3 surges, 1 dips
+    wk1 = [{"roster_id": 1, "points": 140}, {"roster_id": 2, "points": 100}, {"roster_id": 3, "points": 60}]
+    wk2 = [{"roster_id": 1, "points": 80}, {"roster_id": 2, "points": 90}, {"roster_id": 3, "points": 150}]
+    rows = power_rankings([wk1, wk2], users, rosters)
+    assert [r["rank"] for r in rows] == [1, 2, 3]
+    by = {r["roster_id"]: r for r in rows}
+    # team 3 was worst after wk1, should climb after its wk2 surge (positive movement)
+    assert by[3]["move"] > 0
+    assert sum(r["move"] for r in rows) == 0  # movements net to zero
 
 
 def test_playoff_odds_favors_the_stronger_undefeated_team():
