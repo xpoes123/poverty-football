@@ -77,6 +77,13 @@
 
     {% if dues %}
     <div class="section-head"><h2>Dues</h2><p>{{ dues_paid }} / {{ dues|length }} paid</p></div>
+    {% if dues_totals %}
+    <div class="dues-totals">
+      <span><b>${{ '%g'|format(dues_totals.collected) }}</b> collected of ${{ '%g'|format(dues_totals.total) }}</span>
+      {% if dues_totals.outstanding %}<span class="dues-totals__out">${{ '%g'|format(dues_totals.outstanding) }} outstanding</span>{% endif %}
+      {% if pay_url %}<a class="dues-totals__pay" href="{{ pay_url }}" target="_blank" rel="noopener">Pay dues</a>{% endif %}
+    </div>
+    {% endif %}
     <ul class="dues">
       {% for d in dues %}
         <li class="dues__row{{ ' dues__row--paid' if d.paid }}">

@@ -74,6 +74,14 @@ a.dues__who:hover .dues__name{color:var(--gold-bright)}
 .dues__name{font-family:var(--serif);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dues__tag{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border:1px solid var(--rule-strong);padding:1px 5px;flex:none}
 .dues__status{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:none}
+.dues-totals{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:11px 14px;border:1px solid var(--rule);border-bottom:none;background:var(--surface);font-size:12.5px;color:var(--bone-dim)}
+.dues-totals b{color:var(--bone);font-variant-numeric:tabular-nums}
+.dues-totals__out{color:#c9776b}
+.dues-totals__pay{margin-left:auto;border:1px solid var(--gold-dim);color:var(--gold-bright);padding:4px 12px;border-radius:5px;font-size:11px;letter-spacing:.06em;text-decoration:none;white-space:nowrap}
+.dues-totals__pay:hover{background:rgba(201,160,94,.15)}
+.admin-settings{border:1px solid var(--rule);padding:14px 16px 16px;margin-bottom:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 16px}
+.admin-settings legend{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);padding:0 6px}
+.admin-settings label{display:flex;flex-direction:column;gap:5px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .dues__row--paid .dues__status{color:#8fbf7a}
 .dues__row--paid .dues__status::before{content:"✓ "}
 

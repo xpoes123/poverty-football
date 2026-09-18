@@ -6,7 +6,6 @@ Thin FastAPI layer: each route gathers Sleeper data (cached) → shapes it via v
 
 import datetime as dt
 import secrets
-import tomllib
 from urllib.parse import parse_qs, urlencode
 from zoneinfo import ZoneInfo
 
@@ -120,37 +119,33 @@ def _fmt(pts) -> str:
 
 
 def _discord_map() -> dict:
-    """discord_id -> Sleeper handle, straight from the bot's expected.toml (shared clone)."""
-    try:
-        with open("expected.toml", "rb") as f:
-            data = tomllib.load(f)
-    except FileNotFoundError:
-        return {}
-    return {m["discord_id"]: m["sleeper"] for m in data.get("member", []) if m.get("discord_id")}
+    """discord_id -> Sleeper handle, unioned across every league's member file (a person's
+    handle is the same in any league, so 'My Team' resolves on whichever league they're in)."""
+    out = {}
+    for lg in LEAGUES:
+        for m in members.load(lg["id"]):
+            if m.get("discord_id"):
+                out[m["discord_id"]] = m["sleeper"]
+    return out
 
 
 def _discord_names() -> dict:
-    """string discord_id -> member name, from expected.toml (for labelling analytics visitors)."""
-    try:
-        with open("expected.toml", "rb") as f:
-            members = tomllib.load(f).get("member", [])
-    except FileNotFoundError:
-        return {}
-    return {str(m["discord_id"]): m.get("name", m["sleeper"]) for m in members if m.get("discord_id")}
+    """string discord_id -> member name, unioned across all leagues (for labelling analytics)."""
+    out = {}
+    for lg in LEAGUES:
+        for m in members.load(lg["id"]):
+            if m.get("discord_id"):
+                out[str(m["discord_id"])] = m.get("name", m["sleeper"])
+    return out
 
 
-async def _dues(users, rosters) -> list[dict]:
-    """Per-member dues status from the bot's expected.toml, enriched with franchise avatar +
-    team link when the member has joined. Empty if the file isn't present (seed/preview)."""
-    try:
-        with open("expected.toml", "rb") as f:
-            members = tomllib.load(f).get("member", [])
-    except FileNotFoundError:
-        return []
+async def _dues(users, rosters, league_id: str) -> list[dict]:
+    """Per-member dues status for a league, enriched with franchise avatar + team link when
+    the member has joined. Empty if that league has no member file yet."""
     by_uid = {u["user_id"]: u for u in users}
     roster_of = {r.get("owner_id"): r for r in rosters if r.get("owner_id")}
     rows = []
-    for m in members:
+    for m in members.load(league_id):
         uid = await resolve_user_id(m["sleeper"])
         user, roster = by_uid.get(uid), roster_of.get(uid)
         rows.append({
@@ -188,7 +183,12 @@ async def _base_ctx(request: Request, active: str) -> dict:
     teams_in = sum(1 for r in rosters if r.get("owner_id"))
     total = league["total_rosters"]
     lg = league_cfg(lid())
-    d, time_label = lg.get("draft_date"), lg.get("draft_time_label") or "TBD"
+    meta = members.load_meta(lid())  # admin-editable settings override the config defaults
+    try:
+        d = dt.date.fromisoformat(meta["draft_date"]) if meta.get("draft_date") else lg.get("draft_date")
+    except ValueError:
+        d = lg.get("draft_date")
+    time_label = meta.get("draft_time_label") or lg.get("draft_time_label") or "TBD"
     draft_line = f"{d:%b %-d}, {time_label}" if d else "To be announced"
     target = dt.datetime.combine(d, dt.time(DRAFT_HOUR), tzinfo=TZ) if d else None
     upcoming = target and target > dt.datetime.now(TZ)
@@ -229,6 +229,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "draft_target": target.isoformat() if upcoming else None,
         "draft_when": f"{d:%b %-d, %Y} · {time_label}" if d else "",
         "join_url": lg.get("join_url"),
+        "dues_amount": meta.get("dues_amount"),
+        "pay_url": meta.get("pay_url"),
         "seated_line": f"{teams_in} of {total}",
         "_teams_in": teams_in,
         "_total": total,
@@ -358,9 +360,14 @@ async def home(request: Request):
         ctx["links"].insert(0, {"label": "Join the League", "href": ctx["join_url"], "external": True})
     ctx["rows"] = _standings_rows(users, rosters)
     ctx["tx_feed"] = await _tx_feed(users, rosters) if ctx["has_season"] else []
-    # Dues come from the bot's expected.toml — Poverty Franchises only; blank for other leagues.
-    ctx["dues"] = await _dues(users, rosters) if lid() == cfg.league_id else []
+    # Dues come from the league's member file (expected[.<id>].toml) — shown for any league that has one.
+    ctx["dues"] = await _dues(users, rosters, lid())
     ctx["dues_paid"] = sum(1 for d in ctx["dues"] if d["paid"])
+    amount = ctx.get("dues_amount")
+    if amount and ctx["dues"]:
+        unpaid = len(ctx["dues"]) - ctx["dues_paid"]
+        ctx["dues_totals"] = {"amount": amount, "collected": ctx["dues_paid"] * amount,
+                              "outstanding": unpaid * amount, "total": len(ctx["dues"]) * amount}
     countdown = None
     if ctx["is_pre"]:
         ctx["table_title"] = "Franchises"
@@ -392,15 +399,24 @@ async def admin_page(request: Request):
     if str(request.session.get("discord_id")) != cfg.admin_discord_id:
         return RedirectResponse("/")  # admin only
     ctx = await _base_ctx(request, "admin")
-    joined = {u["user_id"] for u in await get_users(lid())}  # who's actually in the Sleeper league
-    rows = []
-    for i, m in enumerate(members.load()):
+    users = await get_users(lid())
+    joined = {u["user_id"] for u in users}  # who's actually in the Sleeper league
+    rows, linked_uids = [], set()
+    for i, m in enumerate(members.load(lid())):
         uid = await resolve_user_id(m["sleeper"])
+        if uid:
+            linked_uids.add(uid)
         rows.append({"i": i, "name": m.get("name", ""), "sleeper": m.get("sleeper", ""),
                      "discord_id": m.get("discord_id") or "", "paid": bool(m.get("paid")),
                      "joined": bool(uid) and uid in joined})
     ctx["members"] = rows
     ctx["blank_idxs"] = list(range(len(rows), len(rows) + 3))  # spare rows for adding members
+    ctx["meta"] = members.load_meta(lid())
+    # Sleeper teams in the league with no member row yet — autofill hints (handle = login username).
+    ctx["unlinked"] = sorted(
+        ({"handle": u.get("display_name") or "?", "team": views.team_name(u)}
+         for u in users if u.get("user_id") not in linked_uids),
+        key=lambda x: x["handle"].lower())
     return templates.TemplateResponse(request, "admin.html", ctx)
 
 
@@ -421,7 +437,10 @@ async def admin_save(request: Request):
         if did.isdigit():
             m["discord_id"] = int(did)
         out.append(m)
-    members.save(out)
+    meta = {k: (form.get(k, [""])[0].strip() or None) for k in ("pay_url", "draft_date", "draft_time_label")}
+    amt = form.get("dues_amount", [""])[0].strip()
+    meta["dues_amount"] = amt if amt else None
+    members.save(out, meta, lid())
     return RedirectResponse("/admin", 303)
 
 
