@@ -1,12 +1,19 @@
 """ESPN NFL read layer (free public JSON API, no key) for the real-game pages.
-Own small TTL cache — independent of the Sleeper layer and the dev-seed switch."""
+Own small TTL cache — independent of the Sleeper layer."""
 
+import datetime as dt
 import time
 
 import httpx
 
 BASE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl"
 _cache: dict[str, tuple[float, object]] = {}
+
+
+def _season_year() -> int:
+    """Current NFL season year — Jan/Feb still belong to the prior season."""
+    now = dt.datetime.now()
+    return now.year - 1 if now.month < 3 else now.year
 
 
 async def _get(url: str, ttl: float):
@@ -22,8 +29,9 @@ async def _get(url: str, ttl: float):
     return data
 
 
-async def scoreboard(year: int = 2025, week: int = 1, seasontype: int = 2) -> dict:
+async def scoreboard(year: int | None = None, week: int = 1, seasontype: int = 2) -> dict:
     # historical (final) weeks — cache long
+    year = year or _season_year()
     return await _get(f"{BASE}/scoreboard?dates={year}&seasontype={seasontype}&week={week}", ttl=1800)
 
 
@@ -58,7 +66,8 @@ async def resolve_athlete(name: str, team_abbr: str) -> str | None:
     return None
 
 
-async def gamelog(espn_id: str, season: int = 2025) -> dict:
+async def gamelog(espn_id: str, season: int | None = None) -> dict:
+    season = season or _season_year()
     url = f"https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/{espn_id}/gamelog?season={season}"
     return await _get(url, ttl=3600)
 

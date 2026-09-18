@@ -207,7 +207,7 @@ class NflBot(discord.Client):
         state = await get_nfl_state()
         if state.get("season_type") != "regular":
             return
-        week, season = state.get("week") or 1, state.get("season") or "2025"
+        week, season = state.get("week") or 1, state.get("season") or str(dt.datetime.now(TZ).year)
         try:
             espn_games = espn.games(await espn.scoreboard(year=int(season), week=week))["games"]
         except Exception:

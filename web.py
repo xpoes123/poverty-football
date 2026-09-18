@@ -24,7 +24,7 @@ import members
 import odds
 import espn
 import views
-from config import LEAGUES, LEAGUE_IDS, cfg
+from config import LEAGUES, LEAGUE_IDS, cfg, league_cfg
 from sleeper import (
     active_league,
     get_draft_picks,
@@ -187,8 +187,9 @@ async def _base_ctx(request: Request, active: str) -> dict:
     is_pre = status in ("pre_draft", "drafting")
     teams_in = sum(1 for r in rosters if r.get("owner_id"))
     total = league["total_rosters"]
-    d = cfg.draft_date
-    draft_line = f"{d:%b %-d}, {cfg.draft_time_label}" if d else "To be announced"
+    lg = league_cfg(lid())
+    d, time_label = lg.get("draft_date"), lg.get("draft_time_label") or "TBD"
+    draft_line = f"{d:%b %-d}, {time_label}" if d else "To be announced"
     target = dt.datetime.combine(d, dt.time(DRAFT_HOUR), tzinfo=TZ) if d else None
     upcoming = target and target > dt.datetime.now(TZ)
     me = await _me_roster_id(request)
@@ -213,6 +214,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "oauth_enabled": cfg.oauth_enabled,
         "leagues": LEAGUES,
         "current_league_id": lid(),
+        "league_name": league.get("name") or "Fantasy League",
+        "team_total": total,
         "logged_in": bool(request.session.get("discord_id")),
         "me_roster_id": me,
         "my_team_href": f"/team/{me}" if me else None,
@@ -224,7 +227,8 @@ async def _base_ctx(request: Request, active: str) -> dict:
         "draft_line": draft_line,
         "draft_date_label": f"{d:%b %-d}" if d else "the draft",
         "draft_target": target.isoformat() if upcoming else None,
-        "draft_when": f"{d:%b %-d, %Y} · {cfg.draft_time_label}" if d else "",
+        "draft_when": f"{d:%b %-d, %Y} · {time_label}" if d else "",
+        "join_url": lg.get("join_url"),
         "seated_line": f"{teams_in} of {total}",
         "_teams_in": teams_in,
         "_total": total,
@@ -349,10 +353,9 @@ async def home(request: Request):
     league = await get_league(lid())
     ctx["playoff_teams"] = (league.get("settings") or {}).get("playoff_teams", 6)
 
-    ctx["links"] = [
-        {"label": "Join the League", "href": cfg.join_url, "external": True},
-        {"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{lid()}", "external": True},
-    ]
+    ctx["links"] = [{"label": "Open in Sleeper", "href": f"https://sleeper.com/leagues/{lid()}", "external": True}]
+    if ctx.get("join_url"):  # only leagues with a known invite link
+        ctx["links"].insert(0, {"label": "Join the League", "href": ctx["join_url"], "external": True})
     ctx["rows"] = _standings_rows(users, rosters)
     ctx["tx_feed"] = await _tx_feed(users, rosters) if ctx["has_season"] else []
     # Dues come from the bot's expected.toml — Poverty Franchises only; blank for other leagues.
@@ -570,7 +573,7 @@ async def player_profile(request: Request, pid: str):
     ctx["game_table"] = None
     if espn_id:
         try:
-            gl = await espn.gamelog(espn_id)
+            gl = await espn.gamelog(espn_id, int(await _season()))
             scoring = (await get_league(lid())).get("scoring_settings") or {}
             ctx["game_table"] = espn.game_table(gl, scoring, position)
         except Exception:
