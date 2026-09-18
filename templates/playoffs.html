@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Playoff Odds{% endblock %}
+{% block main %}
+<main class="page" data-page="playoffs" id="main" data-screen-label="Playoff Odds">
+  <div class="wrap">
+    {% if subtabs %}<nav class="subtabs" aria-label="Insights views">{% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}</nav>{% endif %}
+    <div class="section-head">
+      <h2>Playoff Odds</h2>
+      <p>{{ remaining_note }}</p>
+    </div>
+
+    {% if has_games %}
+    <div class="table-wrap">
+    <table class="ledger">
+      <caption>Rest-of-season simulated from each team's scoring so far. Projected seed &amp; wins are averages across simulations.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Rk</th>
+          <th scope="col">Franchise</th>
+          <th scope="col">Record</th>
+          <th scope="col">Playoff %</th>
+          <th scope="col">Proj. Wins</th>
+          <th scope="col">Proj. Seed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in odds %}
+          <tr class="{{ 'me' if row.roster_id == me_roster_id }}{{ ' cutline' if row.rank == playoff_teams }}">
+            <td class="cell-rank">{{ row.rank }}</td>
+            <td class="cell-team"><a class="team-link" href="/team/{{ row.roster_id }}"><img class="team-logo" src="{{ row.avatar or '/static/default-team.svg' }}" alt="" loading="lazy"><span class="team-name">{{ row.team }}</span></a></td>
+            <td data-label="Record">{{ row.record }}</td>
+            <td data-label="Playoff %" class="{{ 'pos' if row.playoff_pct >= 50 else 'neg' if row.playoff_pct < 15 else '' }}">{{ row.playoff_pct }}%</td>
+            <td data-label="Proj. Wins">{{ '%.1f'|format(row.proj_wins) }}</td>
+            <td data-label="Proj. Seed">{{ '%.1f'|format(row.proj_seed) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="cutline-note">Line after #{{ playoff_teams }} is the projected playoff cut.</p>
+    {% else %}
+    <div class="empty">
+      <h3>No games yet</h3>
+      <p>Playoff odds appear once the season is underway.</p>
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

@@ -109,6 +109,11 @@ def _gamble_subtabs(active: str):
     if cfg.enable_h2h_betting:
         tabs.append({"label": "NFL Games", "href": "/h2h", "current": active == "h2h"})
     return tabs
+
+
+def _insights_subtabs(active: str):
+    return [{"label": "Luck", "href": "/insights", "current": active == "luck"},
+            {"label": "Playoff Odds", "href": "/playoffs", "current": active == "playoffs"}]
 TX_KINDS = {"trade": "Trade", "waiver": "Waiver", "free_agent": "Add"}
 STATUS_LABEL = {"pre_draft": "Pre-Draft Season", "drafting": "Draft Underway",
                 "in_season": "Regular Season", "complete": "Season Complete"}
@@ -804,7 +809,48 @@ async def insights(request: Request):
     ctx["has_games"] = bool(rows)
     ctx["weeks_played"] = len(weeks)
     ctx["through_label"] = (f"{len(weeks)} weeks played" if len(weeks) != 1 else "1 week played")
+    ctx["subtabs"] = _insights_subtabs("luck")
     return templates.TemplateResponse(request, "insights.html", ctx)
+
+
+async def _season_frame():
+    """(scores_by_team, remaining head-to-heads) for the active league's regular season:
+    played weeks feed each team's scoring model; current/future weeks become sim matchups."""
+    settings = (await get_league(lid())).get("settings") or {}
+    last_reg = (settings.get("playoff_week_start") or 15) - 1
+    current = (await get_nfl_state()).get("week") or 1
+    scores, remaining = {}, []
+    for wk in range(1, last_reg + 1):
+        m = await get_matchups(lid(), wk)
+        if not m:
+            continue
+        if wk < current and any((e.get("points") or 0) > 0 for e in m):  # played
+            for e in m:
+                if e.get("points") is not None:
+                    scores.setdefault(e["roster_id"], []).append(round(e["points"], 1))
+        else:  # in-progress or future -> simulate
+            groups: dict = {}
+            for e in m:
+                groups.setdefault(e.get("matchup_id"), []).append(e["roster_id"])
+            remaining += [(g[0], g[1]) for g in groups.values() if len(g) == 2]
+    return scores, remaining
+
+
+@app.get("/playoffs", response_class=HTMLResponse)
+async def playoffs(request: Request):
+    if not cfg.enable_analysis:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "insights")
+    users, rosters, league = await get_users(lid()), await get_rosters(lid()), await get_league(lid())
+    standings = views.standings(users, rosters)
+    scores, remaining = await _season_frame()
+    n = (league.get("settings") or {}).get("playoff_teams", 6)
+    ctx["subtabs"] = _insights_subtabs("playoffs")
+    ctx["playoff_teams"] = n
+    ctx["odds"] = views.playoff_odds(scores, standings, remaining, n) if standings else []
+    ctx["has_games"] = bool(ctx["odds"])
+    ctx["remaining_note"] = f"{len(remaining)} matchups simulated · top {n} make the playoffs"
+    return templates.TemplateResponse(request, "playoffs.html", ctx)
 
 
 @app.get("/bets", response_class=HTMLResponse)

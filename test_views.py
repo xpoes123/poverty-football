@@ -1,5 +1,26 @@
-from views import (draft_board, initials, luck_table, next_week_breakdown, positional_ranks,
-                   record_str, roster_view, scoreboard, standings, team_name, team_schedule, win_pct)
+from views import (draft_board, initials, luck_table, next_week_breakdown, playoff_odds,
+                   positional_ranks, record_str, roster_view, scoreboard, standings, team_name,
+                   team_schedule, win_pct)
+
+
+def test_playoff_odds_favors_the_stronger_undefeated_team():
+    standings_rows = [
+        {"roster_id": 1, "team": "Juggernaut", "avatar": None, "wins": 1, "losses": 0, "ties": 0, "pf": 150.0},
+        {"roster_id": 2, "team": "Middling", "avatar": None, "wins": 0, "losses": 1, "ties": 0, "pf": 90.0},
+        {"roster_id": 3, "team": "Weakling", "avatar": None, "wins": 0, "losses": 1, "ties": 0, "pf": 70.0},
+        {"roster_id": 4, "team": "Average", "avatar": None, "wins": 1, "losses": 0, "ties": 0, "pf": 100.0},
+    ]
+    scores = {1: [150.0], 2: [90.0], 3: [70.0], 4: [100.0]}
+    remaining = [(1, 2), (3, 4), (1, 3), (2, 4)]  # two more weeks
+    odds = playoff_odds(scores, standings_rows, remaining, playoff_teams=2, sims=500)
+    assert len(odds) == 4 and odds[0]["rank"] == 1
+    by_id = {o["roster_id"]: o for o in odds}
+    # the high-scoring 1-0 team should have the best odds; the low-scoring 0-1 team the worst
+    assert by_id[1]["playoff_pct"] == max(o["playoff_pct"] for o in odds)
+    assert by_id[3]["playoff_pct"] == min(o["playoff_pct"] for o in odds)
+    assert all(0 <= o["playoff_pct"] <= 100 for o in odds)
+    # deterministic (seeded): same inputs → same odds
+    assert playoff_odds(scores, standings_rows, remaining, 2, sims=500)[0] == odds[0]
 
 
 def test_next_week_breakdown_optimal_and_weaknesses():

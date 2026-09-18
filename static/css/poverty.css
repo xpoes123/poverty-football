@@ -63,6 +63,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 /* playoff cut line — divider under the last playoff seed (in-season only) */
 .cutline-note{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+.ledger tr.cutline,.ledger tr.cutline td{border-bottom:2px solid var(--gold-dim)}
 
 /* dues / payment list */
 .dues{list-style:none;padding:0;margin:0;border:1px solid var(--rule)}

@@ -3,6 +3,7 @@
 {% block main %}
 <main class="page" data-page="insights" id="main" data-screen-label="Insights">
   <div class="wrap">
+    {% if subtabs %}<nav class="subtabs" aria-label="Insights views">{% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}</nav>{% endif %}
     <div class="section-head">
       <h2>Luck &amp; Expected Wins</h2>
       <p>{{ through_label }}</p>
