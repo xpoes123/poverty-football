@@ -662,6 +662,64 @@ def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], u
     return out
 
 
+def playoff_odds(scores_by_team: dict, standings_rows: list[dict], remaining: list[tuple],
+                 playoff_teams: int, sims: int = 3000, seed: int = 20260917) -> list[dict]:
+    """Monte-Carlo make-the-playoffs odds + projected seed/wins. Pure & deterministic (seeded).
+
+    scores_by_team: roster_id -> [weekly scores] from PLAYED weeks (models each team's scoring).
+    standings_rows: current standings (roster_id, team, avatar, wins, ties, pf).
+    remaining: list of (roster_id_a, roster_id_b) future head-to-heads.
+    Seeds by (wins, points-for), top `playoff_teams` make it. Ties count as half a win."""
+    import random
+    import statistics
+    rng = random.Random(seed)
+    ids = [r["roster_id"] for r in standings_rows]
+    if not ids:
+        return []
+    base_w = {r["roster_id"]: r["wins"] + 0.5 * r["ties"] for r in standings_rows}
+    base_pf = {r["roster_id"]: r["pf"] for r in standings_rows}
+    flat = [s for v in scores_by_team.values() for s in v]
+    lg_mean = statistics.mean(flat) if flat else 100.0
+    lg_std = statistics.pstdev(flat) if len(flat) > 1 else 20.0
+    mean, std = {}, {}
+    for rid in ids:
+        sc = scores_by_team.get(rid, [])
+        mean[rid] = statistics.mean(sc) if sc else lg_mean
+        std[rid] = statistics.pstdev(sc) if len(sc) > 1 else lg_std
+    appear = dict.fromkeys(ids, 0)
+    seed_sum = dict.fromkeys(ids, 0)
+    win_sum = dict.fromkeys(ids, 0.0)
+    for _ in range(sims):
+        w, pf = dict(base_w), dict(base_pf)
+        for a, b in remaining:
+            sa, sb = rng.gauss(mean[a], std[a]), rng.gauss(mean[b], std[b])
+            pf[a] += sa
+            pf[b] += sb
+            if sa > sb:
+                w[a] += 1
+            elif sb > sa:
+                w[b] += 1
+            else:
+                w[a] += 0.5
+                w[b] += 0.5
+        order = sorted(ids, key=lambda r: (w[r], pf[r]), reverse=True)
+        for i, rid in enumerate(order, 1):
+            if i <= playoff_teams:
+                appear[rid] += 1
+            seed_sum[rid] += i
+            win_sum[rid] += w[rid]
+    out = [{"roster_id": r["roster_id"], "team": r["team"], "avatar": r["avatar"],
+            "record": record_str(r["wins"], r["losses"], r["ties"]),
+            "playoff_pct": round(100 * appear[r["roster_id"]] / sims, 1),
+            "proj_seed": round(seed_sum[r["roster_id"]] / sims, 1),
+            "proj_wins": round(win_sum[r["roster_id"]] / sims, 1)}
+           for r in standings_rows]
+    out.sort(key=lambda x: (x["playoff_pct"], x["proj_wins"]), reverse=True)
+    for i, r in enumerate(out, 1):
+        r["rank"] = i
+    return out
+
+
 def transactions(txns: list[dict], rosters: list[dict], users: list[dict], players: dict) -> list[dict]:
     by_id = {u["user_id"]: u for u in users}
     team_of = {r["roster_id"]: team_name(by_id.get(r.get("owner_id"))) for r in rosters}
