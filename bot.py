@@ -23,9 +23,11 @@ from sleeper import (
     get_players,
     get_projections,
     get_rosters,
+    get_transactions,
     get_users,
     resolve_user_id,
 )
+import views
 from views import ESPN_TO_SLEEPER_TEAM, fantasy_points, player_line, scoreboard, team_name
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -68,6 +70,18 @@ def _mark_announced(league_id: str, week: int) -> None:
     _RESULTS_STATE.write_text(json.dumps(d))
 
 
+async def _scores_for(league_id: str, before_week: int) -> dict:
+    """roster_id -> [weekly scores] for a league's played weeks before `before_week`."""
+    scores = {}
+    for wk in range(1, before_week):
+        m = await get_matchups(league_id, wk)
+        if m and any((e.get("points") or 0) > 0 for e in m):
+            for e in m:
+                if e.get("points") is not None:
+                    scores.setdefault(e["roster_id"], []).append(round(e["points"], 1))
+    return scores
+
+
 async def latest_complete_week() -> int | None:
     """The most-recently-finished regular-season week (during week N, N-1 is final)."""
     state = await get_nfl_state()
@@ -87,7 +101,7 @@ def _safe(text: object) -> str:
     return s.replace("@", "@​").replace("://", ":/​/")
 
 
-def build_results_embed(ann: dict) -> discord.Embed:
+def build_results_embed(ann: dict, awards: list[dict] | None = None) -> discord.Embed:
     # stacked, short lines that wrap cleanly on mobile — no monospace alignment
     blocks = []
     for r in ann["lines"]:
@@ -102,11 +116,58 @@ def build_results_embed(ann: dict) -> discord.Embed:
                  f"\n**Low** {ex['low']:.1f} · {_safe(ex['low_team'])}")
     e = discord.Embed(title=f"🏈 Week {ann['week']} Results", color=0xC9A05E,
                       description=desc, timestamp=dt.datetime.now(TZ))
+    if awards:
+        e.add_field(name="🏅 Awards",
+                    value="\n".join(f"**{a['award']}** — {_safe(a['team'])} ({_safe(a['detail'])})" for a in awards),
+                    inline=False)
     e.set_footer(text="Poverty Franchises")
     return e
 
 
+def build_preview_embed(week: int, pairs: list[dict]) -> discord.Embed:
+    """Upcoming-week matchups with each side's projected win %. `pairs` = list of
+    {a:{team,pct}, b:{team,pct}} (a is the favorite)."""
+    blocks = [f"**{_safe(p['a']['team'])}** {p['a']['pct']:.0f}%  ·  {_safe(p['b']['team'])} {p['b']['pct']:.0f}%"
+              for p in pairs]
+    e = discord.Embed(title=f"🔮 Week {week} Matchup Preview", color=0xC9A05E,
+                      description="\n\n".join(blocks) or "No matchups set.", timestamp=dt.datetime.now(TZ))
+    e.set_footer(text="Win % from each team's scoring so far")
+    return e
+
+
+def build_digest_embed(week: int, moves: list[dict]) -> discord.Embed:
+    """Recent transactions digest. `moves` = views.transactions rows."""
+    lines = []
+    for m in moves[:15]:
+        adds = ", ".join(n for n, _ in m["adds"])
+        drops = ", ".join(n for n, _ in m["drops"])
+        parts = []
+        if adds:
+            parts.append(f"+{_safe(adds)}")
+        if drops:
+            parts.append(f"−{_safe(drops)}")
+        team = _safe(m["teams"][0]) if m.get("teams") else "—"
+        lines.append(f"**{team}**: {' · '.join(parts) or '—'}")
+    e = discord.Embed(title=f"🔁 Week {week} Transactions", color=0xC9A05E,
+                      description="\n".join(lines) or "No moves this week.", timestamp=dt.datetime.now(TZ))
+    e.set_footer(text="Adds & drops")
+    return e
+
+
 _PULSE_STATE = pathlib.Path(__file__).parent / "data" / "pulse_state.json"
+_PREVIEW_STATE = pathlib.Path(__file__).parent / "data" / "preview_state.json"
+_DIGEST_STATE = pathlib.Path(__file__).parent / "data" / "digest_state.json"
+
+
+def _week_done(path: pathlib.Path, league_id: str, week: int) -> bool:
+    return _read_json(path).get(league_id) == week
+
+
+def _mark_week(path: pathlib.Path, league_id: str, week: int) -> None:
+    d = _read_json(path)
+    d[league_id] = week
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(d))
 
 
 def _pulse_state(league_id: str) -> dict:
@@ -173,6 +234,10 @@ class NflBot(discord.Client):
             self.results_announcer.start()
         if not self.matchup_pulse.is_running():
             self.matchup_pulse.start()
+        if not self.weekly_preview.is_running():
+            self.weekly_preview.start()
+        if not self.transactions_digest.is_running():
+            self.transactions_digest.start()
 
     async def on_interaction(self, interaction: discord.Interaction):
         """Handle the 'Claim' button on a proposed h2h bet (message posted by the web app)."""
@@ -221,7 +286,8 @@ class NflBot(discord.Client):
             if channel is None:
                 log.error("results channel %s not found (league %s)", cid, lg_id)
                 continue
-            await channel.send(embed=build_results_embed(ann))
+            awards = views.weekly_awards(week, matchups, users, rosters, await get_players())
+            await channel.send(embed=build_results_embed(ann, awards))
             _mark_announced(lg_id, week)
             log.info("announced week %d results for %s (%d matchups)", week, lg_id, len(ann["lines"]))
 
@@ -296,8 +362,82 @@ class NflBot(discord.Client):
             _mark_pulse(lg_id, week, final_now)
             log.info("matchup pulse posted: %s week %d (%d/%d final)", lg_id, week, final_now, total)
 
+    @tasks.loop(time=dt.time(hour=9, tzinfo=TZ))
+    async def weekly_preview(self):
+        """Once per week, post the upcoming matchups with projected win %, per league."""
+        state = await get_nfl_state()
+        if state.get("season_type") != "regular":
+            return
+        week = state.get("week") or 1
+        for bl in cfg.effective_bot_leagues():
+            lg_id, cid = bl["league_id"], bl["channel_id"]
+            if _week_done(_PREVIEW_STATE, lg_id, week):
+                continue
+            matchups = await get_matchups(lg_id, week)
+            if not matchups:
+                continue
+            users, rosters = await get_users(lg_id), await get_rosters(lg_id)
+            model = views.scoring_model(await _scores_for(lg_id, week),
+                                        {r["roster_id"] for r in rosters if r.get("owner_id")})
+            by_uid = {u["user_id"]: u for u in users}
+            owner = {r["roster_id"]: by_uid.get(r.get("owner_id")) for r in rosters}
+            groups: dict = {}
+            for m in matchups:
+                groups.setdefault(m.get("matchup_id"), []).append(m)
+            pairs = []
+            for g in groups.values():
+                if len(g) != 2:
+                    continue
+                ra, rb = g[0]["roster_id"], g[1]["roster_id"]
+                if ra not in model or rb not in model:
+                    continue
+                pa = views.matchup_win_pct(model[ra], model[rb])
+                a = {"team": team_name(owner.get(ra)), "pct": pa}
+                b = {"team": team_name(owner.get(rb)), "pct": round(100 - pa, 1)}
+                pairs.append({"a": a, "b": b} if pa >= 50 else {"a": b, "b": a})
+            if not pairs:
+                continue
+            channel = self.get_channel(cid)
+            if channel is None:
+                continue
+            await channel.send(embed=build_preview_embed(week, pairs))
+            _mark_week(_PREVIEW_STATE, lg_id, week)
+            log.info("posted week %d preview for %s", week, lg_id)
+
+    @tasks.loop(time=dt.time(hour=11, tzinfo=TZ))
+    async def transactions_digest(self):
+        """Once per completed week, post that week's adds/drops digest, per league."""
+        week = await latest_complete_week()
+        if week is None:
+            return
+        for bl in cfg.effective_bot_leagues():
+            lg_id, cid = bl["league_id"], bl["channel_id"]
+            if _week_done(_DIGEST_STATE, lg_id, week):
+                continue
+            raw = await get_transactions(lg_id, week)
+            if not raw:
+                continue
+            users, rosters, players = await get_users(lg_id), await get_rosters(lg_id), await get_players()
+            moves = views.transactions(raw, rosters, users, players)
+            if not moves:
+                continue
+            channel = self.get_channel(cid)
+            if channel is None:
+                continue
+            await channel.send(embed=build_digest_embed(week, moves))
+            _mark_week(_DIGEST_STATE, lg_id, week)
+            log.info("posted week %d transactions for %s", week, lg_id)
+
     @results_announcer.before_loop
     async def _before_results(self):
+        await self.wait_until_ready()
+
+    @weekly_preview.before_loop
+    async def _before_preview(self):
+        await self.wait_until_ready()
+
+    @transactions_digest.before_loop
+    async def _before_digest(self):
         await self.wait_until_ready()
 
     @matchup_pulse.before_loop

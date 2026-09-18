@@ -52,6 +52,14 @@
       </table>
       <div class="admin-actions">
         <button type="submit" class="btn">Save</button>
+      </div>
+    </form>
+
+    <div class="section-head"><h2>Announce</h2><p>posts to {{ league_name }}'s channel</p></div>
+    <form method="post" action="/admin/announce" class="admin-form admin-announce">
+      <textarea class="admin-input" name="message" rows="3" placeholder="Message to post to the league Discord channel…" required></textarea>
+      <div class="admin-actions">
+        <button type="submit" class="btn">Post to Discord</button>
         <p class="admin-note">Blank sleeper rows are dropped. Joined comes from Sleeper — add a handle to track someone, tick Paid once they've paid dues.</p>
       </div>
     </form>
