@@ -3,9 +3,19 @@
 {% block main %}
 <main class="page" data-page="admin" id="main" data-screen-label="Admin">
   <div class="wrap">
-    <div class="section-head"><h2>Members</h2><p>edits expected.toml · bot + site read it live</p></div>
+    <div class="section-head"><h2>Members</h2><p>editing <b>{{ league_name }}</b> · saved live</p></div>
 
     <form method="post" action="/admin" class="admin-form">
+      <fieldset class="admin-settings">
+        <legend>League settings — {{ league_name }}</legend>
+        <label>Dues amount ($/team)<input class="admin-input" name="dues_amount" value="{{ meta.dues_amount or '' }}" inputmode="decimal" placeholder="e.g. 50"></label>
+        <label>Pay link (Venmo/etc.)<input class="admin-input" name="pay_url" value="{{ meta.pay_url or '' }}" placeholder="https://venmo.com/…"></label>
+        <label>Draft date (YYYY-MM-DD)<input class="admin-input mono" name="draft_date" value="{{ meta.draft_date or '' }}" placeholder="2026-09-05"></label>
+        <label>Draft time label<input class="admin-input" name="draft_time_label" value="{{ meta.draft_time_label or '' }}" placeholder="8 PM ET"></label>
+      </fieldset>
+      {% if unlinked %}
+      <p class="admin-note">Sleeper teams with no member row yet: {% for u in unlinked %}<b>{{ u.handle }}</b>{{ '' if loop.last else ' · ' }}{% endfor %} — add them below (Sleeper handle = their login username, which can differ from the team name).</p>
+      {% endif %}
       <table class="ledger admin-table">
         <thead>
           <tr>
