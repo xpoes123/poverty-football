@@ -1,18 +1,19 @@
 """Lightweight page-view analytics — a thin sqlite store plus a pure aggregation. Recording
 never raises (analytics must not break a page render). Only the admin sees the results."""
 
-import os
 import pathlib
 import re
 import sqlite3
 import time
 from collections import Counter
 
+from config import cfg
+
 DB_PATH = pathlib.Path(__file__).parent / "data" / "analytics.db"
 
 
 def _conn(path=None) -> sqlite3.Connection:
-    p = pathlib.Path(path or os.environ.get("ANALYTICS_DB") or DB_PATH)
+    p = pathlib.Path(path or cfg.analytics_db or DB_PATH)
     p.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(p)
     conn.row_factory = sqlite3.Row
