@@ -663,6 +663,70 @@ def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], u
     return out
 
 
+_SCORE_LABELS = {
+    "pass_yd": "Passing yard", "pass_td": "Passing TD", "pass_int": "Interception thrown",
+    "pass_2pt": "Passing 2-pt", "rush_yd": "Rushing yard", "rush_td": "Rushing TD", "rush_2pt": "Rushing 2-pt",
+    "rec": "Reception (PPR)", "rec_yd": "Receiving yard", "rec_td": "Receiving TD", "rec_2pt": "Receiving 2-pt",
+    "bonus_rec_te": "TE reception bonus", "fum_lost": "Fumble lost", "fum_rec_td": "Fumble recovery TD",
+    "xpm": "Extra point", "fgm_0_19": "FG 0–19", "fgm_20_29": "FG 20–29", "fgm_30_39": "FG 30–39",
+    "fgm_40_49": "FG 40–49", "fgm_50p": "FG 50+", "fgmiss": "Missed FG",
+    "def_td": "Defensive TD", "def_st_td": "Special-teams TD", "sack": "Sack", "int": "Interception",
+    "fum_rec": "Fumble recovery", "safe": "Safety", "pts_allow_0": "Shutout",
+}
+_SLOT_LABELS = {"QB": "QB", "RB": "RB", "WR": "WR", "TE": "TE", "K": "K", "DEF": "DEF",
+                "FLEX": "FLEX (RB/WR/TE)", "SUPER_FLEX": "SUPERFLEX (QB/RB/WR/TE)",
+                "WRRB_FLEX": "FLEX (RB/WR)", "REC_FLEX": "FLEX (WR/TE)", "WRRB_WRT": "FLEX (RB/WR/TE)"}
+
+
+def league_rules(league: dict) -> dict:
+    """Readable scoring / roster / playoff config from a Sleeper league payload. Pure."""
+    from collections import Counter
+    s = league.get("scoring_settings") or {}
+    settings = league.get("settings") or {}
+    pos = league.get("roster_positions") or []
+    scoring = sorted(((_SCORE_LABELS[k], v) for k, v in s.items() if k in _SCORE_LABELS and v),
+                     key=lambda kv: kv[0])
+    slots = Counter(p for p in pos if p != "BN")
+    roster = [(f"{n}× {_SLOT_LABELS.get(slot, slot)}" if n > 1 else _SLOT_LABELS.get(slot, slot))
+              for slot, n in slots.items()]
+    return {
+        "scoring": scoring,
+        "roster": roster,
+        "bench": sum(1 for p in pos if p == "BN"),
+        "playoff_teams": settings.get("playoff_teams"),
+        "playoff_week_start": settings.get("playoff_week_start"),
+        "trade_deadline": settings.get("trade_deadline"),
+        "waiver_type": {0: "Rolling (priority)", 1: "Reverse standings", 2: "FAAB"}.get(settings.get("waiver_type")),
+        "ppr": s.get("rec", 0),
+    }
+
+
+def rivalry(weeks: list[tuple], a: int, b: int, users: list[dict], rosters: list[dict]) -> dict:
+    """Head-to-head history between two rosters across played weeks. Pure."""
+    by_id = {u["user_id"]: u for u in users}
+    owner = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters}
+    aw = bw = ties = 0
+    margins, meetings = [], []
+    for wk, ms in weeks:
+        groups: dict = {}
+        for m in ms:
+            groups.setdefault(m.get("matchup_id"), []).append(m)
+        for g in groups.values():
+            ids = {m["roster_id"] for m in g}
+            if len(g) == 2 and a in ids and b in ids:
+                pa = next(m.get("points") or 0 for m in g if m["roster_id"] == a)
+                pb = next(m.get("points") or 0 for m in g if m["roster_id"] == b)
+                res = "tie" if pa == pb else ("a" if pa > pb else "b")
+                aw += res == "a"
+                bw += res == "b"
+                ties += res == "tie"
+                margins.append(abs(pa - pb))
+                meetings.append({"week": wk, "pa": round(pa, 1), "pb": round(pb, 1), "winner": res})
+    return {"a_team": team_name(owner.get(a)), "b_team": team_name(owner.get(b)),
+            "a_wins": aw, "b_wins": bw, "ties": ties, "meetings": meetings,
+            "avg_margin": round(sum(margins) / len(margins), 1) if margins else None}
+
+
 def trade_side(roster: dict, players: dict, proj: dict) -> dict:
     """A franchise's roster for the trade analyzer: players with next-week projection + starter
     flag, plus the current projected starter total. `proj` is pid -> projected points."""

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Rivalry{% endblock %}
+{% block main %}
+<main class="page" data-page="rivalry" id="main" data-screen-label="Rivalry">
+  <div class="wrap">
+    {% if subtabs %}<nav class="subtabs" aria-label="Insights views">{% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}</nav>{% endif %}
+    <div class="section-head"><h2>Rivalry</h2><p>head-to-head this season</p></div>
+
+    {% if teams and teams|length >= 2 %}
+    <form class="trade-pick" method="get" action="/rivalry">
+      <label>Team A<select name="a" onchange="this.form.submit()">{% for t in teams %}<option value="{{ t.roster_id }}" {{ 'selected' if t.roster_id == a_id }}>{{ t.name }}</option>{% endfor %}</select></label>
+      <label>Team B<select name="b" onchange="this.form.submit()">{% for t in teams %}<option value="{{ t.roster_id }}" {{ 'selected' if t.roster_id == b_id }}>{{ t.name }}</option>{% endfor %}</select></label>
+    </form>
+
+    <div class="stats">
+      <div class="stat"><p class="stat__label">{{ rivalry.a_team }}</p><p class="stat__value">{{ rivalry.a_wins }}</p><p class="stat__note">wins</p></div>
+      <div class="stat"><p class="stat__label">{{ rivalry.b_team }}</p><p class="stat__value">{{ rivalry.b_wins }}</p><p class="stat__note">wins</p></div>
+      <div class="stat"><p class="stat__label">Avg margin</p><p class="stat__value">{{ '%.1f'|format(rivalry.avg_margin) if rivalry.avg_margin is not none else '—' }}</p><p class="stat__note">{{ rivalry.ties }} tie{{ '' if rivalry.ties == 1 else 's' }}</p></div>
+    </div>
+
+    {% if rivalry.meetings %}
+    <div class="lineup">
+      <p class="group-label"><span>Meetings</span><span>Score</span></p>
+      {% for m in rivalry.meetings %}
+      <div class="slot"><span class="slot__pos">Wk {{ m.week }}</span>
+        <span class="slot__player"><span class="slot__name">{{ rivalry.a_team if m.winner == 'a' else rivalry.b_team if m.winner == 'b' else 'Tie' }}</span></span>
+        <span class="slot__stats"><span class="slot__avg">{{ '%.1f'|format(m.pa) }}–{{ '%.1f'|format(m.pb) }}</span></span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="cutline-note">These two haven't played yet this season.</p>
+    {% endif %}
+    {% else %}
+    <div class="empty"><h3>Not enough teams</h3><p>Rivalries need at least two franchises.</p></div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}League Rules{% endblock %}
+{% block main %}
+<main class="page" data-page="rules" id="main" data-screen-label="League Rules">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">League</a><span class="sep">/</span><span class="here">Rules</span></nav>
+    <div class="section-head"><h2>League Rules</h2><p>{{ 'PPR' if rules.ppr == 1 else '%g PPR'|format(rules.ppr) if rules.ppr else 'Standard' }}</p></div>
+
+    <div class="stats">
+      <div class="stat"><p class="stat__label">Playoff teams</p><p class="stat__value">{{ rules.playoff_teams or '—' }}</p><p class="stat__note">start Wk {{ rules.playoff_week_start or '—' }}</p></div>
+      <div class="stat"><p class="stat__label">Waivers</p><p class="stat__value" style="font-size:16px">{{ rules.waiver_type or '—' }}</p><p class="stat__note">{% if rules.trade_deadline %}trade deadline Wk {{ rules.trade_deadline }}{% else %}no trade deadline{% endif %}</p></div>
+    </div>
+
+    <div class="section-head"><h2>Starting Lineup</h2></div>
+    <div class="chips chips--wrap" style="margin-bottom:8px">
+      {% for slot in rules.roster %}<span class="chip chip--done">{{ slot }}</span>{% endfor %}
+      {% if rules.bench %}<span class="chip">{{ rules.bench }}× Bench</span>{% endif %}
+    </div>
+
+    <div class="section-head"><h2>Scoring</h2></div>
+    <div class="table-wrap">
+    <table class="ledger">
+      <thead><tr><th scope="col">Category</th><th scope="col">Points</th></tr></thead>
+      <tbody>
+        {% for label, val in rules.scoring %}
+        <tr><td class="cell-team">{{ label }}</td><td data-label="Points">{{ '%g'|format(val) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</main>
+{% endblock %}
