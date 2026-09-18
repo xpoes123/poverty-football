@@ -64,6 +64,12 @@ button{font:inherit;color:inherit;background:none;border:0}
 /* playoff cut line — divider under the last playoff seed (in-season only) */
 .cutline-note{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:10px}
 .ledger tr.cutline,.ledger tr.cutline td{border-bottom:2px solid var(--gold-dim)}
+.awards,.records{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:20px}
+.award,.record{background:var(--surface);padding:13px 15px 15px}
+.award__label,.record__label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.award__team{font-family:var(--serif);font-size:16px;color:var(--bone);margin-top:5px}
+.record__value{font-family:var(--serif);font-size:20px;color:var(--gold-bright);font-variant-numeric:tabular-nums;margin-top:4px}
+.award__detail,.record__who{font-size:11px;line-height:1.4;color:var(--muted);margin-top:3px}
 
 /* dues / payment list */
 .dues{list-style:none;padding:0;margin:0;border:1px solid var(--rule)}

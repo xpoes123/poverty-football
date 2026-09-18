@@ -113,7 +113,20 @@ def _gamble_subtabs(active: str):
 
 def _insights_subtabs(active: str):
     return [{"label": "Luck", "href": "/insights", "current": active == "luck"},
-            {"label": "Playoff Odds", "href": "/playoffs", "current": active == "playoffs"}]
+            {"label": "Playoff Odds", "href": "/playoffs", "current": active == "playoffs"},
+            {"label": "Power", "href": "/power", "current": active == "power"},
+            {"label": "Records", "href": "/records", "current": active == "records"}]
+
+
+async def _played_weeks() -> list[tuple]:
+    """(week_no, matchups) for the active league's completed, scored weeks (skips in-progress)."""
+    current = (await get_nfl_state()).get("week") or 1
+    weeks = []
+    for wk in range(1, current):
+        m = await get_matchups(lid(), wk)
+        if m and any((e.get("points") or 0) > 0 for e in m):  # scored → actually played
+            weeks.append((wk, m))
+    return weeks
 TX_KINDS = {"trade": "Trade", "waiver": "Waiver", "free_agent": "Add"}
 STATUS_LABEL = {"pre_draft": "Pre-Draft Season", "drafting": "Draft Underway",
                 "in_season": "Regular Season", "complete": "Season Complete"}
@@ -795,15 +808,7 @@ async def insights(request: Request):
         return RedirectResponse("/")
     ctx = await _base_ctx(request, "insights")
     users, rosters = await get_users(lid()), await get_rosters(lid())
-    state = await get_nfl_state()
-    current = state.get("week") or 1
-    weeks = []
-    # Only completed weeks: the current NFL week is in progress (0 points → every
-    # matchup would read as a 0–0 tie), so stop at current-1 like the results announcer.
-    for wk in range(1, current):
-        m = await get_matchups(lid(), wk)
-        if m and any((e.get("points") or 0) > 0 for e in m):  # scored → actually played
-            weeks.append(m)
+    weeks = [m for _, m in await _played_weeks()]
     rows = views.luck_table(weeks, users, rosters)
     ctx["insights"] = rows
     ctx["has_games"] = bool(rows)
@@ -834,6 +839,38 @@ async def _season_frame():
                 groups.setdefault(e.get("matchup_id"), []).append(e["roster_id"])
             remaining += [(g[0], g[1]) for g in groups.values() if len(g) == 2]
     return scores, remaining
+
+
+@app.get("/power", response_class=HTMLResponse)
+async def power(request: Request):
+    if not cfg.enable_analysis:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "insights")
+    users, rosters = await get_users(lid()), await get_rosters(lid())
+    weeks = [m for _, m in await _played_weeks()]
+    ctx["subtabs"] = _insights_subtabs("power")
+    ctx["rankings"] = views.power_rankings(weeks, users, rosters) if weeks else []
+    ctx["has_games"] = bool(ctx["rankings"])
+    ctx["through_label"] = f"{len(weeks)} week{'' if len(weeks) == 1 else 's'} played"
+    return templates.TemplateResponse(request, "power.html", ctx)
+
+
+@app.get("/records", response_class=HTMLResponse)
+async def records(request: Request):
+    if not cfg.enable_analysis:
+        return RedirectResponse("/")
+    ctx = await _base_ctx(request, "insights")
+    users, rosters = await get_users(lid()), await get_rosters(lid())
+    weeks = await _played_weeks()
+    ctx["subtabs"] = _insights_subtabs("records")
+    ctx["records"] = views.records_book(weeks, users, rosters) if weeks else {}
+    ctx["has_games"] = bool(ctx["records"])
+    if weeks:
+        wk, ms = weeks[-1]
+        players = await get_players()
+        ctx["awards"] = views.weekly_awards(wk, ms, users, rosters, players)
+        ctx["awards_week"] = wk
+    return templates.TemplateResponse(request, "records.html", ctx)
 
 
 @app.get("/playoffs", response_class=HTMLResponse)

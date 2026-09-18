@@ -662,6 +662,160 @@ def team_schedule(matchups_by_week: dict, roster_id: int, rosters: list[dict], u
     return out
 
 
+def records_book(weeks: list[tuple], users: list[dict], rosters: list[dict]) -> dict:
+    """League records across played weeks. `weeks` is [(week_no, matchups), ...]. Pure, no I/O."""
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
+    team_weeks = []          # (team, pts, week)
+    matchup_recs = []        # (winner, wpts, loser, lpts, margin, total, week)
+    streak_hist = {}         # rid -> list of W/L over weeks (ties ignored)
+    for wk, ms in weeks:
+        for gp in scoreboard(ms, rosters, users):
+            sides = gp["sides"]
+            for s in sides:
+                team_weeks.append((s["team"], s["points"], wk))
+            if len(sides) != 2:
+                continue
+            a, b = sides
+            hi, lo = (a, b) if a["points"] >= b["points"] else (b, a)
+            matchup_recs.append((hi["team"], hi["points"], lo["team"], lo["points"],
+                                 round(hi["points"] - lo["points"], 1),
+                                 round(a["points"] + b["points"], 1), wk))
+        # win streaks — resolve pairings to roster ids
+        groups: dict = {}
+        for m in ms:
+            groups.setdefault(m.get("matchup_id"), []).append(m)
+        for g in groups.values():
+            if len(g) != 2:
+                continue
+            x, y = g
+            xp, yp = x.get("points") or 0, y.get("points") or 0
+            if xp == yp:
+                continue
+            win, lose = (x, y) if xp > yp else (y, x)
+            streak_hist.setdefault(win["roster_id"], []).append(1)
+            streak_hist.setdefault(lose["roster_id"], []).append(0)
+
+    def longest_run(seq):
+        best = cur = 0
+        for v in seq:
+            cur = cur + 1 if v else 0
+            best = max(best, cur)
+        return best
+
+    if not team_weeks:
+        return {}
+    hi_tw = max(team_weeks, key=lambda t: t[1])
+    lo_tw = min(team_weeks, key=lambda t: t[1])
+    blow = max(matchup_recs, key=lambda r: r[4])
+    nail = min((r for r in matchup_recs if r[4] > 0), key=lambda r: r[4], default=matchup_recs[0])
+    shoot = max(matchup_recs, key=lambda r: r[5])
+    streaks = [(team_name(owner_of.get(rid)), longest_run(seq)) for rid, seq in streak_hist.items()]
+    top_streak = max(streaks, key=lambda s: s[1], default=("—", 0))
+    return {
+        "top_score": {"team": hi_tw[0], "value": hi_tw[1], "week": hi_tw[2]},
+        "low_score": {"team": lo_tw[0], "value": lo_tw[1], "week": lo_tw[2]},
+        "blowout": {"winner": blow[0], "loser": blow[2], "margin": blow[4], "week": blow[6]},
+        "nailbiter": {"winner": nail[0], "loser": nail[2], "margin": nail[4], "week": nail[6]},
+        "shootout": {"a": shoot[0], "b": shoot[2], "total": shoot[5], "week": shoot[6]},
+        "streak": {"team": top_streak[0], "len": top_streak[1]},
+    }
+
+
+def weekly_awards(week_no: int, matchups: list[dict], users: list[dict], rosters: list[dict],
+                  players: dict) -> list[dict]:
+    """Superlatives for a single played week. Pure, no I/O."""
+    pairs = [g for g in scoreboard(matchups, rosters, users) if len(g["sides"]) == 2]
+    if not pairs:
+        return []
+    team_pts = [s for g in pairs for s in g["sides"]]
+    top = max(team_pts, key=lambda t: t["points"])
+    low = min(team_pts, key=lambda t: t["points"])
+
+    def margin(g):
+        return abs(g["sides"][0]["points"] - g["sides"][1]["points"])
+    blow = max(pairs, key=margin)
+    nail = min(pairs, key=margin)
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters}
+    # bench blunder: highest-scoring benched player across the league
+    blunder = None
+    for m in matchups:
+        starters = set(m.get("starters") or [])
+        for pid, pts in (m.get("players_points") or {}).items():
+            if pid in starters or not pts:
+                continue
+            if blunder is None or pts > blunder["pts"]:
+                blunder = {"pts": round(pts, 1), "player": player_line(pid, players)["name"],
+                           "team": team_name(owner_of.get(m["roster_id"]))}
+    awards = [
+        {"award": "Team of the Week", "team": top["team"], "detail": f"{top['points']:.1f} pts"},
+        {"award": "Cupcake", "team": low["team"], "detail": f"{low['points']:.1f} pts"},
+        {"award": "Blowout", "team": _mw(blow, True), "detail": f"beat {_mw(blow, False)} by {margin(blow):.1f}"},
+        {"award": "Nailbiter", "team": _mw(nail, True), "detail": f"edged {_mw(nail, False)} by {margin(nail):.1f}"},
+    ]
+    if blunder:
+        awards.append({"award": "Bench Blunder", "team": blunder["team"],
+                       "detail": f"benched {blunder['player']} ({blunder['pts']})"})
+    return awards
+
+
+def _mw(gp: dict, winner: bool) -> str:
+    a, b = gp["sides"]
+    hi, lo = (a, b) if a["points"] >= b["points"] else (b, a)
+    return (hi if winner else lo)["team"]
+
+
+def _power_rank_order(weeks: list[list[dict]], ids: set) -> list[int]:
+    """roster_ids ranked best→worst by a blend of all-play win% (0.5), season avg PF (0.35),
+    and recent (last 3 weeks) avg PF (0.15). Returns the ordered roster_id list."""
+    if not weeks or not ids:
+        return []
+    pf = {rid: [] for rid in ids}          # weekly points, in order
+    apw = dict.fromkeys(ids, 0)
+    apl = dict.fromkeys(ids, 0)
+    for wk in weeks:
+        pts = {m["roster_id"]: (m.get("points") or 0) for m in wk if m.get("roster_id") in ids}
+        for rid, p in pts.items():
+            pf[rid].append(p)
+            for orid, op in pts.items():
+                if orid != rid:
+                    if p > op:
+                        apw[rid] += 1
+                    elif p < op:
+                        apl[rid] += 1
+    max_avg = max((sum(v) / len(v) for v in pf.values() if v), default=1) or 1
+    max_recent = max((sum(v[-3:]) / len(v[-3:]) for v in pf.values() if v), default=1) or 1
+    score = {}
+    for rid in ids:
+        v = pf[rid]
+        ap = apw[rid] + apl[rid]
+        allplay = apw[rid] / ap if ap else 0.0
+        avg = (sum(v) / len(v)) / max_avg if v else 0.0
+        recent = (sum(v[-3:]) / len(v[-3:])) / max_recent if v else 0.0
+        score[rid] = 0.5 * allplay + 0.35 * avg + 0.15 * recent
+    return sorted(ids, key=lambda r: score[r], reverse=True)
+
+
+def power_rankings(weeks: list[list[dict]], users: list[dict], rosters: list[dict]) -> list[dict]:
+    """Power ranking with movement vs. the prior week (recomputed on weeks[:-1]). Pure, no I/O."""
+    by_id = {u["user_id"]: u for u in users}
+    owner_of = {r["roster_id"]: by_id.get(r.get("owner_id")) for r in rosters if r.get("owner_id")}
+    ids = set(owner_of)
+    order = _power_rank_order(weeks, ids)
+    prior = _power_rank_order(weeks[:-1], ids) if len(weeks) > 1 else []
+    prior_rank = {rid: i for i, rid in enumerate(prior, 1)}
+    rows = []
+    for rank, rid in enumerate(order, 1):
+        was = prior_rank.get(rid)
+        rows.append({
+            "rank": rank, "roster_id": rid, "team": team_name(owner_of.get(rid)),
+            "avatar": avatar_url(owner_of.get(rid)),
+            "move": (was - rank) if was else 0,  # +N = climbed N spots
+        })
+    return rows
+
+
 def playoff_odds(scores_by_team: dict, standings_rows: list[dict], remaining: list[tuple],
                  playoff_teams: int, sims: int = 3000, seed: int = 20260917) -> list[dict]:
     """Monte-Carlo make-the-playoffs odds + projected seed/wins. Pure & deterministic (seeded).

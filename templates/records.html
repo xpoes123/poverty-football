@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Records{% endblock %}
+{% block main %}
+<main class="page" data-page="records" id="main" data-screen-label="Records">
+  <div class="wrap">
+    {% if subtabs %}<nav class="subtabs" aria-label="Insights views">{% for t in subtabs %}<a class="subtab{{ ' on' if t.current }}" href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>{% endfor %}</nav>{% endif %}
+
+    {% if has_games %}
+      {% if awards %}
+      <div class="section-head"><h2>Week {{ awards_week }} Awards</h2></div>
+      <div class="awards">
+        {% for a in awards %}
+        <div class="award">
+          <p class="award__label">{{ a.award }}</p>
+          <p class="award__team">{{ a.team }}</p>
+          <p class="award__detail">{{ a.detail }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="section-head"><h2>Records Book</h2><p>season to date</p></div>
+      <div class="records">
+        <div class="record"><p class="record__label">Highest score</p><p class="record__value">{{ '%.1f'|format(records.top_score.value) }}</p><p class="record__who">{{ records.top_score.team }} · Wk {{ records.top_score.week }}</p></div>
+        <div class="record"><p class="record__label">Lowest score</p><p class="record__value">{{ '%.1f'|format(records.low_score.value) }}</p><p class="record__who">{{ records.low_score.team }} · Wk {{ records.low_score.week }}</p></div>
+        <div class="record"><p class="record__label">Biggest blowout</p><p class="record__value">{{ '%.1f'|format(records.blowout.margin) }}</p><p class="record__who">{{ records.blowout.winner }} over {{ records.blowout.loser }} · Wk {{ records.blowout.week }}</p></div>
+        <div class="record"><p class="record__label">Closest game</p><p class="record__value">{{ '%.1f'|format(records.nailbiter.margin) }}</p><p class="record__who">{{ records.nailbiter.winner }} over {{ records.nailbiter.loser }} · Wk {{ records.nailbiter.week }}</p></div>
+        <div class="record"><p class="record__label">Highest-scoring game</p><p class="record__value">{{ '%.1f'|format(records.shootout.total) }}</p><p class="record__who">{{ records.shootout.a }} vs {{ records.shootout.b }} · Wk {{ records.shootout.week }}</p></div>
+        <div class="record"><p class="record__label">Longest win streak</p><p class="record__value">{{ records.streak.len }}</p><p class="record__who">{{ records.streak.team }}</p></div>
+      </div>
+    {% else %}
+    <div class="empty">
+      <h3>No games yet</h3>
+      <p>Records and awards appear once games are played.</p>
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
