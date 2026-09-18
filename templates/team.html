@@ -14,7 +14,7 @@
     </div>
 
     <div class="stats">
-      <div class="stat"><p class="stat__label">Record</p><p class="stat__value">{{ team.record if has_season else '—' }}</p><p class="stat__note">{% if has_season and team.rank %}Rank {{ team.rank }} of 12{% else %}Pre-season{% endif %}</p></div>
+      <div class="stat"><p class="stat__label">Record</p><p class="stat__value">{{ team.record if has_season else '—' }}</p><p class="stat__note">{% if has_season and team.rank %}Rank {{ team.rank }} of {{ team_total }}{% else %}Pre-season{% endif %}</p></div>
       <div class="stat"><p class="stat__label">Points For</p><p class="stat__value">{{ team.pf if has_season else '—' }}</p><p class="stat__note">Points against {{ team.pa if has_season else '—' }}</p></div>
     </div>
 

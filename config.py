@@ -43,10 +43,19 @@ cfg = Config()
 
 # The leagues David is in — powers the web portal's league dropdown. First is the default.
 # ponytail: hardcoded list (David's personal set); add a league by pasting one line.
+# join_url / draft_date / draft_time_label are per-league and optional (None → hidden).
 LEAGUES = [
-    {"id": "1393861542625169408", "name": "Poverty Franchises"},
+    {"id": "1393861542625169408", "name": "Poverty Franchises",
+     "join_url": "https://sleeper.com/i/LVlN2Jaz9Owb3",
+     "draft_date": date(2026, 9, 5), "draft_time_label": "8 PM ET"},
     {"id": "1395399704828723200", "name": "Touchdowns and Transactions"},
     {"id": "1395587120424316928", "name": "Fantasy Deployed Engineering"},
     {"id": "1400294771536171008", "name": "SharpLabers"},
 ]
 LEAGUE_IDS = {lg["id"] for lg in LEAGUES}
+_LEAGUE_BY_ID = {lg["id"]: lg for lg in LEAGUES}
+
+
+def league_cfg(league_id: str) -> dict:
+    """The LEAGUES entry for an id (falls back to the default league)."""
+    return _LEAGUE_BY_ID.get(league_id) or _LEAGUE_BY_ID[cfg.league_id]
