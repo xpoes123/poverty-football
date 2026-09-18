@@ -468,6 +468,32 @@ async def admin_save(request: Request):
     return RedirectResponse("/admin", 303)
 
 
+def _announce_channel(league_id: str):
+    for bl in cfg.effective_bot_leagues():
+        if bl["league_id"] == league_id:
+            return bl["channel_id"]
+    return cfg.results_channel_id or cfg.shame_channel_id
+
+
+@app.post("/admin/announce")
+async def admin_announce(request: Request):
+    if str(request.session.get("discord_id")) != cfg.admin_discord_id:
+        return RedirectResponse("/")
+    form = parse_qs((await request.body()).decode())
+    msg = (form.get("message", [""])[0] or "").strip()
+    cid = _announce_channel(lid())
+    if msg and cid:
+        embed = {"title": "📣 League Announcement", "description": msg[:4000], "color": 0xC9A05E}
+        try:
+            async with httpx.AsyncClient(timeout=15) as c:
+                await c.post(f"https://discord.com/api/v10/channels/{cid}/messages",
+                             headers={"Authorization": f"Bot {cfg.discord_token}"},
+                             json={"embeds": [embed]})
+        except httpx.HTTPError:
+            pass  # never let a Discord hiccup 500 the admin page
+    return RedirectResponse("/admin", 303)
+
+
 @app.get("/analytics", response_class=HTMLResponse)
 async def analytics_page(request: Request):
     if str(request.session.get("discord_id")) != cfg.admin_discord_id:

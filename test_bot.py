@@ -5,6 +5,16 @@ import bot
 from config import cfg
 
 
+def test_announcement_embed_builders():
+    prev = bot.build_preview_embed(3, [{"a": {"team": "A", "pct": 62.0}, "b": {"team": "B", "pct": 38.0}}])
+    assert "Week 3" in prev.title and "62%" in prev.description
+    dig = bot.build_digest_embed(2, [{"teams": ["A"], "adds": [("Star RB", "rb")], "drops": []}])
+    assert "Week 2" in dig.title and "Star RB" in dig.description
+    res = bot.build_results_embed({"week": 1, "lines": [], "extremes": None},
+                                  awards=[{"award": "Team of the Week", "team": "A", "detail": "150 pts"}])
+    assert any("Awards" in (f.name or "") for f in res.fields)
+
+
 def test_effective_bot_leagues_default_is_single_league():
     lgs = cfg.effective_bot_leagues()
     assert len(lgs) == 1 and lgs[0]["league_id"] == cfg.league_id
