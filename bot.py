@@ -43,16 +43,29 @@ def load_members() -> list[Member]:
 _RESULTS_STATE = pathlib.Path(__file__).parent / "data" / "results_state.json"
 
 
-def _last_announced_week() -> int:
+def _read_json(path: pathlib.Path) -> dict:
     try:
-        return json.loads(_RESULTS_STATE.read_text()).get("week", 0)
+        return json.loads(path.read_text())
     except (FileNotFoundError, ValueError):
-        return 0
+        return {}
 
 
-def _mark_announced(week: int) -> None:
+def _last_announced_week(league_id: str) -> int:
+    d = _read_json(_RESULTS_STATE)
+    if league_id in d:
+        return d[league_id]
+    if league_id == cfg.league_id and "week" in d:  # legacy single-league file
+        return d["week"]
+    return 0
+
+
+def _mark_announced(league_id: str, week: int) -> None:
+    d = _read_json(_RESULTS_STATE)
+    if "week" in d:  # migrate the legacy scalar to the default league's key, don't lose it
+        d.setdefault(cfg.league_id, d.pop("week"))
+    d[league_id] = week
     _RESULTS_STATE.parent.mkdir(parents=True, exist_ok=True)
-    _RESULTS_STATE.write_text(json.dumps({"week": week}))
+    _RESULTS_STATE.write_text(json.dumps(d))
 
 
 async def latest_complete_week() -> int | None:
@@ -96,16 +109,24 @@ def build_results_embed(ann: dict) -> discord.Embed:
 _PULSE_STATE = pathlib.Path(__file__).parent / "data" / "pulse_state.json"
 
 
-def _pulse_state() -> dict:
-    try:
-        return json.loads(_PULSE_STATE.read_text())
-    except (FileNotFoundError, ValueError):
-        return {}
+def _pulse_state(league_id: str) -> dict:
+    d = _read_json(_PULSE_STATE)
+    if league_id in d:
+        return d[league_id]
+    if league_id == cfg.league_id and "week" in d:  # legacy single-league file
+        return {"week": d["week"], "final": d.get("final", 0)}
+    return {}
 
 
-def _mark_pulse(week: int, final_count: int) -> None:
+def _mark_pulse(league_id: str, week: int, final_count: int) -> None:
+    d = _read_json(_PULSE_STATE)
+    if "week" in d:  # migrate the legacy scalar to the default league's key, don't lose it
+        d.setdefault(cfg.league_id, {"week": d["week"], "final": d.get("final", 0)})
+        d.pop("week", None)
+        d.pop("final", None)
+    d[league_id] = {"week": week, "final": final_count}
     _PULSE_STATE.parent.mkdir(parents=True, exist_ok=True)
-    _PULSE_STATE.write_text(json.dumps({"week": week, "final": final_count}))
+    _PULSE_STATE.write_text(json.dumps(d))
 
 
 def build_pulse_embed(week: int, final_now: int, total: int, pairs: list, watch: list) -> discord.Embed:
@@ -181,29 +202,34 @@ class NflBot(discord.Client):
 
     @tasks.loop(time=dt.time(hour=10, tzinfo=TZ))
     async def results_announcer(self):
-        """Once a week's matchups are final, post the results — once."""
+        """Once a week's matchups are final, post the results — once, per configured league."""
         week = await latest_complete_week()
-        if week is None or week <= _last_announced_week():
+        if week is None:
             return
-        matchups = await get_matchups(cfg.league_id, week)
-        if not matchups:
-            return
-        users, rosters = await get_users(cfg.league_id), await get_rosters(cfg.league_id)
-        ann = results.announcement(scoreboard(matchups, rosters, users), week)
-        if ann is None:
-            return  # nothing decided yet
-        cid = cfg.results_channel_id or cfg.shame_channel_id
-        channel = self.get_channel(cid)
-        if channel is None:
-            log.error("results channel %s not found", cid)
-            return
-        await channel.send(embed=build_results_embed(ann))
-        _mark_announced(week)
-        log.info("announced week %d results (%d matchups)", week, len(ann["lines"]))
+        for bl in cfg.effective_bot_leagues():
+            lg_id, cid = bl["league_id"], bl["channel_id"]
+            if week <= _last_announced_week(lg_id):
+                continue
+            matchups = await get_matchups(lg_id, week)
+            if not matchups:
+                continue
+            users, rosters = await get_users(lg_id), await get_rosters(lg_id)
+            ann = results.announcement(scoreboard(matchups, rosters, users), week)
+            if ann is None:
+                continue  # nothing decided yet
+            channel = self.get_channel(cid)
+            if channel is None:
+                log.error("results channel %s not found (league %s)", cid, lg_id)
+                continue
+            await channel.send(embed=build_results_embed(ann))
+            _mark_announced(lg_id, week)
+            log.info("announced week %d results for %s (%d matchups)", week, lg_id, len(ann["lines"]))
 
     @tasks.loop(minutes=30)
     async def matchup_pulse(self):
-        """During game days, once a slate of NFL games goes final, post a live matchup update."""
+        """During game days, once a slate of NFL games goes final, post a live matchup
+        update — per configured league. The NFL slate is global; only the fantasy matchups
+        (and the post-gating state + channel) are per-league."""
         state = await get_nfl_state()
         if state.get("season_type") != "regular":
             return
@@ -216,55 +242,59 @@ class NflBot(discord.Client):
             return
         total = len(espn_games)
         final_now = sum(1 for g in espn_games if g.get("state") == "post")
-        prev = _pulse_state()
-        posted = prev.get("final", 0) if prev.get("week") == week else 0
-        if not live_update.should_post(final_now, total, posted):
-            return  # no new slate finished (cheap check — avoids the projection fetch below)
-
-        matchups = await get_matchups(cfg.league_id, week)
-        if not matchups:
-            return
-        users, rosters, players = await get_users(cfg.league_id), await get_rosters(cfg.league_id), await get_players()
-        scoring = (await get_league(cfg.league_id)).get("scoring_settings") or {}
-        proj_pts = {pid: fantasy_points(st, scoring) for pid, st in (await get_projections(season, week)).items()}
         team_state = {}  # Sleeper team abbr -> pre/in/post
         for g in espn_games:
             for s in ("home", "away"):
                 if (a := g[s].get("abbr")):
                     team_state[ESPN_TO_SLEEPER_TEAM.get(a, a)] = g.get("state")
-        by_uid = {u["user_id"]: u for u in users}
-        owner_of = {r["roster_id"]: by_uid.get(r.get("owner_id")) for r in rosters}
-
-        groups: dict = {}
-        for m in matchups:
-            groups.setdefault(m.get("matchup_id"), []).append(m)
-        pairs, watch = [], []
-        for entries in groups.values():
-            if len(entries) != 2:
+        players = None  # fetched lazily on the first league that clears the gate
+        for bl in cfg.effective_bot_leagues():
+            lg_id, cid = bl["league_id"], bl["channel_id"]
+            prev = _pulse_state(lg_id)
+            posted = prev.get("final", 0) if prev.get("week") == week else 0
+            if not live_update.should_post(final_now, total, posted):
+                continue  # no new slate finished for this league (cheap check)
+            matchups = await get_matchups(lg_id, week)
+            if not matchups:
                 continue
-            sides = []
-            for m in entries:
-                sp = m.get("starters_points") or []
-                sel = [(pid, sp[i] if i < len(sp) else 0.0)
-                       for i, pid in enumerate(m.get("starters") or []) if pid and pid != "0"]
-                pstate = {pid: team_state.get((players.get(pid) or {}).get("team"), "pre") for pid, _ in sel}
-                o = live_update.roster_outlook([p for p, _ in sel], [pt for _, pt in sel],
-                                               m.get("points") or 0, proj_pts, pstate)
-                team = team_name(owner_of.get(m["roster_id"]))
-                sides.append({"team": team, **o})
-                watch += [(pid, proj, team) for pid, proj in o["remaining"]]
-            sides.sort(key=lambda s: s["projected"], reverse=True)
-            pairs.append(sides)
-        if not pairs:
-            return
-        watch.sort(key=lambda x: x[1], reverse=True)
-        watch_top = [(player_line(pid, players)["name"], proj, team) for pid, proj, team in watch[:3]]
-        channel = self.get_channel(cfg.results_channel_id or cfg.shame_channel_id)
-        if channel is None:
-            return
-        await channel.send(embed=build_pulse_embed(week, final_now, total, pairs, watch_top))
-        _mark_pulse(week, final_now)
-        log.info("matchup pulse posted: week %d (%d/%d final)", week, final_now, total)
+            if players is None:
+                players = await get_players()
+            users, rosters = await get_users(lg_id), await get_rosters(lg_id)
+            scoring = (await get_league(lg_id)).get("scoring_settings") or {}
+            proj_pts = {pid: fantasy_points(st, scoring) for pid, st in (await get_projections(season, week)).items()}
+            by_uid = {u["user_id"]: u for u in users}
+            owner_of = {r["roster_id"]: by_uid.get(r.get("owner_id")) for r in rosters}
+
+            groups: dict = {}
+            for m in matchups:
+                groups.setdefault(m.get("matchup_id"), []).append(m)
+            pairs, watch = [], []
+            for entries in groups.values():
+                if len(entries) != 2:
+                    continue
+                sides = []
+                for m in entries:
+                    sp = m.get("starters_points") or []
+                    sel = [(pid, sp[i] if i < len(sp) else 0.0)
+                           for i, pid in enumerate(m.get("starters") or []) if pid and pid != "0"]
+                    pstate = {pid: team_state.get((players.get(pid) or {}).get("team"), "pre") for pid, _ in sel}
+                    o = live_update.roster_outlook([p for p, _ in sel], [pt for _, pt in sel],
+                                                   m.get("points") or 0, proj_pts, pstate)
+                    team = team_name(owner_of.get(m["roster_id"]))
+                    sides.append({"team": team, **o})
+                    watch += [(pid, proj, team) for pid, proj in o["remaining"]]
+                sides.sort(key=lambda s: s["projected"], reverse=True)
+                pairs.append(sides)
+            if not pairs:
+                continue
+            watch.sort(key=lambda x: x[1], reverse=True)
+            watch_top = [(player_line(pid, players)["name"], proj, team) for pid, proj, team in watch[:3]]
+            channel = self.get_channel(cid)
+            if channel is None:
+                continue
+            await channel.send(embed=build_pulse_embed(week, final_now, total, pairs, watch_top))
+            _mark_pulse(lg_id, week, final_now)
+            log.info("matchup pulse posted: %s week %d (%d/%d final)", lg_id, week, final_now, total)
 
     @results_announcer.before_loop
     async def _before_results(self):

@@ -34,9 +34,20 @@ class Config(BaseSettings):
     # Reuse SharpLab's odds pipeline instead of hitting the-odds-api ourselves (one quota, one poller).
     sharplab_slate_url: str = "https://sharplab.djiang.xyz/api/v1/dashboard/slate"
 
+    # Which leagues the bot announces for + where. JSON env, e.g.
+    # BOT_LEAGUES='[{"league_id":"139...","channel_id":123},{"league_id":"140...","channel_id":456}]'
+    # Empty → derive a single entry from league_id + results/shame channel (legacy behavior).
+    bot_leagues: list[dict] = []
+
     @property
     def oauth_enabled(self) -> bool:
         return bool(self.discord_client_id and self.discord_client_secret)
+
+    def effective_bot_leagues(self) -> list[dict]:
+        if self.bot_leagues:
+            return self.bot_leagues
+        return [{"league_id": self.league_id,
+                 "channel_id": self.results_channel_id or self.shame_channel_id}]
 
 
 cfg = Config()
