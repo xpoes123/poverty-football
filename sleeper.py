@@ -27,10 +27,15 @@ async def _get(url: str, ttl: float):
     hit = _cache.get(url)
     if hit and hit[0] > now:
         return hit[1]
-    async with httpx.AsyncClient(timeout=20) as c:
-        r = await c.get(url)
-        r.raise_for_status()
-        data = r.json()
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.get(url)
+            r.raise_for_status()
+            data = r.json()
+    except (httpx.HTTPError, ValueError):
+        if hit is not None:
+            return hit[1]  # serve stale rather than 500 the page on a transient upstream blip
+        raise
     _cache[url] = (now + ttl, data)
     return data
 

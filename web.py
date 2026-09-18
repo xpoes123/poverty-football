@@ -285,6 +285,18 @@ async def _tx_feed(users, rosters):
     return feed
 
 
+@app.exception_handler(Exception)
+async def _unhandled(request: Request, exc: Exception):
+    # One upstream (Sleeper/ESPN) blip shouldn't take the whole site down with a raw 500.
+    import logging
+    logging.getLogger("nfl-web").exception("unhandled error on %s", request.url.path)
+    html = ("<main style='max-width:32rem;margin:12vh auto;padding:0 1.25rem;font-family:system-ui;"
+            "color:#f3eee3;background:#16100c'><h1 style='font-weight:500'>Something hiccuped</h1>"
+            "<p style='color:#9a8d7c'>The league data source is being slow or grumpy. Refresh in a moment.</p>"
+            "<p><a style='color:#c9a05e' href='/'>Back to the league</a></p></main>")
+    return HTMLResponse(html, status_code=503)
+
+
 @app.get("/health")
 async def health():
     return {"ok": True}
